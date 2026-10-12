@@ -1,8 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { classifyEntityImageUrl } from '#shared/utils/entityImageUrl.mjs'
 import { LESSON_CONTENT_REAP_AGE_MS } from './lessonStorage'
 
 const BUCKET = 'uploads'
-const PUBLIC_PREFIX = `/storage/v1/object/public/${BUCKET}/`
 const IMAGE_PREFIX = 'entity-images/'
 const IMAGE_FOLDER = 'entity-images'
 const PAGE_SIZE = 1000
@@ -19,35 +19,12 @@ type ClassifiedUrl =
   | { kind: 'block' }
   | { kind: 'path'; path: string }
 
-function classifyEntityImageUrl(url: string, supabaseUrl: string): ClassifiedUrl {
-  if (!url || !supabaseUrl) return { kind: 'ignore' }
-  let parsed: URL
-  let base: URL
-  try {
-    parsed = new URL(url)
-    base = new URL(supabaseUrl)
-  } catch {
-    return { kind: 'ignore' }
-  }
-  if (parsed.origin !== base.origin) return { kind: 'ignore' }
-  const idx = parsed.pathname.indexOf(PUBLIC_PREFIX)
-  if (idx === -1) return { kind: 'block' }
-  let path: string
-  try {
-    path = decodeURIComponent(parsed.pathname.slice(idx + PUBLIC_PREFIX.length))
-  } catch {
-    return { kind: 'block' }
-  }
-  if (!path.startsWith(IMAGE_PREFIX) || path.includes('\\')) return { kind: 'block' }
-  const parts = path.split('/')
-  if (parts.length !== 2 || parts.some((part) => part === '' || part === '.' || part === '..')) {
-    return { kind: 'block' }
-  }
-  return { kind: 'path', path }
+function classify(url: string, supabaseUrl: string): ClassifiedUrl {
+  return classifyEntityImageUrl(url, supabaseUrl) as ClassifiedUrl
 }
 
 export function entityImagePathFromUrl(url: string, supabaseUrl: string): string | null {
-  const classified = classifyEntityImageUrl(url, supabaseUrl)
+  const classified = classify(url, supabaseUrl)
   return classified.kind === 'path' ? classified.path : null
 }
 
@@ -72,7 +49,7 @@ async function referencedEntityImagePaths(
       const rows = (data ?? []) as ImageRow[]
       for (const row of rows) {
         if (!row.image_url) continue
-        const classified = classifyEntityImageUrl(row.image_url, supabaseUrl)
+        const classified = classify(row.image_url, supabaseUrl)
         if (classified.kind === 'block') {
           console.error('[entityImageStorage] unrecognized image url')
           return null
@@ -116,7 +93,7 @@ export async function removeUnusedEntityImage(
   supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || ''),
 ): Promise<void> {
   if (!imageUrl) return
-  const classified = classifyEntityImageUrl(imageUrl, supabaseUrl)
+  const classified = classify(imageUrl, supabaseUrl)
   if (classified.kind !== 'path') {
     if (classified.kind === 'ignore') console.warn('[entityImageStorage] skip unrecognized image url')
     return

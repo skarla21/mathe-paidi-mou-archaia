@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
 import {
+  dialogPasteHost,
+  pasteLessonFile,
+  pointerLeftDropzone,
+} from "#shared/utils/clipboardImage.mjs";
+import {
   attachmentAfterRemove,
   canStartUpload,
 } from "#shared/utils/lessonAttachment.mjs";
@@ -334,7 +339,13 @@ async function discardSessionUrls() {
 }
 
 async function beginUpload(file: File) {
-  if (!canStartUpload({ loading: loading.value, uploading: uploading.value || uploadBusy.value })) return;
+  if (
+    !canStartUpload({
+      loading: loading.value,
+      uploading: uploading.value || uploadBusy.value,
+    })
+  )
+    return;
   const generation = ++uploadGeneration;
   const previousUrl = contentUrl.value;
   uploadBusy.value = true;
@@ -352,7 +363,11 @@ async function beginUpload(file: File) {
     }
     contentUrl.value = res.url;
     fileName.value = file.name;
-    if (previousUrl && previousUrl !== savedContentUrl.value && previousUrl !== res.url) {
+    if (
+      previousUrl &&
+      previousUrl !== savedContentUrl.value &&
+      previousUrl !== res.url
+    ) {
       sessionUrls.delete(previousUrl);
       void discardUrl(previousUrl);
     }
@@ -374,7 +389,13 @@ function onFileSelect(e: Event) {
 function onDrop(e: DragEvent) {
   e.preventDefault();
   dragActive.value = false;
-  if (!canStartUpload({ loading: loading.value, uploading: uploading.value || uploadBusy.value })) return;
+  if (
+    !canStartUpload({
+      loading: loading.value,
+      uploading: uploading.value || uploadBusy.value,
+    })
+  )
+    return;
   if (e.dataTransfer?.files?.[0]) void beginUpload(e.dataTransfer.files[0]);
 }
 
@@ -383,9 +404,46 @@ function onDragOver(e: DragEvent) {
   dragActive.value = true;
 }
 
-function onDragLeave() {
+const fileZone = ref<HTMLElement | null>(null);
+
+function onDragLeave(event: DragEvent) {
+  if (!pointerLeftDropzone(fileZone.value, event.relatedTarget)) return;
   dragActive.value = false;
 }
+
+let pasteHost: HTMLElement | null = null;
+
+function unbindLessonPaste() {
+  pasteHost?.removeEventListener("paste", onLessonPaste);
+  pasteHost = null;
+}
+
+function onLessonPaste(event: ClipboardEvent) {
+  const file = pasteLessonFile(event.clipboardData, {
+    busy: loading.value || uploading.value || uploadBusy.value,
+    target: event.target,
+    zone: fileZone.value,
+  });
+  if (!file) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  void beginUpload(file);
+}
+
+function bindLessonPaste(zone: HTMLElement | null) {
+  unbindLessonPaste();
+  if (!import.meta.client || !zone) return;
+  const dialog = dialogPasteHost(zone);
+  if (!(dialog instanceof HTMLElement)) return;
+  pasteHost = dialog;
+  dialog.addEventListener("paste", onLessonPaste);
+}
+
+watch(fileZone, (zone) => {
+  bindLessonPaste(zone instanceof HTMLElement ? zone : null);
+});
+
+onUnmounted(unbindLessonPaste);
 
 function clearContent() {
   if (loading.value) return;
@@ -505,6 +563,7 @@ async function onSubmit() {
             <div class="space-y-1.5">
               <UiLabel>Αρχείο</UiLabel>
               <div
+                ref="fileZone"
                 class="rounded-lg border-2 border-dashed p-4 text-center transition-colors"
                 :class="
                   dragActive
@@ -538,7 +597,11 @@ async function onSubmit() {
                     variant="ghost"
                     size="icon"
                     class="absolute inset-e-2 top-1/2 size-10 -translate-y-1/2 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-8"
-                    :aria-label="uploading || uploadBusy ? 'Ακύρωση μεταφόρτωσης' : 'Αφαίρεση αρχείου'"
+                    :aria-label="
+                      uploading || uploadBusy
+                        ? 'Ακύρωση μεταφόρτωσης'
+                        : 'Αφαίρεση αρχείου'
+                    "
                     :disabled="loading"
                     @click.stop="clearContent"
                   >
@@ -553,8 +616,8 @@ async function onSubmit() {
                   <p class="text-sm font-medium">
                     {{
                       hasAttachment
-                        ? "Σύρε νέο PDF ή εικόνα για αντικατάσταση, ή κάνε κλικ για επιλογή"
-                        : "Σύρε και άφησε PDF ή εικόνα εδώ, ή κάνε κλικ για επιλογή"
+                        ? "Σύρε νέο PDF ή εικόνα για αντικατάσταση, ή κάνε κλικ για επιλογή ή κάνε paste"
+                        : "Σύρε και άφησε PDF ή εικόνα εδώ, ή κάνε κλικ για επιλογή ή κάνε paste"
                     }}
                   </p>
                   <p class="text-xs text-muted-foreground">
@@ -575,7 +638,7 @@ async function onSubmit() {
                     accept="application/pdf,image/jpeg,image/png"
                     class="hidden"
                     @change="onFileSelect"
-                  >
+                  />
                 </div>
                 <UiProgress
                   v-if="uploading"
@@ -894,7 +957,12 @@ async function onSubmit() {
             >
             <UiButton
               type="submit"
-              :disabled="loading || uploading || uploadBusy || duplicatePlacementKeys.size > 0"
+              :disabled="
+                loading ||
+                uploading ||
+                uploadBusy ||
+                duplicatePlacementKeys.size > 0
+              "
               >{{ loading ? "Φόρτωση..." : "Αποθήκευση" }}</UiButton
             >
           </UiDialogFooter>

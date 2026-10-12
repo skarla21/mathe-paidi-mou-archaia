@@ -6,6 +6,7 @@ import { withUniqueSlugRetry } from '../../../utils/uniqueViolation'
 import { requireExistingRow } from '../../../utils/existingRow'
 import { plainGreekLabel } from '#shared/utils/foldGreekSearch.mjs'
 import { assertSubjectNameAvailable, rethrowFoldedNameConflict, SUBJECT_NAME_TAKEN } from '../../../utils/foldedName'
+import { storedEntityImageUrl } from '../../../utils/storedEntityImage'
 
 export default defineEventHandler(async (event) => {
   requireAdmin(event)
@@ -15,7 +16,8 @@ export default defineEventHandler(async (event) => {
   const updates: Record<string, unknown> = {}
   const supabase = serverSupabaseService()
   if (body.name !== undefined) updates.name = plainGreekLabel(body.name)
-  if (body.image_url !== undefined) updates.image_url = body.image_url || null
+  const nextImageUrl = body.image_url !== undefined ? storedEntityImageUrl(body.image_url) : undefined
+  if (nextImageUrl !== undefined) updates.image_url = nextImageUrl
   if (body.grade_id !== undefined) updates.grade_id = body.grade_id
   if (!Object.keys(updates).length) throw createError({ statusCode: 400, message: 'Δεν υπάρχει κάτι για ενημέρωση' })
   const existingResult = await supabase
@@ -55,7 +57,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
   }
   if (body.image_url !== undefined) {
-    await releaseReplacedEntityImage(supabase, previousImageUrl, body.image_url || null)
+    await releaseReplacedEntityImage(supabase, previousImageUrl, nextImageUrl)
   }
   return data
 })

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { acceptedEntityImageUrl } from '#shared/utils/entityImageUrl.mjs'
+
 interface ArticleCard {
   id: string
   title: string
@@ -9,6 +11,13 @@ interface ArticleCard {
 const { categories, ensureCategories, categoriesFailed } = useCatalogNav()
 const articles = ref<ArticleCard[]>([])
 const articlesFailed = ref(false)
+
+const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || '')
+
+function storedImageSrc(url: string | null | undefined) {
+  const accepted = acceptedEntityImageUrl(url ?? '', supabaseUrl)
+  return typeof accepted === 'string' ? accepted : ''
+}
 
 const shownCategories = computed(() => categories.value.slice(0, 3))
 const shownArticles = computed(() => articles.value.slice(0, 3))
@@ -50,8 +59,8 @@ try {
       >
         <div class="h-40 bg-laurel-fixed/50">
           <img
-            v-if="category.image_url"
-            :src="category.image_url"
+            v-if="storedImageSrc(category.image_url)"
+            :src="storedImageSrc(category.image_url)"
             :alt="category.name"
             class="h-full w-full object-cover"
           >

@@ -4,6 +4,7 @@ import { nextSubjectSlug } from '../../utils/contentSlug'
 import { withUniqueSlugRetry } from '../../utils/uniqueViolation'
 import { plainGreekLabel } from '#shared/utils/foldGreekSearch.mjs'
 import { assertSubjectNameAvailable, rethrowFoldedNameConflict, SUBJECT_NAME_TAKEN } from '../../utils/foldedName'
+import { storedEntityImageUrl } from '../../utils/storedEntityImage'
 
 export default defineEventHandler(async (event) => {
   requireAdmin(event)
@@ -18,7 +19,7 @@ export default defineEventHandler(async (event) => {
       name,
       slug,
       grade_id: body.grade_id,
-      image_url: body.image_url ?? null,
+      image_url: storedEntityImageUrl(body.image_url),
     }).select().single()
   })
   if (error || !data) {

@@ -8,10 +8,10 @@ import UiDialogHeader from '~/components/ui/dialog/DialogHeader.vue'
 import UiDialogFooter from '~/components/ui/dialog/DialogFooter.vue'
 import UiDialogTitle from '~/components/ui/dialog/DialogTitle.vue'
 import UiDialogDescription from '~/components/ui/dialog/DialogDescription.vue'
+import AdminImageDropzone from '~/components/admin/AdminImageDropzone.vue'
 import UiButton from '~/components/ui/Button.vue'
 import UiInput from '~/components/ui/Input.vue'
 import UiLabel from '~/components/ui/Label.vue'
-import UiProgress from '~/components/ui/Progress.vue'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 const props = defineProps<{
@@ -26,10 +26,10 @@ const gradeId = ref('')
 const grades = ref<{ id: string; name: string }[]>([])
 const loading = ref(false)
 const attempted = ref(false)
-const dragActive = ref(false)
-const fileInput = ref<HTMLInputElement | null>(null)
 const {
   imageUrl,
+  preserveExisting,
+  persistedImage,
   uploading,
   progress: uploadProgress,
   statusLabel: uploadStatusLabel,
@@ -39,6 +39,8 @@ const {
   releaseUnsaved,
   uploadImage,
   clearImage,
+  removePersistedImage,
+  imageFields,
 } = useAdminImageDraft('subject')
 
 const nameMissing = computed(() => attempted.value && !name.value.trim())
@@ -56,25 +58,17 @@ watch(() => props.open, async (val) => {
   try { grades.value = await $fetch<{ id: string; name: string }[]>('/api/admin/grades') } catch { grades.value = [] }
 })
 
-function onFileSelect(e: Event) {
-  const input = e.target as HTMLInputElement
-  if (input.files?.[0]) void uploadImage(input.files[0], loading.value)
-  input.value = ''
+function onImageFile(file: File) {
+  void uploadImage(file, loading.value)
 }
 
-function onDrop(e: DragEvent) {
-  e.preventDefault()
-  dragActive.value = false
-  if (e.dataTransfer?.files?.[0]) void uploadImage(e.dataTransfer.files[0], loading.value)
-}
-
-function onDragOver(e: DragEvent) {
-  e.preventDefault()
-  dragActive.value = true
-}
-
-function onDragLeave() {
-  dragActive.value = false
+async function onImageClear() {
+  if (persistedImage.value && props.subject) {
+    const removed = await removePersistedImage(props.subject.id)
+    if (removed) emit('saved')
+    return
+  }
+  clearImage()
 }
 
 async function onSubmit() {
@@ -83,7 +77,7 @@ async function onSubmit() {
   if (nameMissing.value || gradeMissing.value) return
   loading.value = true
   try {
-    const body = { name: name.value, grade_id: gradeId.value, image_url: imageUrl.value || null }
+    const body = { name: name.value, grade_id: gradeId.value, ...imageFields(!props.subject) }
     if (props.subject) {
       await adminFetch(`/api/admin/subjects/${props.subject.id}`, { method: 'PATCH', body })
     } else {
@@ -129,36 +123,17 @@ async function onSubmit() {
             </Select>
             <p v-if="gradeMissing" class="text-xs text-destructive">Το πεδίο «Τάξη» είναι υποχρεωτικό</p>
           </div>
-          <div class="space-y-1.5">
-            <UiLabel>URL εικόνας</UiLabel>
-            <div
-              class="rounded-lg border-2 border-dashed p-4 text-center transition-colors"
-              :class="dragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'"
-              @drop="onDrop"
-              @dragover="onDragOver"
-              @dragleave="onDragLeave"
-            >
-              <div class="flex flex-col items-center gap-2">
-                <VIcon name="bi-cloud-arrow-up" class="size-8 text-muted-foreground" />
-                <p class="text-sm font-medium">Σύρε και άφησε εικόνα εδώ, ή κάνε κλικ για επιλογή</p>
-                <p class="text-xs text-muted-foreground">Εικόνες μέγ. 20MB</p>
-                <UiButton type="button" variant="outline" size="sm" :disabled="loading || uploading" @click="fileInput?.click()">
-                  Επιλογή αρχείου
-                </UiButton>
-                <input ref="fileInput" type="file" accept="image/jpeg,image/png" class="hidden" @change="onFileSelect">
-              </div>
-              <UiProgress v-if="uploading" :model-value="uploadProgress" class="mt-3 h-2" />
-              <p v-if="uploading" class="mt-2 text-xs text-muted-foreground" aria-live="polite">{{ uploadStatusLabel }}</p>
-              <div v-else-if="imageUrl" class="mt-3 flex items-center justify-center gap-2">
-                <img :src="imageUrl" alt="" class="h-16 w-16 rounded-md object-cover border border-border">
-                <UiButton type="button" variant="ghost" size="sm" @click="clearImage">
-                  Αφαίρεση αρχείου
-                </UiButton>
-              </div>
-            </div>
-            <p class="text-xs text-muted-foreground">Ή επικόλληση URL</p>
-            <UiInput v-model="imageUrl" placeholder="https://..." />
-          </div>
+          <AdminImageDropzone
+            :model-value="imageUrl"
+            :uploading="uploading"
+            :progress="uploadProgress"
+            :status-label="uploadStatusLabel"
+            :disabled="loading"
+            :preserved="preserveExisting"
+            :persisted="persistedImage"
+            @file="onImageFile"
+            @clear="onImageClear"
+          />
           <UiDialogFooter>
             <UiButton type="button" variant="cancel" @click="emit('close')">Ακύρωση</UiButton>
             <UiButton type="submit" :disabled="loading || uploading">{{ loading ? 'Φόρτωση...' : 'Αποθήκευση' }}</UiButton>

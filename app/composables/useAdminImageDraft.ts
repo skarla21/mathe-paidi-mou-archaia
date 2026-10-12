@@ -1,21 +1,41 @@
+import { toast } from 'vue-sonner'
+import { acceptedEntityImageUrl, entityImageDraft, entityImageSaveFields } from '#shared/utils/entityImageUrl.mjs'
 import { canStartUpload, imageToDiscard } from '#shared/utils/lessonAttachment.mjs'
 
 type ImageEntity = 'category' | 'chapter' | 'subject'
+
+const IMAGE_COLLECTION: Record<ImageEntity, string> = {
+  category: 'categories',
+  chapter: 'chapters',
+  subject: 'subjects',
+}
 
 export function useAdminImageDraft(entity: ImageEntity) {
   const adminFetch = useAdminFetch()
   const imageUrl = ref('')
   const savedUrl = ref('')
   const sessionUrl = ref('')
+  const preserveExisting = ref(false)
+  const imageRemoved = ref(false)
   const busy = ref(false)
   let keepSession = false
   const fileUpload = useAdminFileUpload()
   const uploading = computed(() => fileUpload.uploading.value || busy.value)
+  const persistedImage = computed(() =>
+    preserveExisting.value || (imageUrl.value !== '' && imageUrl.value === savedUrl.value && sessionUrl.value === ''),
+  )
+
+  function storageUrl() {
+    return String(useRuntimeConfig().public.supabaseUrl || '')
+  }
 
   function resetImage(url: string | null | undefined) {
     keepSession = false
-    savedUrl.value = url ?? ''
-    imageUrl.value = savedUrl.value
+    const next = entityImageDraft(url ?? '', storageUrl())
+    savedUrl.value = next.draft
+    imageUrl.value = next.draft
+    preserveExisting.value = next.preserveExisting
+    imageRemoved.value = false
     sessionUrl.value = ''
   }
 
@@ -56,9 +76,16 @@ export function useAdminImageDraft(entity: ImageEntity) {
     try {
       const res = await fileUpload.upload(file, { kind: 'image', entity })
       if (!res?.url) return
-      if (previous && previous !== res.url) discard(previous)
-      imageUrl.value = res.url
-      sessionUrl.value = res.url === savedUrl.value ? '' : res.url
+      const accepted = acceptedEntityImageUrl(res.url, storageUrl())
+      if (typeof accepted !== 'string') {
+        discard(res.url)
+        return
+      }
+      if (previous && previous !== accepted) discard(previous)
+      imageUrl.value = accepted
+      preserveExisting.value = false
+      imageRemoved.value = false
+      sessionUrl.value = accepted === savedUrl.value ? '' : accepted
     } finally {
       busy.value = false
     }
@@ -67,14 +94,49 @@ export function useAdminImageDraft(entity: ImageEntity) {
   function clearImage() {
     const current = imageUrl.value
     imageUrl.value = ''
+    preserveExisting.value = false
+    imageRemoved.value = true
     if (!sessionUrl.value || sessionUrl.value !== current) return
     const url = sessionUrl.value
     sessionUrl.value = ''
     discard(url)
   }
 
+  async function removePersistedImage(id: string) {
+    busy.value = true
+    try {
+      await adminFetch(`/api/admin/${IMAGE_COLLECTION[entity]}/${id}`, {
+        method: 'PATCH',
+        body: { image_url: null },
+      })
+      imageUrl.value = ''
+      savedUrl.value = ''
+      preserveExisting.value = false
+      imageRemoved.value = false
+      sessionUrl.value = ''
+      return true
+    } catch (error: unknown) {
+      const err = error as { data?: { message?: string } }
+      toast.error(err?.data?.message ?? 'Κάτι πήγε στραβά')
+      return false
+    } finally {
+      busy.value = false
+    }
+  }
+
+  function imageFields(creating: boolean) {
+    return entityImageSaveFields({
+      creating,
+      draft: imageUrl.value,
+      preserveExisting: preserveExisting.value,
+      removed: imageRemoved.value,
+    })
+  }
+
   return {
     imageUrl,
+    preserveExisting,
+    persistedImage,
     uploading,
     progress: fileUpload.progress,
     statusLabel: fileUpload.statusLabel,
@@ -84,5 +146,7 @@ export function useAdminImageDraft(entity: ImageEntity) {
     releaseUnsaved,
     uploadImage,
     clearImage,
+    removePersistedImage,
+    imageFields,
   }
 }

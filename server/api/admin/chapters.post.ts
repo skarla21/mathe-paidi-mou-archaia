@@ -4,6 +4,7 @@ import { nextChapterSlug } from '../../utils/contentSlug'
 import { withUniqueSlugRetry } from '../../utils/uniqueViolation'
 import { plainGreekLabel } from '#shared/utils/foldGreekSearch.mjs'
 import { assertChapterTitleAvailable, CHAPTER_TITLE_TAKEN, rethrowFoldedNameConflict } from '../../utils/foldedName'
+import { storedEntityImageUrl } from '../../utils/storedEntityImage'
 
 export default defineEventHandler(async (event) => {
   requireAdmin(event)
@@ -25,7 +26,7 @@ export default defineEventHandler(async (event) => {
       description: body.description ?? null,
       subject_id: body.subject_id,
       grade_id: subject.grade_id,
-      image_url: body.image_url ?? null,
+      image_url: storedEntityImageUrl(body.image_url),
       order: body.order ?? 0,
     }).select().single()
   })

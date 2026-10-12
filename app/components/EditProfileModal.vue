@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
+import { closedAvatarBlob } from "#shared/utils/avatarPreview.mjs";
 import { AVATAR_MAX_SIZE, PASSWORD_MIN_LENGTH } from "~/lib/validation";
 import {
   avatarPreviewAfterSession,
@@ -122,8 +123,13 @@ watch(
 watch(isOpen, (open) => {
   if (open) applySessionToForm(true);
   if (!open) removeAvatarDialogOpen.value = false;
-  if (!open && avatarPreview.value?.startsWith("blob:")) {
-    URL.revokeObjectURL(avatarPreview.value);
+  const blob = closedAvatarBlob({
+    open,
+    preview: avatarPreview.value,
+    uploading: avatarUploading.value,
+  });
+  if (blob) {
+    URL.revokeObjectURL(blob);
     avatarPreview.value = session.value.user?.avatar_url ?? null;
   }
 });
@@ -249,6 +255,7 @@ async function onSubmit() {
     currentPassword.value = "";
     newPassword.value = "";
     confirmPassword.value = "";
+    close();
   } catch (e: unknown) {
     console.error("[EditProfileModal] submit error:", e);
     const error = e as { data?: { message?: string } };

@@ -2,6 +2,7 @@ import { serverSupabaseService } from '../../utils/supabaseServer'
 import { requireAdmin } from '../../utils/requireAdmin'
 import { nextCategorySlug } from '../../utils/contentSlug'
 import { withUniqueSlugRetry } from '../../utils/uniqueViolation'
+import { storedEntityImageUrl } from '../../utils/storedEntityImage'
 
 export default defineEventHandler(async (event) => {
   requireAdmin(event)
@@ -15,7 +16,7 @@ export default defineEventHandler(async (event) => {
       name,
       slug,
       description: body.description ?? null,
-      image_url: body.image_url ?? null,
+      image_url: storedEntityImageUrl(body.image_url),
       order: body.order ?? 0,
     }).select().single()
   })

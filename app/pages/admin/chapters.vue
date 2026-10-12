@@ -25,11 +25,18 @@ import {
 import AdminChapterModal from "~/components/admin/ChapterModal.vue";
 import AdminSortModal from "~/components/admin/AdminSortModal.vue";
 import type { Chapter } from "~/types/database";
+import { acceptedEntityImageUrl } from "#shared/utils/entityImageUrl.mjs";
 
 definePageMeta({ layout: "admin", middleware: "admin" });
 useHead(() => ({ title: "Διαχείριση - Κεφάλαια" }));
 
 const adminFetch = useAdminFetch();
+const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || "");
+
+function storedImageSrc(url: string | null | undefined) {
+  const accepted = acceptedEntityImageUrl(url ?? "", supabaseUrl);
+  return typeof accepted === "string" ? accepted : "";
+}
 const chapters = ref<Chapter[]>([]);
 const grades = ref<{ id: string; name: string }[]>([]);
 const subjects = ref<{ id: string; name: string; grade_id: string }[]>([]);
@@ -213,8 +220,8 @@ async function confirmDelete() {
         >
           <UiCardContent class="p-4 flex items-center gap-4">
             <img
-              v-if="c.image_url"
-              :src="c.image_url"
+              v-if="storedImageSrc(c.image_url)"
+              :src="storedImageSrc(c.image_url)"
               :alt="c.title"
               class="size-12 shrink-0 rounded-xl object-cover"
             >
