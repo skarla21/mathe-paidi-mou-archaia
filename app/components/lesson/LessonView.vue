@@ -3,6 +3,27 @@ import { toast } from 'vue-sonner'
 import LessonContentViewer from '~/components/lesson/LessonContentViewer.vue'
 import UiButton from '~/components/ui/Button.vue'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
+import type { LessonChip, LessonChipTone, LessonParent } from '~/lib/lessonContext'
+
+const chipClass: Record<LessonChipTone, string> = {
+  grade: 'bg-laurel-fixed text-laurel-fixed-foreground',
+  subject: 'bg-flame-fixed text-flame-fixed-foreground',
+  chapter: 'bg-amethyst-fixed text-amethyst-fixed-foreground',
+  category: 'bg-amethyst-fixed text-amethyst-fixed-foreground',
+}
+
+const descriptionClass = [
+  'mt-5 max-w-3xl font-reading text-lg leading-relaxed text-muted-foreground',
+  '[&_a]:font-semibold [&_a]:text-primary [&_a]:underline-offset-4 hover:[&_a]:underline',
+  '[&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:italic',
+  '[&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm',
+  '[&_h1]:mb-3 [&_h1]:font-heading [&_h1]:text-2xl [&_h1]:font-extrabold [&_h1]:text-foreground',
+  '[&_h2]:mb-2 [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-foreground',
+  '[&_h3]:mb-2 [&_h3]:font-heading [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-foreground',
+  '[&_li]:mb-1 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_p:last-child]:mb-0',
+  '[&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:bg-muted [&_pre]:p-4',
+  '[&_strong]:font-semibold [&_strong]:text-foreground [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-5',
+].join(' ')
 
 interface Lesson {
   id: string
@@ -22,7 +43,11 @@ interface LessonResponse extends Lesson {
   file_block: LessonFileBlock
 }
 
-const props = defineProps<{ lessonId: string }>()
+const props = defineProps<{
+  lessonId: string
+  parent: LessonParent
+  chips: LessonChip[]
+}>()
 const route = useRoute()
 const { session } = useCurrentUser()
 const { open: openEditProfile } = useEditProfileModal()
@@ -106,28 +131,49 @@ onMounted(() => {
 
 <template>
   <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
-    <div v-if="!lesson" class="space-y-4">
-      <UiSkeleton class="h-9 w-2/3 rounded-xl" />
-      <UiSkeleton class="h-5 w-full rounded-lg" />
-      <UiSkeleton class="h-5 w-4/5 rounded-lg" />
-      <UiSkeleton class="h-64 w-full rounded-xl mt-8" />
-    </div>
-    <template v-else>
-      <div id="lesson-title">
-        <LayoutPageIntro title="Υλικό" />
+    <header id="lesson-title" class="max-w-3xl">
+      <NuxtLink
+        :to="parent.to"
+        class="inline-flex max-w-full items-center gap-2 rounded-full border-2 border-border bg-card px-4 py-2 font-ui text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary/40 hover:bg-secondary"
+      >
+        <VIcon name="bi-arrow-left" class="size-4 shrink-0" aria-hidden="true" />
+        <span class="truncate">{{ parent.name }}</span>
+      </NuxtLink>
+      <UiSkeleton v-if="!lesson" class="mt-5 h-12 w-2/3 rounded-xl" />
+      <h1
+        v-else
+        class="mt-5 font-heading text-4xl font-extrabold leading-tight tracking-tight text-balance text-foreground sm:text-5xl"
+      >
+        {{ lesson.title }}
+      </h1>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <NuxtLink
+          v-for="chip in chips"
+          :key="chip.to"
+          :to="chip.to"
+          :class="['inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-opacity hover:opacity-80', chipClass[chip.tone]]"
+        >
+          {{ chip.name }}
+        </NuxtLink>
       </div>
+    </header>
+    <template v-if="lesson">
       <ClientOnly v-if="lesson.content">
         <div
           v-if="safeContent"
-          class="font-reading prose mt-4 max-w-none dark:prose-invert"
+          :class="descriptionClass"
           v-html="safeContent"
         />
         <template #fallback>
-          <div class="mt-4 h-64 animate-pulse rounded-xl bg-muted" />
+          <div class="mt-5 h-24 max-w-3xl animate-pulse rounded-2xl bg-muted" />
         </template>
       </ClientOnly>
       <div v-if="canAccess && canAccessContent && lesson.content_url" class="mt-8">
-        <LessonContentViewer :src="lesson.content_url" :lesson-id="props.lessonId" />
+        <LessonContentViewer
+          :src="lesson.content_url"
+          :lesson-id="props.lessonId"
+          :title="lesson.title"
+        />
       </div>
       <div
         v-else-if="fileBlock === 'sign-in' || fileBlock === 'verify-email'"
@@ -179,5 +225,6 @@ onMounted(() => {
         </UiButton>
       </div>
     </template>
+    <UiSkeleton v-else class="mt-8 h-72 w-56 rounded-3xl" />
   </div>
 </template>

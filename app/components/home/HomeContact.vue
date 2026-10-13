@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 
 const { grades, ensure } = useCatalogNav();
 
@@ -39,10 +45,10 @@ async function submitContact() {
         honey: honey.value,
       },
     });
-    toast.success('Το μήνυμα στάλθηκε!');
+    toast.success("Το μήνυμα στάλθηκε!");
     submitted.value = true;
   } catch {
-    toast.error('Αποτυχία αποστολής. Παρακαλώ προσπαθήστε ξανά.');
+    toast.error("Αποτυχία αποστολής. Παρακαλώ προσπαθήστε ξανά.");
   } finally {
     submitting.value = false;
   }
@@ -64,7 +70,10 @@ async function submitContact() {
         >
           Έχεις απορίες ή θέλεις ιδιαίτερα;
         </h2>
-        <p class="text-muted-foreground">Συμπλήρωσε τη φόρμα για το υλικό ή για να συζητήσουμε τις ανάγκες του μαθητή.</p>
+        <p class="text-muted-foreground">
+          Συμπλήρωσε τη φόρμα με τα στοιχεία σου για να συζητήσουμε τις ανάγκες
+          σου.
+        </p>
         <div class="space-y-4">
           <div
             class="flex items-center gap-3.5 rounded-2xl bg-card p-4 shadow-sm"
@@ -99,7 +108,7 @@ async function submitContact() {
                 class="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground"
                 >Διαδικτυακές συνεδρίες</span
               >
-              <span class="font-semibold">Καθημερινές και Σαββατοκύριακο</span>
+              <span class="font-semibold">Καθημερινές και Σαββατοκύριακα</span>
             </div>
           </div>
           <div
@@ -115,7 +124,7 @@ async function submitContact() {
                 class="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground"
                 >Εξειδίκευση</span
               >
-              <span class="font-semibold">Αρχαία, έκθεση, παράλληλη στήριξη</span>
+              <span class="font-semibold">Αρχαία, έκθεση, ειδική αγωγή</span>
             </div>
           </div>
         </div>
@@ -124,9 +133,7 @@ async function submitContact() {
       <div
         class="rounded-3xl border border-border bg-card p-8 shadow-[0_16px_36px_rgba(0,0,0,0.06)] lg:col-span-7"
       >
-        <h3 class="font-heading text-xl font-bold">
-          Στείλε το μήνυμά σου
-        </h3>
+        <h3 class="font-heading text-xl font-bold">Στείλε το μήνυμά σου</h3>
         <p class="mb-6 text-sm text-muted-foreground">
           Απαντάμε σε γονείς και μαθητές.
         </p>
@@ -144,7 +151,7 @@ async function submitContact() {
             class="hidden"
             tabindex="-1"
             autocomplete="off"
-          >
+          />
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-1.5 text-sm font-semibold">
               Ονοματεπώνυμο
@@ -154,7 +161,7 @@ async function submitContact() {
                 maxlength="120"
                 class="h-12 w-full rounded-xl border-none bg-secondary px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="π.χ. Μαρία Παπαδοπούλου"
-              >
+              />
             </label>
             <label class="space-y-1.5 text-sm font-semibold">
               Email επικοινωνίας
@@ -164,7 +171,7 @@ async function submitContact() {
                 required
                 class="h-12 w-full rounded-xl border-none bg-secondary px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="name@example.com"
-              >
+              />
             </label>
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
@@ -180,9 +187,7 @@ async function submitContact() {
                   position="popper"
                   class="w-[var(--reka-select-trigger-width)] max-w-[var(--reka-select-trigger-width)]"
                 >
-                  <SelectItem value="__none__">
-                    Προαιρετικά
-                  </SelectItem>
+                  <SelectItem value="__none__"> Προαιρετικά </SelectItem>
                   <SelectItem
                     v-for="grade in grades"
                     :key="grade.id"
@@ -201,7 +206,7 @@ async function submitContact() {
                 maxlength="40"
                 class="h-12 w-full rounded-xl border-none bg-secondary px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="69XXXXXXXX"
-              >
+              />
             </label>
           </div>
           <label class="block space-y-1.5 text-sm font-semibold">
@@ -221,11 +226,7 @@ async function submitContact() {
             :disabled="submitting"
           >
             <VIcon name="bi-send" class="size-4" aria-hidden="true" />
-            {{
-              submitting
-                ? 'Αποστολή...'
-                : 'Αποστολή μηνύματος'
-            }}
+            {{ submitting ? "Αποστολή..." : "Αποστολή μηνύματος" }}
           </button>
         </form>
       </div>

@@ -10,6 +10,7 @@
     "#shared/utils/entityImageUrl.mjs": "./shared/utils/entityImageUrl.mjs",
     "#shared/utils/avatarPreview.mjs": "./shared/utils/avatarPreview.mjs",
     "#shared/utils/lessonFileBlock.mjs": "./shared/utils/lessonFileBlock.mjs",
+    "#shared/utils/lessonPreviewUrl.mjs": "./shared/utils/lessonPreviewUrl.mjs",
     "#shared/utils/emailVerificationLanding.mjs": "./shared/utils/emailVerificationLanding.mjs",
     "#shared/utils/adminDownloads.mjs": "./shared/utils/adminDownloads.mjs",
     "#shared/utils/adminShell.mjs": "./shared/utils/adminShell.mjs"

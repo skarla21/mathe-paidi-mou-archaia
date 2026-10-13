@@ -1,44 +1,71 @@
 <script setup lang="ts">
-const { grades, categories, loaded, failed, ensure, ensureCategories } = useCatalogNav()
-const year = new Date().getFullYear()
+const { grades, categories, loaded, failed, ensure, ensureCategories } =
+  useCatalogNav();
+const year = new Date().getFullYear();
 
 onMounted(() => {
-  void Promise.all([ensure(), ensureCategories()])
-})
+  void Promise.all([ensure(), ensureCategories()]);
+});
 </script>
 
 <template>
-  <footer class="relative mt-16 w-full overflow-hidden border-t border-border bg-secondary pt-16 pb-10">
-    <div class="pointer-events-none absolute -bottom-10 -right-8 hidden h-28 w-56 opacity-40 md:block" aria-hidden="true">
-      <svg viewBox="0 0 160 80" class="h-full w-full text-primary/30" fill="none" stroke="currentColor" stroke-width="2">
+  <footer
+    class="relative mt-16 w-full overflow-hidden border-t border-border bg-secondary pt-16 pb-10"
+  >
+    <div
+      class="pointer-events-none absolute -bottom-10 -right-8 hidden h-28 w-56 opacity-40 md:block"
+      aria-hidden="true"
+    >
+      <svg
+        viewBox="0 0 160 80"
+        class="h-full w-full text-primary/30"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <path d="M8 60c20-28 40-28 60 0s40 28 60 0" />
         <path d="M20 20h24v28H20z" />
         <path d="M28 20V8" />
       </svg>
     </div>
-    <div class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 md:grid-cols-2 lg:grid-cols-12 lg:px-12">
+    <div
+      class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 md:grid-cols-2 lg:grid-cols-12 lg:px-12"
+    >
       <div class="space-y-4 lg:col-span-4">
         <div class="flex items-center gap-2">
           <span class="size-9 shrink-0 overflow-hidden rounded-full">
-            <img src="/imgs/mathe_arxaia_logo.jpg" alt="" class="size-full object-cover">
+            <img
+              src="/imgs/mathe_arxaia_logo.jpg"
+              alt=""
+              class="size-full object-cover"
+            />
           </span>
-          <span class="font-brand text-lg font-bold text-foreground">Μάθε Παιδί Μου Αρχαία</span>
+          <span class="font-brand text-lg font-bold text-foreground"
+            >Μάθε Παιδί Μου Αρχαία</span
+          >
         </div>
         <p class="max-w-sm text-sm leading-relaxed text-muted-foreground">
-          Το ψηφιακό σου σχολείο με κλασική σοφία και σύγχρονο παλμό. Μαθήματα, σημειώσεις και οργανωμένο υλικό για Γυμνάσιο και Λύκειο.
+          Το ψηφιακό σου σχολείο με κλασική σοφία και σύγχρονο παλμό. Μαθήματα,
+          σημειώσεις και οργανωμένο υλικό για όλες τις τάξεις.
         </p>
         <div class="rounded-2xl bg-muted/80 p-4">
           <p class="font-brand text-lg font-bold leading-snug text-foreground">
-            «Χαλεπὰ τὰ καλά — τα σπουδαία κερδίζονται με χαρά και δημιουργικότητα.»
+            «Χαλεπὰ τὰ καλά — τα σπουδαία κερδίζονται με χαρά και
+            δημιουργικότητα.»
           </p>
         </div>
       </div>
 
       <div class="space-y-3 lg:col-span-2">
-        <h2 class="font-heading text-base font-semibold text-foreground">Τάξεις</h2>
+        <h2 class="font-heading text-base font-semibold text-foreground">
+          Τάξεις
+        </h2>
         <ul class="space-y-2 text-sm text-muted-foreground">
           <li v-for="grade in grades" :key="grade.id">
-            <NuxtLink :to="`/${grade.slug}`" class="transition-colors hover:text-primary">
+            <NuxtLink
+              :to="`/${grade.slug}`"
+              class="transition-colors hover:text-primary"
+            >
               {{ grade.name }}
             </NuxtLink>
           </li>
@@ -55,31 +82,50 @@ onMounted(() => {
       </div>
 
       <div class="space-y-3 lg:col-span-3">
-        <h2 class="font-heading text-base font-semibold text-foreground">Υλικό και μαθήματα</h2>
+        <h2 class="font-heading text-base font-semibold text-foreground">
+          Υλικό και μαθήματα
+        </h2>
         <ul class="space-y-2 text-sm text-muted-foreground">
           <li>
-            <a href="/#grades" class="transition-colors hover:text-primary">Τάξεις</a>
+            <a href="/#grades" class="transition-colors hover:text-primary"
+              >Τάξεις</a
+            >
           </li>
           <li>
-            <NuxtLink to="/notes" class="transition-colors hover:text-primary">Όλες οι κατηγορίες</NuxtLink>
+            <NuxtLink to="/notes" class="transition-colors hover:text-primary"
+              >Όλες οι κατηγορίες</NuxtLink
+            >
           </li>
           <li v-for="category in categories.slice(0, 4)" :key="category.id">
-            <NuxtLink :to="`/category/${category.slug}`" class="transition-colors hover:text-primary">
+            <NuxtLink
+              :to="`/category/${category.slug}`"
+              class="transition-colors hover:text-primary"
+            >
               {{ category.name }}
             </NuxtLink>
           </li>
           <li>
-            <NuxtLink to="/articles" class="transition-colors hover:text-primary">Άρθρα</NuxtLink>
+            <NuxtLink
+              to="/articles"
+              class="transition-colors hover:text-primary"
+              >Άρθρα</NuxtLink
+            >
           </li>
           <li>
-            <NuxtLink to="/about" class="transition-colors hover:text-primary">Σχετικά</NuxtLink>
+            <NuxtLink to="/about" class="transition-colors hover:text-primary"
+              >Σχετικά</NuxtLink
+            >
           </li>
         </ul>
       </div>
 
       <div class="space-y-3 lg:col-span-3">
-        <h2 class="font-heading text-base font-semibold text-foreground">Επικοινωνία</h2>
-        <p class="text-sm leading-relaxed text-muted-foreground">Έχεις απορίες ή θέλεις ιδιαίτερα; Στείλε μήνυμα και θα απαντήσουμε.</p>
+        <h2 class="font-heading text-base font-semibold text-foreground">
+          Επικοινωνία
+        </h2>
+        <p class="text-sm leading-relaxed text-muted-foreground">
+          Έχεις απορίες ή θέλεις ιδιαίτερα; Στείλε μήνυμα και θα απαντήσουμε.
+        </p>
         <a
           href="/#communication"
           class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
@@ -89,8 +135,12 @@ onMounted(() => {
         </a>
       </div>
     </div>
-    <div class="mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-3 border-t border-border px-6 pt-6 text-xs text-muted-foreground md:flex-row lg:px-12">
-      <p>{{ `© ${year} Μάθε Παιδί μου Αρχαία. Όλα τα δικαιώματα διατηρούνται.` }}</p>
+    <div
+      class="mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-3 border-t border-border px-6 pt-6 text-xs text-muted-foreground md:flex-row lg:px-12"
+    >
+      <p>
+        {{ `© ${year} Μάθε Παιδί μου Αρχαία. Όλα τα δικαιώματα διατηρούνται.` }}
+      </p>
     </div>
   </footer>
 </template>
