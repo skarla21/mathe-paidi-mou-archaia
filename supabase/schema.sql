@@ -216,7 +216,7 @@ create table if not exists public.article_comments (
 create index if not exists article_comments_user_id_idx on public.article_comments(user_id);
 create index if not exists article_comments_article_id_idx on public.article_comments(article_id);
 
--- Admin in-app notifications (feed + per-admin read state + preferences)
+-- Admin in-app notifications (feed + read state + preferences)
 create table if not exists public.admin_notifications (
   id uuid primary key default gen_random_uuid(),
   kind text not null check (kind in (
@@ -225,19 +225,14 @@ create table if not exists public.admin_notifications (
   )),
   payload jsonb not null default '{}',
   source_id uuid,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  read boolean not null default false,
+  read_at timestamptz,
+  constraint admin_notifications_read_at_check check (read = (read_at is not null))
 );
 create index if not exists admin_notifications_created_at_idx on public.admin_notifications(created_at desc);
 create unique index if not exists admin_notifications_kind_source_unique
   on public.admin_notifications (kind, source_id) where source_id is not null;
-
-create table if not exists public.admin_notification_reads (
-  notification_id uuid not null references public.admin_notifications(id) on delete cascade,
-  admin_user_id uuid not null references public.users(id) on delete cascade,
-  read_at timestamptz not null default now(),
-  primary key (notification_id, admin_user_id)
-);
-create index if not exists admin_notification_reads_admin_idx on public.admin_notification_reads(admin_user_id);
 
 create table if not exists public.admin_notification_preferences (
   admin_user_id uuid primary key references public.users(id) on delete cascade,
@@ -270,7 +265,6 @@ alter table public.articles enable row level security;
 alter table public.article_likes enable row level security;
 alter table public.article_comments enable row level security;
 alter table public.admin_notifications enable row level security;
-alter table public.admin_notification_reads enable row level security;
 alter table public.admin_notification_preferences enable row level security;
 
 -- Grades & Subjects: public read
