@@ -33,10 +33,10 @@ onMounted(async () => {
     <LayoutPageIntro eyebrow="Άλλο υλικό" title="Άρθρα" />
 
     <div v-if="list === null" class="space-y-4">
-      <UiCard v-for="i in 4" :key="i">
+      <UiCard v-for="i in 4" :key="i" class="rounded-3xl border-border/80 shadow-sm">
         <UiCardContent class="p-6">
-          <UiSkeleton class="h-6 w-2/3 mb-2" />
-          <UiSkeleton class="h-4 w-24" />
+          <UiSkeleton class="h-6 w-2/3 rounded-lg" />
+          <UiSkeleton class="mt-2 h-4 w-36 rounded-lg" />
         </UiCardContent>
       </UiCard>
     </div>
@@ -45,7 +45,7 @@ onMounted(async () => {
 
     <ul v-else class="space-y-4">
       <li v-for="a in list" :key="a.id">
-        <UiCard class="rounded-3xl shadow-sm transition-shadow hover:shadow-md">
+        <UiCard class="rounded-3xl border-border/80 shadow-sm transition-shadow hover:shadow-md">
           <UiCardContent class="p-6">
             <NuxtLink :to="`/articles/${a.id}`" class="block group">
               <h2 class="text-xl font-heading font-semibold group-hover:text-primary transition-colors">

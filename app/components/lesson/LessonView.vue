@@ -131,7 +131,7 @@ onMounted(() => {
       </div>
       <div
         v-else-if="fileBlock === 'sign-in' || fileBlock === 'verify-email'"
-        class="mt-8 flex max-w-md flex-col items-center gap-4 rounded-3xl border border-amber/30 bg-amber/10 p-8 text-center"
+        class="mx-auto mt-8 flex max-w-md flex-col items-center gap-4 rounded-3xl border border-amber/30 bg-amber/10 p-8 text-center"
       >
         <span
           class="flex size-14 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-500"

@@ -39,7 +39,7 @@ try {
         Έξτρα ύλη
       </span>
       <h2 class="mt-2 font-heading text-3xl font-extrabold text-foreground sm:text-4xl">Πέρα από το μάθημα της τάξης</h2>
-      <p class="text-muted-foreground">Κατηγορίες με επιπλέον μαθήματα και άρθρα, ό,τι έχει δημοσιεύσει η διδάσκουσα.</p>
+      <p class="text-muted-foreground">Κατηγορίες με επιπλέον υλικό και άρθρα που έχει δημοσιεύσει η διδάσκουσα.</p>
     </div>
 
     <p v-if="failed && !hasCards" class="rounded-3xl border border-dashed border-border bg-card p-8 text-center text-muted-foreground">

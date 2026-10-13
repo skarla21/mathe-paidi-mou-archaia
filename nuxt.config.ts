@@ -13,6 +13,12 @@ export default defineNuxtConfig({
   },
   css: [resolve(__dirname, "app/assets/css/main.css")],
   modules: ["@nuxt/eslint"],
+  typescript: {
+    // Nuxt already hoists vue and @vue/runtime-core. These two have to
+    // follow, or runtime-dom's DOM ref bailout lands on a second
+    // @vue/reactivity and ref() deep-unwraps HTMLElement.
+    hoist: ["@vue/reactivity", "@vue/runtime-dom"],
+  },
   vite: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     plugins: [tailwindcss()] as any,

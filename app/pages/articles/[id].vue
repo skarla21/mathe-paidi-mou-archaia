@@ -171,8 +171,13 @@ async function copyLink() {
     </NuxtLink>
 
     <template v-if="articlePending">
-      <UiSkeleton class="h-10 w-3/4 mb-4" />
-      <UiSkeleton class="h-64 w-full" />
+      <UiSkeleton class="mb-3 h-9 w-3/4 rounded-xl" />
+      <UiSkeleton class="h-4 w-40 rounded-lg" />
+      <div class="mt-4 flex gap-2">
+        <UiSkeleton class="h-5 w-16 rounded-md" />
+        <UiSkeleton class="h-5 w-20 rounded-md" />
+      </div>
+      <UiSkeleton class="mt-8 h-64 w-full rounded-3xl" />
     </template>
 
     <template v-else-if="!article">

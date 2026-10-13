@@ -25,7 +25,6 @@ const tiers = [
     badge: "bg-laurel-fixed text-laurel-fixed-foreground",
     back: "bg-gradient-to-br from-[#006e2d] to-[#004e1e]",
     ctaClass: "bg-white text-laurel",
-    recommended: false,
     badgeText: "Χωρίς λογαριασμό",
     title: "Περιήγηση",
     lead: "Βλέπεις τάξεις, κεφάλαια, κατηγορίες, άρθρα και τους τίτλους των μαθημάτων.",
@@ -35,8 +34,7 @@ const tiers = [
       "Οι τίτλοι των μαθημάτων μένουν ορατοί",
     ],
     backTitle: "Ξεκίνα από τις τάξεις",
-    backLead:
-      "Τα PDF ανοίγουν με επιβεβαιωμένο λογαριασμό, και μόνο αν το μάθημα είναι δωρεάν ή αγορασμένο.",
+    backLead: "Τα δωρεάν αρχεία ανοίγουν με επιβεβαιωμένο λογαριασμό.",
     cta: "Δες τις τάξεις",
     note: "Χωρίς εγγραφή για την περιήγηση",
     action: () => scrollTo("grades"),
@@ -48,18 +46,15 @@ const tiers = [
     badge: "bg-flame-fixed text-flame-fixed-foreground",
     back: "bg-gradient-to-br from-[#ea580c] via-[#cc4900] to-[#a33900]",
     ctaClass: "bg-white text-primary",
-    recommended: true,
     badgeText: "Δωρεάν εγγραφή",
     title: "Με λογαριασμό",
-    lead: "Επιβεβαιώνεις το email, ανοίγεις τα δωρεάν PDF και αγοράζεις ό,τι είναι επί πληρωμή.",
+    lead: "Επιβεβαιώνεις το email, αποκτάς πρόσβαση	στα δωρεάν αρχεία.",
     bullets: [
-      "Άνοιγμα δωρεάν αρχείων μετά την επιβεβαίωση",
-      "Αγορά μαθήματος μέσω Stripe",
-      "Οι αγορές σου στο υλικό μου, σχόλια στα άρθρα",
+      "Πρόσβαση στα δωρεάν αρχεία ανά πάσα στιγμή",
+      "Αγορά επί πληρωμή μαθημάτων",
     ],
     backTitle: "Δικός σου χώρος",
-    backLead:
-      "Ο λογαριασμός είναι δωρεάν. Πληρώνεις μόνο τα μαθήματα που έχουν τιμή.",
+    backLead: "Άμεση πρόσβαση στο υλικό που σε ενδιαφέρει.",
     cta: "Δημιουργία λογαριασμού",
     note: "Η επιβεβαίωση email ξεκλειδώνει τα αρχεία",
     action: () => openRegister(),
@@ -71,18 +66,17 @@ const tiers = [
     badge: "bg-amethyst-fixed text-amethyst-fixed-foreground",
     back: "bg-gradient-to-br from-[#6b38d4] via-[#5516be] to-[#3a0e88]",
     ctaClass: "bg-white text-amethyst",
-    recommended: false,
     badgeText: "Ιδιαίτερα",
     title: "Ιδιαίτερα μαθήματα",
-    lead: "Ζήτησε προσωπική προετοιμασία. Δεν υπάρχει πληρωμή ιδιαίτερων μέσα από την εφαρμογή.",
+    lead: "Ζήτησε προσωπική επικοινωνία με τη διδάσκουσα.",
     bullets: [
-      "Πες την τάξη και το μάθημα που σε νοιάζει",
+      "Στείλε μήνυμα για την τάξη και το μάθημα που σε νοιάζει",
       "Η φιλόλογος απαντά στο μήνυμα",
-      "Συνεννόηση για online συνεδρίες",
+      "Συνεννόηση για εξ΄αποστάσεως συνεδρίες",
     ],
     backTitle: "Στείλε μήνυμα",
     backLead:
-      "Η φόρμα επικοινωνίας είναι ο τρόπος να ζητήσεις ιδιαίτερα ή να ρωτήσεις για το υλικό.",
+      "Χρησιμοποίησε την φόρμα επικοινωνίας για να ζητήσεις ιδιαίτερα ή να ρωτήσεις για το υλικό.",
     cta: "Πήγαινε στη φόρμα",
     note: "Απάντηση το συντομότερο",
     action: () => scrollTo("communication"),
@@ -106,7 +100,7 @@ const tiers = [
         </h2>
         <p class="text-muted-foreground">
           Τι μπορείς να δεις χωρίς λογαριασμό, τι ξεκλειδώνει η δωρεάν εγγραφή
-          και πώς ζητάς ιδιαίτερα.
+          και πώς να επικοινωνήσεις με τη διδάσκουσα.
         </p>
       </div>
       <div id="guide-grid" class="grid gap-6 md:grid-cols-3">
@@ -121,12 +115,6 @@ const tiers = [
             class="deck-front flex h-full flex-col justify-between bg-card p-6"
           >
             <div>
-              <div
-                v-if="tier.recommended"
-                class="mx-auto mb-3 w-fit -translate-y-1 rounded-full bg-primary px-3 py-0.5 text-[11px] font-bold uppercase text-primary-foreground"
-              >
-                Προτεινόμενο
-              </div>
               <div class="mb-4 flex items-center justify-between">
                 <VIcon
                   :name="tier.icon"
@@ -160,11 +148,6 @@ const tiers = [
                   {{ item }}
                 </li>
               </ul>
-              <p
-                class="slide-deck-hint mt-4 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-              >
-                Πέρασε το ποντίκι
-              </p>
             </div>
             <button
               type="button"

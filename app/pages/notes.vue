@@ -30,7 +30,7 @@ onMounted(() => {
 <template>
   <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
     <div id="notes-title">
-      <LayoutPageIntro eyebrow="Άλλο υλικό" title="Όλες οι κατηγορίες" lead="Κατηγορίες με επιπλέον μαθήματα και άρθρα, ό,τι έχει δημοσιεύσει η διδάσκουσα." />
+      <LayoutPageIntro eyebrow="Άλλο υλικό" title="Όλες οι κατηγορίες" lead="Κατηγορίες με επιπλέον υλικό και άρθρα που έχει δημοσιεύσει η διδάσκουσα." />
     </div>
 
     <div v-if="pending" class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -558,15 +558,7 @@
   pointer-events: none;
 }
 
-.slide-deck-hint {
-  display: none;
-}
-
 @media (hover: hover) and (pointer: fine) {
-  .slide-deck-hint {
-    display: block;
-  }
-
   .slide-deck:hover .deck-front {
     transform: translateY(-110%);
     opacity: 0;
