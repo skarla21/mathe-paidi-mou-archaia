@@ -113,7 +113,7 @@ async function onSubmit() {
             <p v-if="nameMissing" class="text-xs text-destructive">Το πεδίο «Όνομα» είναι υποχρεωτικό</p>
           </div>
           <div class="space-y-1.5">
-            <UiLabel>Περιγραφή</UiLabel>
+            <UiLabel>Περιγραφή (προαιρετικό)</UiLabel>
             <UiTextarea v-model="description" :rows="3" />
           </div>
           <AdminImageDropzone

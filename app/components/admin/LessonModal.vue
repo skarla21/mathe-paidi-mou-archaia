@@ -557,7 +557,7 @@ async function onSubmit() {
               </p>
             </div>
             <div class="space-y-1.5">
-              <UiLabel>Περιγραφή</UiLabel>
+              <UiLabel>Περιγραφή (προαιρετικό)</UiLabel>
               <UiTextarea v-model="content" :rows="3" />
             </div>
             <div class="space-y-1.5">
