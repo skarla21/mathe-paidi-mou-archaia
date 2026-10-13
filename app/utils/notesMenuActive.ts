@@ -4,9 +4,6 @@ export function notesMenuActive(input: {
   catalogFailed: boolean
   gradeParam: unknown
 }): boolean {
-  if (input.path === '/notes' || input.path.startsWith('/category/')) {
-    return true
-  }
   const segment = input.path.split('/').filter(Boolean)[0] ?? ''
   if (input.gradeSlugs.includes(segment)) return true
   const param = Array.isArray(input.gradeParam) ? input.gradeParam[0] : input.gradeParam

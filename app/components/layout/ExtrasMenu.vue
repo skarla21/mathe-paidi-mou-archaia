@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { extrasMenuActive } from '~/utils/extrasMenuActive'
+
 const props = withDefaults(defineProps<{
   variant?: 'desktop' | 'mobile'
 }>(), {
@@ -10,6 +12,8 @@ const emit = defineEmits<{
 }>()
 
 const { categories, categoriesLoaded, categoriesFailed, ensureCategories } = useCatalogNav()
+const route = useRoute()
+const extrasActive = computed(() => extrasMenuActive(route.path))
 
 const open = ref(false)
 const mobileOpen = ref(false)
@@ -70,7 +74,8 @@ onBeforeUnmount(clearCloseTimer)
   >
     <button
       type="button"
-      class="nav-bobble px-1 py-1 text-[15px] font-bold text-muted-foreground hover:text-[#0e7490] hover-wavy-teal"
+      class="nav-bobble px-1 py-1 text-[15px] font-bold"
+      :class="extrasActive ? 'text-[#0e7490] wavy-teal' : 'text-muted-foreground hover:text-[#0e7490] hover-wavy-teal'"
       :aria-expanded="open"
       aria-haspopup="true"
       @click="open ? closeMenu() : openMenu()"
@@ -123,7 +128,8 @@ onBeforeUnmount(clearCloseTimer)
   <div v-else>
     <button
       type="button"
-      class="font-ui w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+      class="font-ui w-full flex items-center gap-3 rounded-xl px-3 py-3 text-base font-semibold hover:bg-secondary transition-colors"
+      :class="extrasActive ? 'text-[#0e7490]' : 'text-muted-foreground hover:text-foreground'"
       :aria-expanded="mobileOpen"
       @click="mobileOpen = !mobileOpen"
     >

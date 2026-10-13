@@ -141,6 +141,17 @@ onMounted(() => {
       <p>
         {{ `© ${year} Μάθε Παιδί μου Αρχαία. Όλα τα δικαιώματα διατηρούνται.` }}
       </p>
+      <p>
+        Designed by
+        <a
+          href="https://www.linkedin.com/in/antonis-skarlatos-a41781212/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-medium text-foreground transition-colors hover:text-primary"
+        >
+          Antonis Skarlatos
+        </a>
+      </p>
     </div>
   </footer>
 </template>

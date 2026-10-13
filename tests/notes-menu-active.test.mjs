@@ -3,9 +3,12 @@ import { describe, it } from 'node:test'
 import { notesMenuActive } from '../app/utils/notesMenuActive.ts'
 
 describe('notesMenuActive', () => {
-  it('highlights notes and category pages without the catalog', () => {
-    assert.equal(notesMenuActive({ path: '/notes', gradeSlugs: [], catalogFailed: false, gradeParam: '' }), true)
-    assert.equal(notesMenuActive({ path: '/category/extra', gradeSlugs: [], catalogFailed: false, gradeParam: '' }), true)
+  it('stays inactive on extra-material pages', () => {
+    assert.equal(notesMenuActive({ path: '/notes', gradeSlugs: [], catalogFailed: false, gradeParam: '' }), false)
+    assert.equal(notesMenuActive({ path: '/category/extra', gradeSlugs: [], catalogFailed: false, gradeParam: '' }), false)
+    assert.equal(notesMenuActive({ path: '/category/extra/lesson', gradeSlugs: [], catalogFailed: false, gradeParam: '' }), false)
+    assert.equal(notesMenuActive({ path: '/articles', gradeSlugs: [], catalogFailed: false, gradeParam: '' }), false)
+    assert.equal(notesMenuActive({ path: '/articles/abc', gradeSlugs: [], catalogFailed: false, gradeParam: '' }), false)
   })
 
   it('highlights a loaded grade slug', () => {
