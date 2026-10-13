@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { toast } from 'vue-sonner'
+import AdminTablePager from '~/components/admin/AdminTablePager.vue'
 import UiButton from '~/components/ui/Button.vue'
 import UiInput from '~/components/ui/Input.vue'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
@@ -19,6 +20,7 @@ import UiAlertDialogDescription from '~/components/ui/alert-dialog/AlertDialogDe
 import UiAlertDialogCancel from '~/components/ui/alert-dialog/AlertDialogCancel.vue'
 import UiAlertDialogAction from '~/components/ui/alert-dialog/AlertDialogAction.vue'
 import type { Purchase } from '~/types/database'
+import type { AdminListPage } from '~~/types/domain'
 
 // Extend the base Purchase type with the users join used by the admin endpoint
 interface PurchaseWithUser extends Purchase {
@@ -29,44 +31,40 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 const adminFetch = useAdminFetch()
 useHead(() => ({ title: 'Διαχείριση - Αγορές' }))
 
-const purchases = ref<PurchaseWithUser[]>([])
-const loading = ref(true)
 const userQuery = ref('')
 const lessonQuery = ref('')
+const hasFilter = computed(() => Boolean(userQuery.value.trim() || lessonQuery.value.trim()))
 
 // Grant access confirmation
 const grantDialogOpen = ref(false)
 const pendingGrant = ref<{ userId: string; lessonId: string } | null>(null)
 const grantingId = ref<string | null>(null)
 
-const filteredPurchases = computed(() => {
-  const userQ = userQuery.value.trim().toLowerCase()
-  const lessonQ = lessonQuery.value.trim().toLowerCase()
-  let list = purchases.value
-  if (userQ) {
-    list = list.filter(p =>
-      p.users?.name?.toLowerCase().includes(userQ)
-      || p.users?.email?.toLowerCase().includes(userQ),
-    )
-  }
-  if (lessonQ) {
-    list = list.filter(p => p.lessons?.title?.toLowerCase().includes(lessonQ))
-  }
-  return list
+const {
+  page,
+  total,
+  pageSize,
+  items: purchases,
+  loading,
+  ready,
+  load,
+  onSearchInput,
+} = useAdminTablePage<PurchaseWithUser>(
+  (pageNumber) => adminFetch<AdminListPage<PurchaseWithUser>>('/api/admin/purchases', {
+    query: {
+      page: pageNumber,
+      user: userQuery.value.trim(),
+      lesson: lessonQuery.value.trim(),
+    },
+  }),
+  () => toast.error('Κάτι πήγε στραβά'),
+)
+
+watch([userQuery, lessonQuery], () => {
+  onSearchInput()
 })
 
-async function fetchPurchases() {
-  loading.value = true
-  try {
-    purchases.value = await $fetch<PurchaseWithUser[]>('/api/admin/purchases')
-  } catch {
-    purchases.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(fetchPurchases)
+onMounted(load)
 
 function requestGrantAccess(userId: string, lessonId: string) {
   pendingGrant.value = { userId, lessonId }
@@ -81,7 +79,8 @@ async function confirmGrantAccess() {
     await adminFetch('/api/admin/purchases/grant', { method: 'POST', body: { userId: grant.userId, lessonId: grant.lessonId } })
     toast.success('Η πρόσβαση χορηγήθηκε')
     grantDialogOpen.value = false
-    await fetchPurchases()
+    if (page.value === 1) await load()
+    else page.value = 1
   } catch {
     toast.error('Αποτυχία χορήγησης')
   } finally {
@@ -125,7 +124,7 @@ function copyStripeId(value: string | null | undefined) {
     </div>
 
     <!-- Skeleton loading -->
-    <template v-if="loading">
+    <template v-if="loading && !ready">
       <div class="overflow-hidden rounded-2xl border border-border">
         <div class="overflow-x-auto">
         <Table class="text-base">
@@ -160,16 +159,16 @@ function copyStripeId(value: string | null | undefined) {
           </TableHeader>
           <TableBody>
             <!-- Empty state -->
-            <TableRow v-if="!filteredPurchases.length">
+            <TableRow v-if="!purchases.length">
               <TableCell :colspan="5" class="h-32 text-center border-r border-border">
                 <div class="flex flex-col items-center gap-2 text-muted-foreground">
                   <VIcon name="bi-inbox" class="size-8" />
-                  <p>{{ purchases.length ? 'Δεν βρέθηκαν αγορές.' : 'Δεν υπάρχουν αγορές ακόμη.' }}</p>
+                  <p>{{ hasFilter ? 'Δεν βρέθηκαν αγορές.' : 'Δεν υπάρχουν αγορές ακόμη.' }}</p>
                 </div>
               </TableCell>
             </TableRow>
             <!-- Rows -->
-            <TableRow v-for="p in filteredPurchases" v-else :key="p.id">
+            <TableRow v-for="p in purchases" v-else :key="p.id">
               <TableCell class="border-r border-border">
                 <div class="font-medium">{{ p.users?.name ?? '—' }}</div>
                 <div class="text-muted-foreground">{{ p.users?.email }}</div>
@@ -212,6 +211,12 @@ function copyStripeId(value: string | null | undefined) {
         </Table>
         </div>
       </div>
+      <AdminTablePager
+        v-model:page="page"
+        :total="total"
+        :page-size="pageSize"
+        :disabled="loading"
+      />
     </template>
 
     <!-- Grant access confirmation dialog -->

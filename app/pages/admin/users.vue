@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { toast } from 'vue-sonner'
+import AdminTablePager from '~/components/admin/AdminTablePager.vue'
 import UiButton from '~/components/ui/Button.vue'
 import UiInput from '~/components/ui/Input.vue'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import AdminUserDetailModal from '~/components/admin/UserDetailModal.vue'
+import type { AdminListPage } from '~~/types/domain'
 import type { User } from '~/types/database'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
@@ -13,39 +15,32 @@ useHead(() => ({ title: 'Διαχείριση - Χρήστες' }))
 
 type SortColumn = 'name' | 'joinedAt' | 'downloads' | 'purchases'
 
-const users = ref<User[]>([])
-const loading = ref(true)
 const search = ref('')
 const detailUserId = ref<string | null>(null)
 const sortBy = ref<SortColumn>('joinedAt')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 
-const filteredUsers = computed(() => {
-  let list = users.value
-  if (search.value) {
-    const q = search.value.toLowerCase()
-    list = list.filter(u =>
-      u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)
-    )
-  }
-  const col = sortBy.value
-  const asc = sortOrder.value === 'asc'
-  return [...list].sort((a, b) => {
-    let cmp = 0
-    if (col === 'name') {
-      const na = (a.name ?? '').toLowerCase()
-      const nb = (b.name ?? '').toLowerCase()
-      cmp = na.localeCompare(nb)
-    } else if (col === 'joinedAt') {
-      cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    } else if (col === 'downloads') {
-      cmp = (a.downloadCount ?? 0) - (b.downloadCount ?? 0)
-    } else {
-      cmp = (a.purchaseCount ?? 0) - (b.purchaseCount ?? 0)
-    }
-    return asc ? cmp : -cmp
-  })
-})
+const {
+  page,
+  total,
+  pageSize,
+  items: users,
+  loading,
+  ready,
+  load,
+  onSearchInput,
+  onSortChange,
+} = useAdminTablePage<User>(
+  (pageNumber) => adminFetch<AdminListPage<User>>('/api/admin/users', {
+    query: {
+      page: pageNumber,
+      q: search.value.trim(),
+      sort: sortBy.value,
+      order: sortOrder.value,
+    },
+  }),
+  () => toast.error('Κάτι πήγε στραβά'),
+)
 
 function setSort(col: SortColumn) {
   if (sortBy.value === col) {
@@ -54,19 +49,14 @@ function setSort(col: SortColumn) {
     sortBy.value = col
     sortOrder.value = col === 'name' ? 'asc' : 'desc'
   }
+  onSortChange()
 }
 
-async function fetchUsers() {
-  loading.value = true
-  try { users.value = await adminFetch<User[]>('/api/admin/users') }
-  catch {
-    users.value = []
-    toast.error('Κάτι πήγε στραβά')
-  }
-  finally { loading.value = false }
-}
+watch(search, () => {
+  onSearchInput()
+})
 
-onMounted(fetchUsers)
+onMounted(load)
 </script>
 
 <template>
@@ -82,7 +72,7 @@ onMounted(fetchUsers)
     </div>
 
     <!-- Skeleton loading -->
-    <template v-if="loading">
+    <template v-if="loading && !ready">
       <div class="overflow-hidden rounded-2xl border border-border">
         <div class="overflow-x-auto">
         <Table class="text-base">
@@ -172,16 +162,16 @@ onMounted(fetchUsers)
           </TableHeader>
           <TableBody>
             <!-- Empty state -->
-            <TableRow v-if="!filteredUsers.length">
+            <TableRow v-if="!users.length">
               <TableCell :colspan="8" class="h-32 text-center border-r border-border">
                 <div class="flex flex-col items-center gap-2 text-muted-foreground">
                   <VIcon name="bi-inbox" class="size-8" />
-                  <p>Δεν υπάρχουν χρήστες ακόμα.</p>
+                  <p>{{ search.trim() ? 'Δεν βρέθηκαν χρήστες.' : 'Δεν υπάρχουν χρήστες ακόμα.' }}</p>
                 </div>
               </TableCell>
             </TableRow>
             <!-- Rows -->
-            <TableRow v-for="u in filteredUsers" v-else :key="u.id">
+            <TableRow v-for="u in users" v-else :key="u.id">
               <TableCell class="border-r border-border">
                 <div class="flex items-center gap-2">
                   <img
@@ -212,6 +202,12 @@ onMounted(fetchUsers)
         </Table>
         </div>
       </div>
+      <AdminTablePager
+        v-model:page="page"
+        :total="total"
+        :page-size="pageSize"
+        :disabled="loading"
+      />
     </template>
 
     <AdminUserDetailModal :open="!!detailUserId" :user-id="detailUserId" @close="detailUserId = null" />

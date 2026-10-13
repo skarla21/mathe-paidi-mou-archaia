@@ -5,13 +5,12 @@ import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import {
   downloadsEmptyMessage,
-  filterDownloads,
   LESSON_TYPE_HEADING,
   lessonTypeLabel,
-  sortDownloads,
 } from '../shared/utils/adminDownloads.mjs'
 import { resetAdminMainScroll } from '../shared/utils/adminShell.mjs'
-import { ADMIN_DOWNLOADS_PAGE_SIZE, loadAdminDownloads } from '../server/utils/adminDownloads.ts'
+import { ilikeContains, orIlike } from '../server/utils/adminList.ts'
+import { loadAdminDownloads } from '../server/utils/adminDownloads.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -37,35 +36,35 @@ const sample = [
   row('4', '2026-02-01T00:00:00.000Z', { name: 'Άννα', email: 'm@x.gr' }, { title: 'Πλάτων', is_free: false }),
 ]
 
-function fakeDownloads(rows, { failPage = 0 } = {}) {
-  const ranges = []
-  const orders = []
-  let fromCalls = 0
+function adminPath(search = '') {
+  return { ...adminEvent, path: `/api/admin/downloads${search}` }
+}
+
+function fakeDownloads(result) {
+  const calls = []
   const query = {
-    select() {
+    select(columns, options) {
+      calls.push(['select', columns, options])
       return query
     },
     order(column, options) {
-      orders.push([column, options?.ascending ?? true])
+      calls.push(['order', column, options])
+      return query
+    },
+    or(filters, options) {
+      calls.push(['or', filters, options])
       return query
     },
     range(start, end) {
-      ranges.push([start, end])
-      if (ranges.length === failPage) {
-        return Promise.resolve({ data: null, error: { message: 'db down' } })
-      }
-      return Promise.resolve({ data: rows.slice(start, end + 1), error: null })
+      calls.push(['range', start, end])
+      return Promise.resolve(result)
     },
   }
   return {
-    ranges,
-    orders,
-    get fromCalls() {
-      return fromCalls
-    },
+    calls,
     client: {
       from(table) {
-        fromCalls += 1
+        calls.push(['from', table])
         assert.equal(table, 'downloads')
         return query
       },
@@ -92,58 +91,79 @@ describe('admin downloads list', () => {
     )
   })
 
-  it('reads every page past the postgrest cap and keeps a stable order', async () => {
-    const rows = Array.from({ length: ADMIN_DOWNLOADS_PAGE_SIZE + 1 }, (_, index) => (
-      row(String(index), '2026-01-01T00:00:00.000Z', { name: 'Α', email: 'a@x.gr' }, { title: 'Μάθημα', is_free: true })
-    ))
-    const supabase = fakeDownloads(rows)
-    const result = await loadAdminDownloads(adminEvent, supabase.client)
-    assert.equal(result.length, ADMIN_DOWNLOADS_PAGE_SIZE + 1)
-    assert.deepEqual(supabase.ranges, [
-      [0, ADMIN_DOWNLOADS_PAGE_SIZE - 1],
-      [ADMIN_DOWNLOADS_PAGE_SIZE, ADMIN_DOWNLOADS_PAGE_SIZE * 2 - 1],
-    ])
-    assert.deepEqual(supabase.orders, [
-      ['downloaded_at', false],
-      ['id', true],
-      ['downloaded_at', false],
-      ['id', true],
-    ])
+  it('escapes like wildcards before building an or filter', () => {
+    assert.equal(ilikeContains('  '), null)
+    assert.equal(ilikeContains('  Άννα  '), '%Άννα%')
+    assert.equal(ilikeContains('100%_\\*'), '%100\\%\\_\\\\\\*%')
+    assert.equal(
+      orIlike(['name', 'email'], '%a"b%'),
+      'name.ilike."%a\\"b%",email.ilike."%a\\"b%"',
+    )
   })
 
-  it('fails the request when a later page fails', async () => {
-    const rows = Array.from({ length: ADMIN_DOWNLOADS_PAGE_SIZE + 1 }, (_, index) => (
-      row(String(index), '2026-01-01T00:00:00.000Z', null, null)
-    ))
-    const supabase = fakeDownloads(rows, { failPage: 2 })
+  it('returns the newest 20 downloads and a stable id order', async () => {
+    const items = [row('1', '2026-03-01T00:00:00.000Z', { name: 'Άννα', email: 'a@x.gr' }, { title: 'Πλάτων', is_free: false })]
+    const supabase = fakeDownloads({ data: items, error: null, count: 41 })
+    const result = await loadAdminDownloads(adminPath(), supabase.client)
+    assert.deepEqual(result, { items, total: 41, page: 1, pageSize: 20 })
+    assert.deepEqual(supabase.calls.find((call) => call[0] === 'select'), [
+      'select',
+      '*, users!inner(name, email), lessons!inner(title, is_free)',
+      { count: 'exact' },
+    ])
+    assert.deepEqual(supabase.calls.filter((call) => call[0] === 'order'), [
+      ['order', 'downloaded_at', { ascending: false }],
+      ['order', 'id', { ascending: true }],
+    ])
+    assert.deepEqual(supabase.calls.filter((call) => call[0] === 'range'), [['range', 0, 19]])
+    assert.equal(supabase.calls.some((call) => call[0] === 'or'), false)
+  })
+
+  it('reads a later page and filters user and lesson on the server', async () => {
+    const supabase = fakeDownloads({ data: [], error: null, count: 0 })
+    const result = await loadAdminDownloads(
+      adminPath(`?page=2&user=${encodeURIComponent('100%_\\"Άννα')}&lesson=${encodeURIComponent('πλά')}&sort=lesson&order=asc`),
+      supabase.client,
+    )
+    assert.deepEqual(result, { items: [], total: 0, page: 2, pageSize: 20 })
+    assert.deepEqual(supabase.calls.filter((call) => call[0] === 'or'), [
+      ['or', orIlike(['name', 'email'], ilikeContains('100%_\\"Άννα')), { referencedTable: 'users' }],
+      ['or', orIlike(['title'], ilikeContains('πλά')), { referencedTable: 'lessons' }],
+    ])
+    assert.deepEqual(supabase.calls.filter((call) => call[0] === 'order'), [
+      ['order', 'title_folded', { referencedTable: 'lessons', ascending: true }],
+      ['order', 'id', { ascending: true }],
+    ])
+    assert.deepEqual(supabase.calls.filter((call) => call[0] === 'range'), [['range', 20, 39]])
+  })
+
+  it('sorts downloads by user and falls back to newest when sort is unknown', async () => {
+    const byUser = fakeDownloads({ data: [], error: null, count: 0 })
+    await loadAdminDownloads(adminPath('?sort=user&order=asc'), byUser.client)
+    assert.deepEqual(byUser.calls.filter((call) => call[0] === 'order'), [
+      ['order', 'name_sort', { referencedTable: 'users', ascending: true }],
+      ['order', 'id', { ascending: true }],
+    ])
+    const fallback = fakeDownloads({ data: [], error: null, count: 0 })
+    await loadAdminDownloads(adminPath('?page=0&sort=nope&order=sideways'), fallback.client)
+    assert.deepEqual(fallback.calls.filter((call) => call[0] === 'order'), [
+      ['order', 'downloaded_at', { ascending: false }],
+      ['order', 'id', { ascending: true }],
+    ])
+    assert.deepEqual(fallback.calls.filter((call) => call[0] === 'range'), [['range', 0, 19]])
+  })
+
+  it('fails the request when the download query fails', async () => {
+    const supabase = fakeDownloads({ data: null, error: { message: 'db down' }, count: null })
     await assert.rejects(
-      () => loadAdminDownloads(adminEvent, supabase.client),
+      () => loadAdminDownloads(adminPath(), supabase.client),
       (error) => error.statusCode === 500,
     )
   })
 
-  it('filters by user or lesson and explains an empty table', () => {
-    assert.equal(downloadsEmptyMessage(0), 'Δεν υπάρχουν λήψεις ακόμη.')
-    assert.equal(downloadsEmptyMessage(4), 'Δεν βρέθηκαν λήψεις.')
-    assert.deepEqual(
-      filterDownloads(sample, 'άννα', '').map(item => item.id),
-      ['2', '4'],
-    )
-    assert.deepEqual(
-      filterDownloads(sample, 'z@x', 'όμηρος').map(item => item.id),
-      [],
-    )
-    assert.deepEqual(
-      filterDownloads(sample, '', 'πλά').map(item => item.id),
-      ['2', '4'],
-    )
-  })
-
-  it('sorts by user, lesson, and time', () => {
-    assert.deepEqual(sortDownloads(sample, 'user', 'asc').map(item => item.id), ['2', '4', '1', '3'])
-    assert.deepEqual(sortDownloads(sample, 'lesson', 'asc').map(item => item.id), ['3', '1', '2', '4'])
-    assert.deepEqual(sortDownloads(sample, 'time', 'desc').map(item => item.id), ['2', '3', '4', '1'])
-    assert.deepEqual(sortDownloads(sample, 'time', 'asc').map(item => item.id), ['1', '3', '4', '2'])
+  it('explains an empty download table', () => {
+    assert.equal(downloadsEmptyMessage(false), 'Δεν υπάρχουν λήψεις ακόμη.')
+    assert.equal(downloadsEmptyMessage(true), 'Δεν βρέθηκαν λήψεις.')
   })
 
   it('labels the lesson type as it is now', () => {
@@ -181,7 +201,7 @@ describe('admin shell', () => {
     assert.doesNotMatch(layout, /border-border(?!\/)/)
   })
 
-  it('asks for every download page and names the current lesson type', () => {
+  it('pages downloads and names the current lesson type', () => {
     const route = read('../server/api/admin/downloads.get.ts')
     assert.match(route, /loadAdminDownloads/)
     assert.doesNotMatch(route, /\.select\(/)
@@ -189,8 +209,10 @@ describe('admin shell', () => {
     assert.match(page, /LESSON_TYPE_HEADING/)
     assert.match(page, /lessonTypeLabel/)
     assert.match(page, /downloadsEmptyMessage/)
-    assert.match(page, /filterDownloads/)
-    assert.match(page, /sortDownloads/)
+    assert.match(page, /AdminTablePager/)
+    assert.match(page, /useAdminTablePage/)
+    assert.doesNotMatch(page, /filterDownloads/)
+    assert.doesNotMatch(page, /sortDownloads/)
     assert.doesNotMatch(page, />Τύπος</)
     assert.match(page, /rounded-2xl border border-border/)
     assert.doesNotMatch(page, /border-border\/40/)

@@ -24,7 +24,7 @@ const badgeText = computed(() => (unreadCount.value > 9 ? '9+' : String(unreadCo
 async function fetchUnreadCount() {
   try {
     const res = await adminFetch<{ unreadCount: number }>('/api/admin/notifications', {
-      query: { limit: 1 },
+      query: { summary: '1' },
     })
     unreadCount.value = res.unreadCount ?? 0
   } catch {

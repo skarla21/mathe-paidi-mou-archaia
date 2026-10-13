@@ -926,3 +926,43 @@ update public.chapters set title = title;
 update public.lessons set title = title;
 
 notify pgrst, 'reload schema';
+
+-- Admin user pages. The counts are computed in the view so a page of 20
+-- can be sorted by downloads or purchases. name_sort folds a blank name
+-- to the email with fold_greek_search.
+-- On an existing database, run supabase/migrations/20261013184500_admin_name_sort.sql
+-- before deploying the user and download sorts.
+
+alter table public.users
+  add column if not exists name_sort text
+  generated always as (
+    public.fold_greek_search(
+      case
+        when name is null or btrim(name) = '' then email
+        else name
+      end
+    )
+  ) stored;
+
+create index if not exists users_name_sort_idx on public.users (name_sort);
+
+drop view if exists public.admin_user_stats;
+
+create view public.admin_user_stats
+with (security_invoker = true) as
+select
+  u.id,
+  u.name,
+  u.email,
+  u.avatar_url,
+  u."isAdmin",
+  u.created_at,
+  u.name_sort,
+  (select count(*)::int from public.downloads d where d.user_id = u.id) as download_count,
+  (select count(*)::int from public.purchases p where p.user_id = u.id) as purchase_count
+from public.users u;
+
+revoke all on table public.admin_user_stats from public, anon, authenticated;
+grant select on table public.admin_user_stats to service_role;
+
+notify pgrst, 'reload schema';

@@ -2,6 +2,13 @@
 // Shared domain type definitions derived from supabase/schema.sql.
 // Optional joined-data properties reflect actual API response shapes.
 
+export interface AdminListPage<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 // ---------------------------------------------------------------------------
 // Core entities (match DB columns 1-to-1)
 // ---------------------------------------------------------------------------
@@ -76,8 +83,8 @@ export interface Purchase {
 }
 
 /**
- * Shape returned by GET /api/admin/purchases.
- * Supabase join syntax: `select('*, users(name, email), lessons(title)')`.
+ * One row inside GET /api/admin/purchases `items`.
+ * Supabase join syntax: `select('*, users!inner(name, email), lessons!inner(title)')`.
  */
 export interface PurchaseWithJoins extends Purchase {
   users: { name: string | null; email: string | null } | null

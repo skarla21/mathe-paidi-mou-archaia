@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import {
   downloadsEmptyMessage,
-  filterDownloads,
   LESSON_TYPE_HEADING,
   lessonTypeLabel,
-  sortDownloads,
 } from '#shared/utils/adminDownloads.mjs'
 import { toast } from 'vue-sonner'
+import AdminTablePager from '~/components/admin/AdminTablePager.vue'
 import UiInput from '~/components/ui/Input.vue'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
-import type { DownloadWithJoins } from '~~/types/domain'
+import type { AdminListPage, DownloadWithJoins } from '~~/types/domain'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 const adminFetch = useAdminFetch()
@@ -18,20 +17,34 @@ useHead(() => ({ title: 'Διαχείριση - Λήψεις' }))
 
 type SortColumn = 'user' | 'lesson' | 'time'
 
-const downloads = ref<DownloadWithJoins[]>([])
-const loading = ref(true)
 const userQuery = ref('')
 const lessonQuery = ref('')
 const sortBy = ref<SortColumn>('time')
 const sortOrder = ref<'asc' | 'desc'>('desc')
+const hasFilter = computed(() => Boolean(userQuery.value.trim() || lessonQuery.value.trim()))
 
-const visibleDownloads = computed(() => (
-  sortDownloads(
-    filterDownloads(downloads.value, userQuery.value, lessonQuery.value),
-    sortBy.value,
-    sortOrder.value,
-  )
-))
+const {
+  page,
+  total,
+  pageSize,
+  items: downloads,
+  loading,
+  ready,
+  load,
+  onSearchInput,
+  onSortChange,
+} = useAdminTablePage<DownloadWithJoins>(
+  (pageNumber) => adminFetch<AdminListPage<DownloadWithJoins>>('/api/admin/downloads', {
+    query: {
+      page: pageNumber,
+      user: userQuery.value.trim(),
+      lesson: lessonQuery.value.trim(),
+      sort: sortBy.value,
+      order: sortOrder.value,
+    },
+  }),
+  () => toast.error('Κάτι πήγε στραβά'),
+)
 
 function setSort(col: SortColumn) {
   if (sortBy.value === col) {
@@ -40,25 +53,18 @@ function setSort(col: SortColumn) {
     sortBy.value = col
     sortOrder.value = col === 'time' ? 'desc' : 'asc'
   }
+  onSortChange()
 }
 
 function formatDownloadedAt(value: string) {
   return new Date(value).toLocaleString('el-GR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-async function fetchDownloads() {
-  loading.value = true
-  try {
-    downloads.value = await adminFetch<DownloadWithJoins[]>('/api/admin/downloads')
-  } catch {
-    downloads.value = []
-    toast.error('Κάτι πήγε στραβά')
-  } finally {
-    loading.value = false
-  }
-}
+watch([userQuery, lessonQuery], () => {
+  onSearchInput()
+})
 
-onMounted(fetchDownloads)
+onMounted(load)
 </script>
 
 <template>
@@ -88,7 +94,7 @@ onMounted(fetchDownloads)
       </div>
     </div>
 
-    <template v-if="loading">
+    <template v-if="loading && !ready">
       <div class="overflow-hidden rounded-2xl border border-border">
         <div class="overflow-x-auto">
         <Table class="text-base">
@@ -159,15 +165,15 @@ onMounted(fetchDownloads)
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-if="!visibleDownloads.length">
+            <TableRow v-if="!downloads.length">
               <TableCell :colspan="4" class="h-32 text-center">
                 <div class="flex flex-col items-center gap-2 text-muted-foreground">
                   <VIcon name="bi-inbox" class="size-8" />
-                  <p>{{ downloadsEmptyMessage(downloads.length) }}</p>
+                  <p>{{ downloadsEmptyMessage(hasFilter) }}</p>
                 </div>
               </TableCell>
             </TableRow>
-            <TableRow v-for="row in visibleDownloads" v-else :key="row.id">
+            <TableRow v-for="row in downloads" v-else :key="row.id">
               <TableCell class="border-r border-border">
                 <div class="font-medium">{{ row.users?.name ?? '—' }}</div>
                 <div class="text-muted-foreground">{{ row.users?.email }}</div>
@@ -180,6 +186,12 @@ onMounted(fetchDownloads)
         </Table>
         </div>
       </div>
+      <AdminTablePager
+        v-model:page="page"
+        :total="total"
+        :page-size="pageSize"
+        :disabled="loading"
+      />
     </template>
   </div>
 </template>

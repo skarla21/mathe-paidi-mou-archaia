@@ -170,20 +170,21 @@ async function download() {
   downloading.value = true
   try {
     await downloadRemoteFile(props.src, props.title)
+    if (!props.lessonId) return
+    try {
+      await $fetch(`/api/lessons/${props.lessonId}/record-download`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+    } catch {
+      toast.error('Το αρχείο κατέβηκε, αλλά η καταγραφή της λήψης απέτυχε.')
+    }
   } catch {
     toast.error('Η λήψη απέτυχε')
   } finally {
     downloading.value = false
   }
 }
-
-watch(open, (isOpen) => {
-  if (!isOpen || !props.lessonId) return
-  $fetch(`/api/lessons/${props.lessonId}/record-download`, {
-    method: 'POST',
-    credentials: 'include',
-  }).catch(() => {})
-})
 
 watch(() => props.src, () => {
   imagePreviewFailed.value = false

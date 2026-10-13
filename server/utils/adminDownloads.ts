@@ -1,28 +1,54 @@
-import { createError, type H3Event } from 'h3'
+import { createError, getQuery, type H3Event } from 'h3'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DownloadWithJoins } from '../../types/domain'
+import {
+  adminListPage,
+  adminPage,
+  firstQuery,
+  ilikeContains,
+  orIlike,
+  pageRange,
+  sortAscending,
+} from './adminList'
 import { requireAdmin } from './requireAdmin'
 
-export const ADMIN_DOWNLOADS_PAGE_SIZE = 1000
+const DOWNLOAD_SELECT = '*, users!inner(name, email), lessons!inner(title, is_free)'
+
+type DownloadSort = 'user' | 'lesson' | 'time'
+
+function downloadSort(value: unknown): DownloadSort {
+  const raw = firstQuery(value)
+  if (raw === 'user' || raw === 'lesson' || raw === 'time') return raw
+  return 'time'
+}
 
 export async function loadAdminDownloads(event: H3Event, supabase: SupabaseClient) {
   requireAdmin(event)
-  const rows: DownloadWithJoins[] = []
-  let from = 0
-  for (;;) {
-    const { data, error } = await supabase
-      .from('downloads')
-      .select('*, users(name, email), lessons(title, is_free)')
-      .order('downloaded_at', { ascending: false })
-      .order('id', { ascending: true })
-      .range(from, from + ADMIN_DOWNLOADS_PAGE_SIZE - 1)
-    if (error) {
-      console.error('[admin/downloads.get]', error.message)
-      throw createError({ statusCode: 500, message: 'Database operation failed' })
-    }
-    const page = (data ?? []) as DownloadWithJoins[]
-    rows.push(...page)
-    if (page.length < ADMIN_DOWNLOADS_PAGE_SIZE) return rows
-    from += ADMIN_DOWNLOADS_PAGE_SIZE
+  const query = getQuery(event)
+  const page = adminPage(query.page)
+  const sort = downloadSort(query.sort)
+  const ascending = sortAscending(query.order)
+  const user = ilikeContains(firstQuery(query.user))
+  const lesson = ilikeContains(firstQuery(query.lesson))
+  const { from, to } = pageRange(page)
+
+  let filtered = supabase
+    .from('downloads')
+    .select(DOWNLOAD_SELECT, { count: 'exact' })
+
+  if (user) filtered = filtered.or(orIlike(['name', 'email'], user), { referencedTable: 'users' })
+  if (lesson) filtered = filtered.or(orIlike(['title'], lesson), { referencedTable: 'lessons' })
+
+  const ordered = sort === 'user'
+    ? filtered.order('name_sort', { referencedTable: 'users', ascending })
+    : sort === 'lesson'
+      ? filtered.order('title_folded', { referencedTable: 'lessons', ascending })
+      : filtered.order('downloaded_at', { ascending })
+
+  const { data, error, count } = await ordered.order('id', { ascending: true }).range(from, to)
+  if (error) {
+    console.error('[admin/downloads.get]', error.message)
+    throw createError({ statusCode: 500, message: 'Database operation failed' })
   }
+  return adminListPage((data ?? []) as DownloadWithJoins[], count ?? 0, page)
 }
