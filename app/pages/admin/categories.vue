@@ -16,6 +16,7 @@ import UiAlertDialogDescription from '~/components/ui/alert-dialog/AlertDialogDe
 import UiAlertDialogCancel from '~/components/ui/alert-dialog/AlertDialogCancel.vue'
 import UiAlertDialogAction from '~/components/ui/alert-dialog/AlertDialogAction.vue'
 import AdminCategoryModal from '~/components/admin/CategoryModal.vue'
+import AdminListCount from '~/components/admin/AdminListCount.vue'
 import AdminSortModal from '~/components/admin/AdminSortModal.vue'
 import type { Category } from '~/types/database'
 
@@ -23,6 +24,7 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 useHead(() => ({ title: 'Διαχείριση - Κατηγορίες' }))
 
 const adminFetch = useAdminFetch()
+const storedImageSrc = useStoredImageSrc()
 const categories = ref<Category[]>([])
 const loading = ref(true)
 const search = ref('')
@@ -76,7 +78,10 @@ async function confirmDelete() {
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold font-heading">Κατηγορίες</h1>
+      <div class="min-w-0">
+        <h1 class="text-2xl font-bold font-heading">Κατηγορίες</h1>
+        <AdminListCount v-if="!loading" :shown="filteredCategories.length" :total="categories.length" />
+      </div>
       <div class="flex items-center gap-2">
         <UiButton variant="outline" @click="sortModalOpen = true">
           <VIcon name="bi-arrow-down-up" class="mr-2 size-4" />
@@ -116,7 +121,13 @@ async function confirmDelete() {
       <div v-else class="space-y-3">
         <UiCard v-for="c in filteredCategories" :key="c.id" class="rounded-2xl border-border">
           <UiCardContent class="p-4 flex items-center gap-4">
-            <UiIconWell>
+            <img
+              v-if="storedImageSrc(c.image_url)"
+              :src="storedImageSrc(c.image_url)"
+              :alt="c.name"
+              class="size-12 shrink-0 rounded-xl object-cover"
+            >
+            <UiIconWell v-else>
               <VIcon name="bi-folder" class="size-5" aria-hidden="true" />
             </UiIconWell>
             <div class="min-w-0 flex-1">

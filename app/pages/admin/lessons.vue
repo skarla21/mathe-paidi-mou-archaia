@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import AdminLessonModal from "~/components/admin/LessonModal.vue";
+import AdminListCount from "~/components/admin/AdminListCount.vue";
 import AdminSortModal from "~/components/admin/AdminSortModal.vue";
 import AdminLessonDetailModal from "~/components/admin/LessonDetailModal.vue";
 import type { Lesson } from "~/types/database";
@@ -231,7 +232,14 @@ function placementSummary(lesson: Lesson): string {
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold font-heading">Υλικό</h1>
+      <div class="min-w-0">
+        <h1 class="text-2xl font-bold font-heading">Υλικό</h1>
+        <AdminListCount
+          v-if="!loading"
+          :shown="filteredLessons.length"
+          :total="lessons.length"
+        />
+      </div>
       <div class="flex items-center gap-2">
         <UiButton variant="outline" @click="sortModalOpen = true">
           <VIcon name="bi-arrow-down-up" class="mr-2 size-4" />

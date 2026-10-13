@@ -9,6 +9,7 @@ import UiDialogFooter from '~/components/ui/dialog/DialogFooter.vue'
 import UiDialogTitle from '~/components/ui/dialog/DialogTitle.vue'
 import UiDialogDescription from '~/components/ui/dialog/DialogDescription.vue'
 import AdminImageDropzone from '~/components/admin/AdminImageDropzone.vue'
+import AdminExistingImagePicker from '~/components/admin/AdminExistingImagePicker.vue'
 import UiButton from '~/components/ui/Button.vue'
 import UiInput from '~/components/ui/Input.vue'
 import UiLabel from '~/components/ui/Label.vue'
@@ -26,6 +27,7 @@ const gradeId = ref('')
 const grades = ref<{ id: string; name: string }[]>([])
 const loading = ref(false)
 const attempted = ref(false)
+const pickerOpen = ref(false)
 const {
   imageUrl,
   preserveExisting,
@@ -38,6 +40,7 @@ const {
   keepImage,
   releaseUnsaved,
   uploadImage,
+  useExistingImage,
   clearImage,
   removePersistedImage,
   imageFields,
@@ -48,6 +51,7 @@ const gradeMissing = computed(() => attempted.value && !gradeId.value)
 
 watch(() => props.open, async (val) => {
   if (!val) {
+    pickerOpen.value = false
     closeImage(loading.value)
     return
   }
@@ -60,6 +64,11 @@ watch(() => props.open, async (val) => {
 
 function onImageFile(file: File) {
   void uploadImage(file, loading.value)
+}
+
+function onImagePick(url: string) {
+  useExistingImage(url)
+  pickerOpen.value = false
 }
 
 async function onImageClear() {
@@ -133,6 +142,14 @@ async function onSubmit() {
             :persisted="persistedImage"
             @file="onImageFile"
             @clear="onImageClear"
+            @pick="pickerOpen = true"
+          />
+          <AdminExistingImagePicker
+            :open="pickerOpen"
+            except-type="subject"
+            :except-id="props.subject?.id"
+            @close="pickerOpen = false"
+            @select="onImagePick"
           />
           <UiDialogFooter>
             <UiButton type="button" variant="cancel" @click="emit('close')">Ακύρωση</UiButton>

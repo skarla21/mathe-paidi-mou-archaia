@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { classifyEntityImageUrl } from '#shared/utils/entityImageUrl.mjs'
+import { acceptedEntityImageUrl, classifyEntityImageUrl } from '#shared/utils/entityImageUrl.mjs'
 import { LESSON_CONTENT_REAP_AGE_MS } from './lessonStorage'
 
 const BUCKET = 'uploads'
@@ -7,6 +7,16 @@ const IMAGE_PREFIX = 'entity-images/'
 const IMAGE_FOLDER = 'entity-images'
 const PAGE_SIZE = 1000
 const IMAGE_TABLES = ['categories', 'chapters', 'subjects'] as const
+const IMAGE_KIND = {
+  categories: 'category',
+  chapters: 'chapter',
+  subjects: 'subject',
+} as const
+const KIND_ORDER = { subject: 0, chapter: 1, category: 2 } as const
+
+export type EntityImageKind = (typeof IMAGE_KIND)[keyof typeof IMAGE_KIND]
+type ImageUse = { type: EntityImageKind; id: string; label: string }
+type ImageGroup = { url: string; usedBy: ImageUse[] }
 
 type ImageRow = { image_url?: string | null }
 type StoredObject = {
@@ -165,6 +175,136 @@ export async function listEntityImageUrls(
     from += PAGE_SIZE
   }
   return urls
+}
+
+function imageText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function joinImageLabel(parts: string[]): string {
+  return parts.filter(Boolean).join(' > ')
+}
+
+function relatedImageRecord(value: unknown): Record<string, unknown> | null {
+  const row = Array.isArray(value) ? value[0] : value
+  if (!row || typeof row !== 'object') return null
+  return row as Record<string, unknown>
+}
+
+function relatedImageName(value: unknown): string {
+  return imageText(relatedImageRecord(value)?.name)
+}
+
+function imageLabel(table: (typeof IMAGE_TABLES)[number], row: Record<string, unknown>): string {
+  if (table === 'categories') return imageText(row.name)
+  if (table === 'subjects') return joinImageLabel([relatedImageName(row.grades), imageText(row.name)])
+  const subject = relatedImageRecord(row.subjects)
+  return joinImageLabel([
+    relatedImageName(subject?.grades),
+    imageText(subject?.name),
+    imageText(row.title),
+  ])
+}
+
+type ImagePage = { data: unknown; error: { message: string } | null }
+
+async function pageImageRows(
+  load: (from: number, to: number) => PromiseLike<ImagePage>,
+): Promise<Record<string, unknown>[] | null> {
+  const rows: Record<string, unknown>[] = []
+  let from = 0
+  for (;;) {
+    const { data, error } = await load(from, from + PAGE_SIZE - 1)
+    if (error) {
+      console.error('[entityImageStorage] list image_url', error.message)
+      return null
+    }
+    const page = (Array.isArray(data) ? data : []) as Record<string, unknown>[]
+    rows.push(...page)
+    if (page.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
+  return rows
+}
+
+function listImageRows(
+  supabase: SupabaseClient,
+  table: (typeof IMAGE_TABLES)[number],
+): Promise<Record<string, unknown>[] | null> {
+  if (table === 'categories') {
+    return pageImageRows((from, to) => supabase
+      .from('categories')
+      .select('id, name, image_url')
+      .not('image_url', 'is', null)
+      .order('id')
+      .range(from, to))
+  }
+  if (table === 'chapters') {
+    return pageImageRows((from, to) => supabase
+      .from('chapters')
+      .select('id, title, image_url, subjects(name, grades(name))')
+      .not('image_url', 'is', null)
+      .order('id')
+      .range(from, to))
+  }
+  return pageImageRows((from, to) => supabase
+    .from('subjects')
+    .select('id, name, image_url, grades(name)')
+    .not('image_url', 'is', null)
+    .order('id')
+    .range(from, to))
+}
+
+function addReferencedImage(
+  groups: Map<string, ImageGroup>,
+  table: (typeof IMAGE_TABLES)[number],
+  row: Record<string, unknown>,
+  supabaseUrl: string,
+) {
+  const id = imageText(row.id)
+  const rawUrl = imageText(row.image_url)
+  if (!id || !rawUrl) return
+  const url = acceptedEntityImageUrl(rawUrl, supabaseUrl)
+  if (typeof url !== 'string') return
+  const path = entityImagePathFromUrl(url, supabaseUrl)
+  if (!path) return
+  const kind = IMAGE_KIND[table]
+  const group = groups.get(path) ?? { url, usedBy: [] }
+  if (!groups.has(path)) groups.set(path, group)
+  if (group.usedBy.some(use => use.type === kind && use.id === id)) return
+  group.usedBy.push({ type: kind, id, label: imageLabel(table, row) })
+}
+
+export async function listReferencedEntityImages(
+  supabase: SupabaseClient,
+  supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || ''),
+  except: { type: EntityImageKind; id: string } | null = null,
+): Promise<ImageGroup[] | null> {
+  const groups = new Map<string, ImageGroup>()
+  for (const table of IMAGE_TABLES) {
+    const rows = await listImageRows(supabase, table)
+    if (!rows) return null
+    for (const row of rows) addReferencedImage(groups, table, row, supabaseUrl)
+  }
+  const images = [...groups.values()]
+    .map(image => ({
+      url: image.url,
+      usedBy: image.usedBy.filter(use => !except || use.type !== except.type || use.id !== except.id),
+    }))
+    .filter(image => image.usedBy.length > 0)
+  for (const image of images) {
+    image.usedBy.sort((a, b) => (
+      KIND_ORDER[a.type] - KIND_ORDER[b.type]
+      || a.label.localeCompare(b.label, 'el')
+      || a.id.localeCompare(b.id)
+    ))
+  }
+  images.sort((a, b) => {
+    const left = a.usedBy[0]?.label ?? ''
+    const right = b.usedBy[0]?.label ?? ''
+    return left.localeCompare(right, 'el') || a.url.localeCompare(b.url)
+  })
+  return images
 }
 
 export async function reapOrphanEntityImages(

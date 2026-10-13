@@ -9,6 +9,7 @@ import UiDialogFooter from '~/components/ui/dialog/DialogFooter.vue'
 import UiDialogTitle from '~/components/ui/dialog/DialogTitle.vue'
 import UiDialogDescription from '~/components/ui/dialog/DialogDescription.vue'
 import AdminImageDropzone from '~/components/admin/AdminImageDropzone.vue'
+import AdminExistingImagePicker from '~/components/admin/AdminExistingImagePicker.vue'
 import UiButton from '~/components/ui/Button.vue'
 import UiInput from '~/components/ui/Input.vue'
 import UiLabel from '~/components/ui/Label.vue'
@@ -33,6 +34,7 @@ const grades = ref<{ id: string; name: string }[]>([])
 const subjects = ref<{ id: string; name: string; grade_id: string }[]>([])
 const loading = ref(false)
 const attempted = ref(false)
+const pickerOpen = ref(false)
 const initializing = ref(false)
 
 const filteredSubjects = computed(() =>
@@ -50,6 +52,7 @@ const {
   keepImage,
   releaseUnsaved,
   uploadImage,
+  useExistingImage,
   clearImage,
   removePersistedImage,
   imageFields,
@@ -61,6 +64,7 @@ const subjectMissing = computed(() => attempted.value && !!gradeId.value && !sub
 
 watch(() => props.open, async (val) => {
   if (!val) {
+    pickerOpen.value = false
     closeImage(loading.value)
     return
   }
@@ -98,6 +102,11 @@ watch(gradeId, () => {
 
 function onImageFile(file: File) {
   void uploadImage(file, loading.value)
+}
+
+function onImagePick(url: string) {
+  useExistingImage(url)
+  pickerOpen.value = false
 }
 
 async function onImageClear() {
@@ -191,6 +200,14 @@ async function onSubmit() {
             :persisted="persistedImage"
             @file="onImageFile"
             @clear="onImageClear"
+            @pick="pickerOpen = true"
+          />
+          <AdminExistingImagePicker
+            :open="pickerOpen"
+            except-type="chapter"
+            :except-id="props.chapter?.id"
+            @close="pickerOpen = false"
+            @select="onImagePick"
           />
           <UiDialogFooter>
             <UiButton type="button" variant="cancel" @click="emit('close')">Ακύρωση</UiButton>

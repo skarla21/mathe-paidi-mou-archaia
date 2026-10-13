@@ -48,6 +48,19 @@ export function entityImageDraft(url, supabaseUrl) {
   return { draft: '', preserveExisting: false }
 }
 
+export function borrowEntityImage({ chosen, sessionUrl, supabaseUrl } = {}) {
+  const accepted = acceptedEntityImageUrl(chosen, supabaseUrl)
+  if (typeof accepted !== 'string') return null
+  const previous = typeof sessionUrl === 'string' ? sessionUrl : ''
+  return {
+    imageUrl: accepted,
+    sessionUrl: '',
+    imageRemoved: false,
+    preserveExisting: false,
+    discardUrl: previous && previous !== accepted ? previous : '',
+  }
+}
+
 export function entityImageSaveFields({
   creating = false,
   draft = '',

@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import AdminSubjectModal from "~/components/admin/SubjectModal.vue";
+import AdminListCount from "~/components/admin/AdminListCount.vue";
 import AdminSortModal from "~/components/admin/AdminSortModal.vue";
 import type { Subject } from "~/types/database";
 
@@ -30,6 +31,7 @@ definePageMeta({ layout: "admin", middleware: "admin" });
 useHead(() => ({ title: "Διαχείριση - Μαθήματα" }));
 
 const adminFetch = useAdminFetch();
+const storedImageSrc = useStoredImageSrc();
 const subjects = ref<Subject[]>([]);
 const grades = ref<{ id: string; name: string }[]>([]);
 const loading = ref(true);
@@ -111,7 +113,14 @@ async function confirmDelete() {
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold font-heading">Μαθήματα</h1>
+      <div class="min-w-0">
+        <h1 class="text-2xl font-bold font-heading">Μαθήματα</h1>
+        <AdminListCount
+          v-if="!loading"
+          :shown="filteredSubjects.length"
+          :total="subjects.length"
+        />
+      </div>
       <div class="flex items-center gap-2">
         <UiButton variant="outline" @click="sortModalOpen = true">
           <VIcon name="bi-arrow-down-up" class="mr-2 size-4" />
@@ -174,7 +183,13 @@ async function confirmDelete() {
           class="rounded-2xl border-border"
         >
           <UiCardContent class="p-4 flex items-center gap-4">
-            <UiIconWell>
+            <img
+              v-if="storedImageSrc(s.image_url)"
+              :src="storedImageSrc(s.image_url)"
+              :alt="s.name"
+              class="size-12 shrink-0 rounded-xl object-cover"
+            >
+            <UiIconWell v-else>
               <VIcon name="bi-journal-text" class="size-5" aria-hidden="true" />
             </UiIconWell>
             <div class="min-w-0 flex-1">

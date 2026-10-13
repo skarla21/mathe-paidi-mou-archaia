@@ -23,20 +23,15 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import AdminChapterModal from "~/components/admin/ChapterModal.vue";
+import AdminListCount from "~/components/admin/AdminListCount.vue";
 import AdminSortModal from "~/components/admin/AdminSortModal.vue";
 import type { Chapter } from "~/types/database";
-import { acceptedEntityImageUrl } from "#shared/utils/entityImageUrl.mjs";
 
 definePageMeta({ layout: "admin", middleware: "admin" });
 useHead(() => ({ title: "Διαχείριση - Κεφάλαια" }));
 
 const adminFetch = useAdminFetch();
-const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || "");
-
-function storedImageSrc(url: string | null | undefined) {
-  const accepted = acceptedEntityImageUrl(url ?? "", supabaseUrl);
-  return typeof accepted === "string" ? accepted : "";
-}
+const storedImageSrc = useStoredImageSrc();
 const chapters = ref<Chapter[]>([]);
 const grades = ref<{ id: string; name: string }[]>([]);
 const subjects = ref<{ id: string; name: string; grade_id: string }[]>([]);
@@ -138,7 +133,14 @@ async function confirmDelete() {
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold font-heading">Κεφάλαια</h1>
+      <div class="min-w-0">
+        <h1 class="text-2xl font-bold font-heading">Κεφάλαια</h1>
+        <AdminListCount
+          v-if="!loading"
+          :shown="filteredChapters.length"
+          :total="chapters.length"
+        />
+      </div>
       <div class="flex items-center gap-2">
         <UiButton variant="outline" @click="sortModalOpen = true">
           <VIcon name="bi-arrow-down-up" class="mr-2 size-4" />

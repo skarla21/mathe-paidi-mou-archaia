@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { acceptedEntityImageUrl } from "#shared/utils/entityImageUrl.mjs";
-
 interface ArticleCard {
   id: string;
   title: string;
@@ -12,12 +10,7 @@ const { categories, ensureCategories, categoriesFailed } = useCatalogNav();
 const articles = ref<ArticleCard[]>([]);
 const articlesFailed = ref(false);
 
-const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || "");
-
-function storedImageSrc(url: string | null | undefined) {
-  const accepted = acceptedEntityImageUrl(url ?? "", supabaseUrl);
-  return typeof accepted === "string" ? accepted : "";
-}
+const storedImageSrc = useStoredImageSrc();
 
 const shownCategories = computed(() => categories.value.slice(0, 3));
 const shownArticles = computed(() => articles.value.slice(0, 3));

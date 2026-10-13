@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import {
   entityImagePathFromUrl,
   listEntityImageUrls,
+  listReferencedEntityImages,
   reapOrphanEntityImages,
   releaseEntityImages,
   releaseReplacedEntityImage,
@@ -37,7 +38,7 @@ function fakeImages(tables, objects, { listError = null, queryError = null } = {
       range(start, end) {
         if (queryError) return Promise.resolve({ data: null, error: queryError })
         const page = filtered.slice(start, end + 1).map((row) => (
-          typeof row === 'string' ? { image_url: row } : { image_url: row.image_url ?? null }
+          typeof row === 'string' ? { image_url: row } : { ...row }
         ))
         return Promise.resolve({ data: page, error: null })
       },
@@ -152,6 +153,12 @@ describe('releaseReplacedEntityImage', () => {
     await releaseReplacedEntityImage(supabase.client, IMAGE_URL, NEXT_URL, SUPABASE_URL)
     assert.deepEqual(supabase.removed, [])
   })
+
+  it('keeps a file shared by a subject and a chapter when the subject releases it', async () => {
+    const supabase = fakeImages({ subjects: [NEXT_URL], chapters: [IMAGE_URL] }, [])
+    await releaseReplacedEntityImage(supabase.client, IMAGE_URL, NEXT_URL, SUPABASE_URL)
+    assert.deepEqual(supabase.removed, [])
+  })
 })
 
 describe('releaseEntityImages', () => {
@@ -191,5 +198,113 @@ describe('listEntityImageUrls', () => {
     assert.equal(urls.length, 1001)
     assert.equal(urls[0], rows[0].image_url)
     assert.equal(urls[1000], rows[1000].image_url)
+  })
+})
+
+describe('listReferencedEntityImages', () => {
+  const THIRD_URL = `${SUPABASE_URL}/storage/v1/object/public/uploads/entity-images/category-extra.png`
+  const shared = {
+    subjects: [
+      { id: 'sub-shared', name: 'Αρχαία', image_url: IMAGE_URL, grades: { name: 'Α' } },
+      { id: 'sub-only', name: 'Γραμματική', image_url: NEXT_URL, grades: { name: 'Β' } },
+    ],
+    chapters: [
+      {
+        id: 'ch-shared',
+        title: 'Συντακτικό',
+        image_url: `${IMAGE_URL}?download=1`,
+        subjects: { name: 'Αρχαία', grades: { name: 'Α' } },
+      },
+    ],
+    categories: [
+      { id: 'cat-ok', name: 'Λεξιλόγιο', image_url: THIRD_URL },
+      { id: 'cat-bad', name: 'Κακή', image_url: `${SUPABASE_URL}/storage/v1/object/public/uploads/lesson-content/notes.pdf` },
+      { id: 'cat-foreign', name: 'Ξένη', image_url: 'https://cdn.example/cover.png' },
+      { id: 'cat-empty', name: 'Κενή', image_url: null },
+    ],
+  }
+
+  it('groups one storage path and skips an image url that cannot be read', async () => {
+    const supabase = fakeImages(shared, [])
+    const images = await listReferencedEntityImages(supabase.client, SUPABASE_URL)
+    assert.deepEqual(images, [
+      {
+        url: IMAGE_URL,
+        usedBy: [
+          { type: 'subject', id: 'sub-shared', label: 'Α > Αρχαία' },
+          { type: 'chapter', id: 'ch-shared', label: 'Α > Αρχαία > Συντακτικό' },
+        ],
+      },
+      {
+        url: NEXT_URL,
+        usedBy: [{ type: 'subject', id: 'sub-only', label: 'Β > Γραμματική' }],
+      },
+      {
+        url: THIRD_URL,
+        usedBy: [{ type: 'category', id: 'cat-ok', label: 'Λεξιλόγιο' }],
+      },
+    ])
+  })
+
+  it('hides an image used only by the excluded row', async () => {
+    const supabase = fakeImages(shared, [])
+    const images = await listReferencedEntityImages(supabase.client, SUPABASE_URL, {
+      type: 'subject',
+      id: 'sub-only',
+    })
+    assert.deepEqual(images, [
+      {
+        url: IMAGE_URL,
+        usedBy: [
+          { type: 'subject', id: 'sub-shared', label: 'Α > Αρχαία' },
+          { type: 'chapter', id: 'ch-shared', label: 'Α > Αρχαία > Συντακτικό' },
+        ],
+      },
+      {
+        url: THIRD_URL,
+        usedBy: [{ type: 'category', id: 'cat-ok', label: 'Λεξιλόγιο' }],
+      },
+    ])
+  })
+
+  it('keeps a shared image after excluding one of its rows', async () => {
+    const supabase = fakeImages(shared, [])
+    const images = await listReferencedEntityImages(supabase.client, SUPABASE_URL, {
+      type: 'subject',
+      id: 'sub-shared',
+    })
+    assert.deepEqual(images, [
+      {
+        url: IMAGE_URL,
+        usedBy: [{ type: 'chapter', id: 'ch-shared', label: 'Α > Αρχαία > Συντακτικό' }],
+      },
+      {
+        url: NEXT_URL,
+        usedBy: [{ type: 'subject', id: 'sub-only', label: 'Β > Γραμματική' }],
+      },
+      {
+        url: THIRD_URL,
+        usedBy: [{ type: 'category', id: 'cat-ok', label: 'Λεξιλόγιο' }],
+      },
+    ])
+  })
+
+  it('returns null when the image lookup fails', async () => {
+    const supabase = fakeImages({ categories: [] }, [], { queryError: { message: 'db down' } })
+    const images = await listReferencedEntityImages(supabase.client, SUPABASE_URL)
+    assert.equal(images, null)
+  })
+
+  it('pages through every referenced image', async () => {
+    const rows = Array.from({ length: 1001 }, (_, index) => ({
+      id: `sub-${index}`,
+      name: `Μάθημα ${index}`,
+      image_url: `${SUPABASE_URL}/storage/v1/object/public/uploads/entity-images/img-${index}.png`,
+    }))
+    const supabase = fakeImages({ subjects: rows }, [])
+    const images = await listReferencedEntityImages(supabase.client, SUPABASE_URL)
+    assert.equal(images.length, 1001)
+    assert.equal(images.some((image) => image.url.endsWith('/entity-images/img-0.png')), true)
+    assert.equal(images.some((image) => image.url.endsWith('/entity-images/img-1000.png')), true)
   })
 })

@@ -1,5 +1,5 @@
 import { toast } from 'vue-sonner'
-import { acceptedEntityImageUrl, entityImageDraft, entityImageSaveFields } from '#shared/utils/entityImageUrl.mjs'
+import { acceptedEntityImageUrl, borrowEntityImage, entityImageDraft, entityImageSaveFields } from '#shared/utils/entityImageUrl.mjs'
 import { canStartUpload, imageToDiscard } from '#shared/utils/lessonAttachment.mjs'
 
 type ImageEntity = 'category' | 'chapter' | 'subject'
@@ -91,6 +91,21 @@ export function useAdminImageDraft(entity: ImageEntity) {
     }
   }
 
+  function useExistingImage(url: string) {
+    if (uploading.value) return
+    const next = borrowEntityImage({
+      chosen: url,
+      sessionUrl: sessionUrl.value,
+      supabaseUrl: storageUrl(),
+    })
+    if (!next) return
+    if (next.discardUrl) discard(next.discardUrl)
+    imageUrl.value = next.imageUrl
+    preserveExisting.value = next.preserveExisting
+    imageRemoved.value = next.imageRemoved
+    sessionUrl.value = next.sessionUrl
+  }
+
   function clearImage() {
     const current = imageUrl.value
     imageUrl.value = ''
@@ -145,6 +160,7 @@ export function useAdminImageDraft(entity: ImageEntity) {
     keepImage,
     releaseUnsaved,
     uploadImage,
+    useExistingImage,
     clearImage,
     removePersistedImage,
     imageFields,

@@ -31,6 +31,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   file: [file: File]
   clear: []
+  pick: []
 }>()
 
 const root = ref<HTMLElement | null>(null)
@@ -127,14 +128,19 @@ onUnmounted(() => {
             <VIcon name="bi-x" class="size-5" aria-hidden="true" />
           </button>
         </div>
-        <UiButton type="button" variant="outline" size="sm" class="mt-3" :disabled="busy" @click="fileInput?.click()">
-          Επιλογή αρχείου
-        </UiButton>
-        <p class="mt-2 text-xs text-muted-foreground">Σύρε νέα εικόνα για αντικατάσταση, ή κάνε κλικ για επιλογή ή κάνε paste</p>
+        <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <UiButton type="button" variant="outline" size="sm" :disabled="busy" @click="fileInput?.click()">
+            Επιλογή αρχείου
+          </UiButton>
+          <UiButton type="button" variant="outline" size="sm" :disabled="busy" @click="emit('pick')">
+            Υπάρχουσα εικόνα
+          </UiButton>
+        </div>
+        <p class="mt-2 text-xs text-muted-foreground">Σύρε νέα εικόνα για αντικατάσταση, επίλεξε αρχείο ή υπάρχουσα εικόνα, ή κάνε paste</p>
       </template>
       <div v-else class="flex flex-col items-center gap-2">
         <VIcon name="bi-cloud-arrow-up" class="size-8 text-muted-foreground" />
-        <p class="text-sm font-medium">Σύρε και άφησε εικόνα εδώ, ή κάνε κλικ για επιλογή ή κάνε paste</p>
+        <p class="text-sm font-medium">Σύρε και άφησε εικόνα εδώ, επίλεξε αρχείο ή υπάρχουσα εικόνα, ή κάνε paste</p>
         <p class="text-xs text-muted-foreground">Εικόνες μέγ. 20MB</p>
         <p v-if="preserved" class="max-w-sm text-xs text-muted-foreground">
           Η αποθηκευμένη εικόνα δεν προέρχεται από μεταφόρτωση και δεν εμφανίζεται.
@@ -142,9 +148,14 @@ onUnmounted(() => {
         <UiButton v-if="preserved" type="button" variant="ghost" size="sm" :disabled="busy" @click="requestClear">
           Αφαίρεση εικόνας
         </UiButton>
-        <UiButton type="button" variant="outline" size="sm" :disabled="busy" @click="fileInput?.click()">
-          Επιλογή αρχείου
-        </UiButton>
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          <UiButton type="button" variant="outline" size="sm" :disabled="busy" @click="fileInput?.click()">
+            Επιλογή αρχείου
+          </UiButton>
+          <UiButton type="button" variant="outline" size="sm" :disabled="busy" @click="emit('pick')">
+            Υπάρχουσα εικόνα
+          </UiButton>
+        </div>
       </div>
       <input ref="fileInput" type="file" accept="image/jpeg,image/png" class="hidden" @change="onFileSelect">
       <UiProgress v-if="uploading" :model-value="progress" class="mt-3 h-2" />

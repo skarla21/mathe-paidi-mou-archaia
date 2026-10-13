@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { imageToDiscard } from '../shared/utils/lessonAttachment.mjs'
 import {
   acceptedEntityImageUrl,
+  borrowEntityImage,
   entityImageDraft,
   entityImageSaveFields,
 } from '../shared/utils/entityImageUrl.mjs'
 
 const SUPABASE_URL = 'https://proj.supabase.co'
 const IMAGE_URL = `${SUPABASE_URL}/storage/v1/object/public/uploads/entity-images/cover.png`
+const SESSION_URL = `${SUPABASE_URL}/storage/v1/object/public/uploads/entity-images/session.png`
 
 describe('acceptedEntityImageUrl', () => {
   it('accepts a storage entity image', () => {
@@ -85,5 +88,50 @@ describe('entity image save', () => {
       entityImageSaveFields({ draft: '', preserveExisting: false, creating: true, removed: false }),
       { image_url: null },
     )
+  })
+
+  it('sends a borrowed image after a clear', () => {
+    const borrowed = borrowEntityImage({ chosen: IMAGE_URL, sessionUrl: '', supabaseUrl: SUPABASE_URL })
+    assert.deepEqual(borrowed, {
+      imageUrl: IMAGE_URL,
+      sessionUrl: '',
+      imageRemoved: false,
+      preserveExisting: false,
+      discardUrl: '',
+    })
+    assert.deepEqual(entityImageSaveFields({
+      draft: borrowed.imageUrl,
+      preserveExisting: borrowed.preserveExisting,
+      removed: borrowed.imageRemoved,
+      creating: false,
+    }), { image_url: IMAGE_URL })
+  })
+
+  it('discards a finished session upload that differs from the borrowed image', () => {
+    const borrowed = borrowEntityImage({
+      chosen: `  ${IMAGE_URL}?x=1  `,
+      sessionUrl: SESSION_URL,
+      supabaseUrl: SUPABASE_URL,
+    })
+    assert.equal(borrowed.imageUrl, IMAGE_URL)
+    assert.equal(borrowed.sessionUrl, '')
+    assert.equal(borrowed.discardUrl, SESSION_URL)
+  })
+
+  it('discards nothing when the dialog closes after borrowing an image', () => {
+    const borrowed = borrowEntityImage({ chosen: IMAGE_URL, sessionUrl: '', supabaseUrl: SUPABASE_URL })
+    assert.equal(imageToDiscard({
+      sessionUrl: borrowed.sessionUrl,
+      savedUrl: SESSION_URL,
+      keepSession: false,
+    }), '')
+  })
+
+  it('rejects an image that is not stored here', () => {
+    assert.equal(borrowEntityImage({
+      chosen: 'https://cdn.example/cover.png',
+      sessionUrl: SESSION_URL,
+      supabaseUrl: SUPABASE_URL,
+    }), null)
   })
 })

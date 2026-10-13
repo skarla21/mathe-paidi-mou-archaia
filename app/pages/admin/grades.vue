@@ -16,6 +16,7 @@ import UiAlertDialogDescription from '~/components/ui/alert-dialog/AlertDialogDe
 import UiAlertDialogCancel from '~/components/ui/alert-dialog/AlertDialogCancel.vue'
 import UiAlertDialogAction from '~/components/ui/alert-dialog/AlertDialogAction.vue'
 import AdminGradeModal from '~/components/admin/GradeModal.vue'
+import AdminListCount from '~/components/admin/AdminListCount.vue'
 import type { Grade } from '~/types/database'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
@@ -143,7 +144,10 @@ function onDrop(e: DragEvent, dropIndex: number) {
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold font-heading">Τάξεις</h1>
+      <div class="min-w-0">
+        <h1 class="text-2xl font-bold font-heading">Τάξεις</h1>
+        <AdminListCount v-if="!loading" :shown="filteredGrades.length" :total="grades.length" />
+      </div>
       <div class="flex items-center gap-2">
         <UiButton
           :disabled="!canReorder || !hasOrderChanged || saveOrderLoading"
