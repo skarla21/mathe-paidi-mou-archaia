@@ -63,7 +63,7 @@ async function submitContact() {
           class="inline-flex items-center gap-2 rounded-full bg-flame-fixed px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-flame-fixed-foreground"
         >
           <VIcon name="bi-chat-dots" class="size-4" aria-hidden="true" />
-          Επικοινωνία και ιδιαίτερα
+          Επικοινωνία
         </div>
         <h2
           class="font-heading text-3xl font-extrabold text-foreground sm:text-4xl"
@@ -185,7 +185,7 @@ async function submitContact() {
                 </SelectTrigger>
                 <SelectContent
                   position="popper"
-                  class="w-[var(--reka-select-trigger-width)] max-w-[var(--reka-select-trigger-width)]"
+                  class="w-(--reka-select-trigger-width) max-w-(--reka-select-trigger-width)"
                 >
                   <SelectItem value="__none__"> Προαιρετικά </SelectItem>
                   <SelectItem

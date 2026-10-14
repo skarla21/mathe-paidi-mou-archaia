@@ -80,13 +80,10 @@ onBeforeUnmount(clearCloseTimer)
       aria-haspopup="true"
       @click="open ? closeMenu() : openMenu()"
     >
-      Άλλο υλικό
+      Κατηγορίες
     </button>
     <div v-show="open" class="absolute top-full left-0 z-50 pt-3 w-72">
       <div class="rounded-2xl border border-border bg-card p-3 shadow-[0_24px_48px_-12px_rgba(15,23,42,0.18)] flex flex-col gap-1">
-        <span class="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-          Κατηγορίες
-        </span>
         <NuxtLink
           v-for="category in categories"
           :key="category.id"
@@ -105,22 +102,6 @@ onBeforeUnmount(clearCloseTimer)
         <p v-else-if="categories.length === 0" class="px-3 py-2 text-sm text-muted-foreground">
           Δεν υπάρχουν ακόμη κατηγορίες.
         </p>
-        <div class="mt-1 border-t border-border pt-1 flex flex-col">
-          <NuxtLink
-            to="/notes"
-            class="rounded-lg px-3 py-2 text-sm font-semibold text-[#0e7490] hover:bg-secondary"
-            @click="onNavigate"
-          >
-            Όλες οι κατηγορίες
-          </NuxtLink>
-          <NuxtLink
-            to="/articles"
-            class="rounded-lg px-3 py-2 text-sm font-semibold text-amethyst hover:bg-secondary"
-            @click="onNavigate"
-          >
-            Άρθρα
-          </NuxtLink>
-        </div>
       </div>
     </div>
   </div>
@@ -134,7 +115,7 @@ onBeforeUnmount(clearCloseTimer)
       @click="mobileOpen = !mobileOpen"
     >
       <VIcon name="bi-collection" class="size-5 shrink-0" aria-hidden="true" />
-      <span class="flex-1 text-left">Άλλο υλικό</span>
+      <span class="flex-1 text-left">Κατηγορίες</span>
       <VIcon
         name="bi-chevron-down"
         class="size-4 transition-transform duration-200"
@@ -161,20 +142,6 @@ onBeforeUnmount(clearCloseTimer)
       <p v-else-if="categories.length === 0" class="px-2 py-2 text-sm text-muted-foreground">
         Δεν υπάρχουν ακόμη κατηγορίες.
       </p>
-      <NuxtLink
-        to="/notes"
-        class="rounded-lg px-2 py-2 text-sm font-semibold text-[#0e7490] hover:bg-secondary"
-        @click="onNavigate"
-      >
-        Όλες οι κατηγορίες
-      </NuxtLink>
-      <NuxtLink
-        to="/articles"
-        class="rounded-lg px-2 py-2 text-sm font-semibold text-amethyst hover:bg-secondary"
-        @click="onNavigate"
-      >
-        Άρθρα
-      </NuxtLink>
     </div>
   </div>
 </template>

@@ -3,14 +3,7 @@ import { toast } from 'vue-sonner'
 import LessonContentViewer from '~/components/lesson/LessonContentViewer.vue'
 import UiButton from '~/components/ui/Button.vue'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
-import type { LessonChip, LessonChipTone, LessonParent } from '~/lib/lessonContext'
-
-const chipClass: Record<LessonChipTone, string> = {
-  grade: 'bg-laurel-fixed text-laurel-fixed-foreground',
-  subject: 'bg-flame-fixed text-flame-fixed-foreground',
-  chapter: 'bg-amethyst-fixed text-amethyst-fixed-foreground',
-  category: 'bg-amethyst-fixed text-amethyst-fixed-foreground',
-}
+import type { LessonChip, LessonParent } from '~/lib/lessonContext'
 
 const descriptionClass = [
   'mt-5 max-w-3xl font-reading text-lg leading-relaxed text-muted-foreground',
@@ -132,13 +125,7 @@ onMounted(() => {
 <template>
   <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
     <header id="lesson-title" class="max-w-3xl">
-      <NuxtLink
-        :to="parent.to"
-        class="inline-flex max-w-full items-center gap-2 rounded-full border-2 border-border bg-card px-4 py-2 font-ui text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary/40 hover:bg-secondary"
-      >
-        <VIcon name="bi-arrow-left" class="size-4 shrink-0" aria-hidden="true" />
-        <span class="truncate">{{ parent.name }}</span>
-      </NuxtLink>
+      <CatalogBackLink :to="parent.to" :name="parent.name" />
       <UiSkeleton v-if="!lesson" class="mt-5 h-12 w-2/3 rounded-xl" />
       <h1
         v-else
@@ -146,16 +133,7 @@ onMounted(() => {
       >
         {{ lesson.title }}
       </h1>
-      <div class="mt-4 flex flex-wrap gap-2">
-        <NuxtLink
-          v-for="chip in chips"
-          :key="chip.to"
-          :to="chip.to"
-          :class="['inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-opacity hover:opacity-80', chipClass[chip.tone]]"
-        >
-          {{ chip.name }}
-        </NuxtLink>
-      </div>
+      <CatalogChips class="mt-4" :chips="chips" />
     </header>
     <template v-if="lesson">
       <ClientOnly v-if="lesson.content">

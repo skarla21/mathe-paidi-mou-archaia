@@ -30,7 +30,7 @@ onMounted(async () => {
 
 <template>
   <div class="mx-auto w-full max-w-3xl px-4 py-12">
-    <LayoutPageIntro eyebrow="Άλλο υλικό" title="Άρθρα" />
+    <LayoutPageIntro title="Άρθρα" />
 
     <div v-if="list === null" class="space-y-4">
       <UiCard v-for="i in 4" :key="i" class="rounded-3xl border-border/80 shadow-sm">

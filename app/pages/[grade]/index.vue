@@ -1,54 +1,30 @@
 <script setup lang="ts">
-import UiCard from '~/components/ui/Card.vue'
-import UiCardHeader from '~/components/ui/CardHeader.vue'
-import UiCardTitle from '~/components/ui/CardTitle.vue'
-import UiCardContent from '~/components/ui/CardContent.vue'
-
-interface Chapter {
-  id: string
-  slug: string
-  title: string
-  subject_id: string
-}
-
-interface Subject {
-  id: string
-  slug: string
-  name: string
-  grade_id: string
-}
+import type { Subject } from '~/types/database'
+import { catalogListState } from '~/utils/catalogLists'
 
 interface Grade {
   id: string
   slug: string
   name: string
-  description?: string | null
   order?: number
 }
 
 const route = useRoute()
 const gradeSlug = route.params.grade as string
 
-const subjects = ref<Subject[]>([])
-const chapters = ref<Chapter[]>([])
-
 const { data: gradeData, error: gradesError } = await useFetch<Grade[]>('/api/grades')
 throwIfMissing(gradesError.value, false)
-const gradeFromList = gradeData.value?.find((g) => g.slug === gradeSlug)
-throwIfMissing(null, !gradeFromList)
-const gradeId = gradeFromList!.id
+const grade = gradeData.value?.find((item) => item.slug === gradeSlug)
+throwIfMissing(null, !grade)
 
-const { data: subjectsData } = await useFetch<Subject[]>('/api/subjects', { query: { grade_id: gradeId } })
-subjects.value = subjectsData.value ?? []
-const { data: chaptersData } = await useFetch<Chapter[]>('/api/chapters', { query: { grade_id: gradeId } })
-chapters.value = chaptersData.value ?? []
-
-function chaptersForSubject(subjectId: string) {
-  return chapters.value.filter((c) => c.subject_id === subjectId)
-}
+const { data: subjectsData, error: subjectsError } = await useFetch<Subject[]>('/api/subjects', {
+  query: { grade_id: grade!.id },
+})
+const subjects = computed(() => subjectsData.value ?? [])
+const subjectsState = computed(() => catalogListState(Boolean(subjectsError.value), subjects.value.length))
 
 useHead(() => ({
-  title: gradeFromList ? `${gradeFromList.name} - Τάξεις` : 'Τάξη',
+  title: grade ? `${grade.name} - Τάξεις` : 'Τάξη',
 }))
 
 onMounted(() => {
@@ -67,38 +43,22 @@ onMounted(() => {
     <div id="grade-title">
       <LayoutPageIntro
         eyebrow="Τάξεις"
-        :title="gradeFromList?.name ?? 'Τάξη'"
-        lead="Μαθήματα και κεφάλαια"
+        :title="grade?.name ?? 'Τάξη'"
+        lead="Μαθήματα"
       />
     </div>
-    <div id="grade-content" class="mt-8 space-y-8">
-      <section v-for="subj in subjects" :key="subj.id">
-        <h2 class="font-heading text-xl font-semibold mb-4">{{ subj.name }}</h2>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <NuxtLink
-            v-for="c in chaptersForSubject(subj.id)"
-            :key="c.id"
-            :to="`/${gradeFromList?.slug}/${subj.slug}/${c.slug}`"
-            class="block"
-          >
-            <UiCard class="bobble-card rounded-3xl border-border/80 shadow-sm transition-shadow hover:shadow-md">
-              <UiCardHeader class="flex flex-row items-center gap-3 pb-2">
-                <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary" aria-hidden="true">
-                  <VIcon name="bi-journal-bookmark" class="size-4" />
-                </span>
-                <UiCardTitle class="font-heading text-base leading-snug">{{ c.title }}</UiCardTitle>
-              </UiCardHeader>
-              <UiCardContent class="pt-0 pb-4">
-                <span class="text-xs text-muted-foreground">Κεφάλαιο</span>
-              </UiCardContent>
-            </UiCard>
-          </NuxtLink>
-        </div>
-        <p v-if="chaptersForSubject(subj.id).length === 0" class="text-muted-foreground text-sm mt-2">
-          Δεν υπάρχει ακόμη υλικό.
-        </p>
-      </section>
+    <div v-if="subjectsState === 'ready'" id="grade-content" class="grid gap-4 lg:grid-cols-2">
+      <CatalogThumbCard
+        v-for="subject in subjects"
+        :key="subject.id"
+        :to="`/${grade?.slug}/${subject.slug}`"
+        :title="subject.name"
+        :image-url="subject.image_url"
+        icon="bi-book"
+      />
     </div>
-    <p v-if="subjects.length === 0" class="text-muted-foreground">Δεν υπάρχουν ακόμη μαθήματα για αυτή την τάξη.</p>
+    <p v-else id="grade-content" class="text-muted-foreground">
+      {{ subjectsState === 'error' ? 'Τα μαθήματα δεν φορτώθηκαν. Δοκίμασε ξανά σε λίγο.' : 'Δεν υπάρχουν ακόμη μαθήματα για αυτή την τάξη.' }}
+    </p>
   </div>
 </template>

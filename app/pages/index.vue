@@ -7,7 +7,8 @@ const sections = [
   { id: 'information', label: 'Πληροφορίες', icon: 'bi-mortarboard' },
   { id: 'grades', label: 'Τάξεις', icon: 'bi-journal-bookmark' },
   { id: 'instructions', label: 'Οδηγίες χρήσης', icon: 'bi-compass' },
-  { id: 'more', label: 'Περισσότερα', icon: 'bi-book' },
+  { id: 'categories', label: 'Κατηγορίες', icon: 'bi-collection' },
+  { id: 'articles', label: 'Άρθρα', icon: 'bi-newspaper' },
   { id: 'communication', label: 'Επικοινωνία', icon: 'bi-chat-dots' },
 ]
 
@@ -32,7 +33,8 @@ onMounted(() => {
     void revealStagger('#info-grid', 'article')
     void revealStagger('#grades-grid', 'article')
     void revealStagger('#guide-grid', 'article')
-    void revealStagger('#extras-grid', 'article')
+    void revealStagger('#categories-grid', 'article')
+    void revealStagger('#articles-grid', 'article')
   })
 
   observer = new IntersectionObserver((entries) => {

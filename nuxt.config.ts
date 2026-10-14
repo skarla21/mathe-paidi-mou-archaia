@@ -38,6 +38,7 @@ export default defineNuxtConfig({
     },
   },
   routeRules: {
+    '/notes': { redirect: '/#categories' },
     '/profile': { redirect: '/' },
     '/profile/**': { redirect: '/' },
     '/**': {

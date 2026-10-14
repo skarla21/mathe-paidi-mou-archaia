@@ -29,6 +29,7 @@ const mobileMenuOpen = ref(false);
 
 const homeActive = computed(() => route.path === "/");
 const aboutActive = computed(() => route.path === "/about");
+const articlesActive = computed(() => route.path === "/articles" || route.path.startsWith("/articles/"));
 
 function wiggleIcon(el: HTMLElement | null) {
   if (import.meta.client && el) {
@@ -151,9 +152,21 @@ async function confirmLogout() {
           </NuxtLink>
           <LayoutNotesMegaMenu />
           <LayoutExtrasMenu />
+          <NuxtLink
+            to="/articles"
+            class="nav-bobble px-1 py-1"
+            :class="
+              articlesActive
+                ? 'text-amethyst wavy-purple'
+                : 'text-muted-foreground hover:text-amethyst hover-wavy-purple'
+            "
+            :aria-current="articlesActive ? 'page' : undefined"
+          >
+            Άρθρα
+          </NuxtLink>
           <a
             href="/#communication"
-            class="nav-bobble px-1 py-1 text-muted-foreground hover:text-amethyst hover-wavy-purple"
+            class="nav-bobble px-1 py-1 text-muted-foreground hover:text-rose-600 hover-wavy-rose"
             @click="goToContact"
           >
             Επικοινωνία
@@ -448,6 +461,20 @@ async function confirmLogout() {
           </NuxtLink>
           <LayoutNotesMegaMenu variant="mobile" @navigate="onMobileNavLink" />
           <LayoutExtrasMenu variant="mobile" @navigate="onMobileNavLink" />
+          <NuxtLink
+            to="/articles"
+            class="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-semibold hover:bg-secondary hover:text-foreground"
+            :class="articlesActive ? 'text-amethyst' : 'text-muted-foreground'"
+            :aria-current="articlesActive ? 'page' : undefined"
+            @click="onMobileNavLink"
+          >
+            <VIcon
+              name="bi-newspaper"
+              class="size-5 shrink-0"
+              aria-hidden="true"
+            />
+            Άρθρα
+          </NuxtLink>
           <a
             href="/#communication"
             class="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"

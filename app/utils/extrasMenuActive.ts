@@ -1,3 +1,3 @@
 export function extrasMenuActive(path: string): boolean {
-  return path === '/notes' || path.startsWith('/category/') || path === '/articles' || path.startsWith('/articles/')
+  return path.startsWith('/category/')
 }

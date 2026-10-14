@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
 import UiButton from "~/components/ui/Button.vue";
-import UiCard from "~/components/ui/Card.vue";
-import UiCardContent from "~/components/ui/CardContent.vue";
 import UiTextarea from "~/components/ui/Textarea.vue";
 import UiLabel from "~/components/ui/Label.vue";
 import UiSkeleton from "~/components/ui/Skeleton.vue";
-import { NuxtLink } from "#components";
+import TooltipProvider from "~/components/ui/tooltip/TooltipProvider.vue";
+import Tooltip from "~/components/ui/tooltip/Tooltip.vue";
+import TooltipTrigger from "~/components/ui/tooltip/TooltipTrigger.vue";
+import TooltipContent from "~/components/ui/tooltip/TooltipContent.vue";
 
 definePageMeta({ layout: "default" });
 const route = useRoute();
@@ -37,7 +38,16 @@ const articlePending = ref(true);
 const comments = ref<CommentRow[]>([]);
 const commentText = ref("");
 const likeLoading = ref(false);
+const likeLabel = computed(() =>
+  article.value?.likedByMe ? "Αναίρεση επισήμανσης" : "Επισήμανση",
+);
 const commentLoading = ref(false);
+const composerOpen = ref(false);
+const shareOpen = ref(false);
+const composerRef = ref<HTMLElement | null>(null);
+const commentLabel = computed(() =>
+  article.value?.myComment ? "Επεξεργασία σχολίου" : "Σχόλιο",
+);
 
 const id = computed(() => route.params.id as string);
 
@@ -79,6 +89,7 @@ onMounted(async () => {
 
 watch(id, async () => {
   commentText.value = "";
+  composerOpen.value = false;
   await loadArticle();
   await loadComments();
 });
@@ -122,6 +133,22 @@ async function toggleLike() {
   }
 }
 
+function toggleComposer() {
+  if (!session.value?.user?.id) {
+    toast.error("Συνδεθείτε για να σχολιάσετε ή να κάνετε επισήμανση.");
+    return;
+  }
+  composerOpen.value = !composerOpen.value;
+  if (composerOpen.value) {
+    nextTick(() => {
+      composerRef.value?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
+  }
+}
+
 async function saveComment() {
   if (!session.value?.user?.id) {
     toast.error("Συνδεθείτε για να σχολιάσετε ή να κάνετε επισήμανση.");
@@ -141,7 +168,8 @@ async function saveComment() {
     });
     await loadArticle();
     await loadComments();
-    toast.success("Το σχόλιο αποθηκεύτηκε");
+    composerOpen.value = false;
+    toast.success("Το σχόλιο δημοσιεύτηκε");
   } catch {
     toast.error("Κάτι πήγε στραβά");
   } finally {
@@ -158,6 +186,7 @@ async function removeComment() {
       credentials: "include",
     });
     commentText.value = "";
+    composerOpen.value = false;
     await loadArticle();
     await loadComments();
   } catch {
@@ -167,25 +196,11 @@ async function removeComment() {
   }
 }
 
-async function copyLink() {
-  const url = typeof window !== "undefined" ? window.location.href : "";
-  try {
-    await navigator.clipboard.writeText(url);
-    toast.success("Ο σύνδεσμος αντιγράφηκε στο πρόχειρο.");
-  } catch {
-    toast.error("Κάτι πήγε στραβά");
-  }
-}
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-3xl px-4 py-12">
-    <NuxtLink
-      to="/articles"
-      class="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block"
-    >
-      Όλα τα άρθρα
-    </NuxtLink>
+    <CatalogBackLink class="mb-6" to="/articles" name="Όλα τα άρθρα" />
 
     <template v-if="articlePending">
       <UiSkeleton class="mb-3 h-9 w-3/4 rounded-xl" />
@@ -226,40 +241,85 @@ async function copyLink() {
 
       <div class="flex flex-wrap items-center gap-3 mb-10">
         <template v-if="session?.user?.id">
-          <UiButton
-            variant="outline"
-            size="sm"
-            :disabled="likeLoading"
-            @click="toggleLike"
-          >
-            <VIcon
-              :name="article.likedByMe ? 'bi-heart-fill' : 'bi-heart'"
-              class="mr-2 size-4"
-            />
-            {{ article.likedByMe ? "Αναίρεση επισήμανσης" : "Επισήμανση" }}
-            <span class="ml-1 text-muted-foreground"
-              >({{ article.likeCount }})</span
-            >
-          </UiButton>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <UiButton
+                  variant="outline"
+                  size="sm"
+                  :disabled="likeLoading"
+                  :aria-label="likeLabel"
+                  @click="toggleLike"
+                >
+                  <VIcon
+                    :name="article.likedByMe ? 'bi-heart-fill' : 'bi-heart'"
+                    class="size-4"
+                    aria-hidden="true"
+                  />
+                  <span>{{ article.likeCount }}</span>
+                </UiButton>
+              </TooltipTrigger>
+              <TooltipContent>
+                {{ likeLabel }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </template>
-        <UiButton variant="outline" size="sm" @click="copyLink">
-          <VIcon name="bi-link-45deg" class="mr-2 size-4" />
-          Αντιγραφή συνδέσμου
-        </UiButton>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <UiButton
+                variant="outline"
+                size="sm"
+                :aria-expanded="composerOpen"
+                :aria-label="commentLabel"
+                @click="toggleComposer"
+              >
+                <VIcon name="bi-chat-text" class="size-4" aria-hidden="true" />
+                <span>{{ article.commentCount }}</span>
+              </UiButton>
+            </TooltipTrigger>
+            <TooltipContent>
+              {{ commentLabel }}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <UiButton
+                variant="outline"
+                size="sm"
+                aria-label="Κοινοποίηση"
+                @click="shareOpen = true"
+              >
+                <VIcon name="bi-share" class="size-4" aria-hidden="true" />
+              </UiButton>
+            </TooltipTrigger>
+            <TooltipContent>
+              Κοινοποίηση
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
+      <ArticleShareDialog v-model:open="shareOpen" :title="article.title" />
 
-      <UiCard v-if="session?.user?.id" class="mb-10">
-        <UiCardContent class="p-6 space-y-3">
+      <section>
+        <div
+          v-if="composerOpen"
+          ref="composerRef"
+          class="mb-6 rounded-3xl border border-border bg-card p-5 shadow-sm"
+        >
           <UiLabel>Το σχόλιό σας</UiLabel>
           <UiTextarea
             v-model="commentText"
             placeholder="Γράψτε ένα σχόλιο…"
-            class="min-h-25 font-mono text-sm"
+            class="mt-3 min-h-28 rounded-2xl border-none bg-secondary font-reading text-base focus:bg-card"
           />
-          <div class="flex gap-2">
-            <UiButton size="sm" :disabled="commentLoading" @click="saveComment"
-              >Αποθήκευση</UiButton
-            >
+          <div class="mt-4 flex flex-wrap gap-2">
+            <UiButton size="sm" :disabled="commentLoading" @click="saveComment">
+              Σχόλιο
+            </UiButton>
             <UiButton
               v-if="article.myComment"
               size="sm"
@@ -270,28 +330,50 @@ async function copyLink() {
               Αφαίρεση σχολίου
             </UiButton>
           </div>
-        </UiCardContent>
-      </UiCard>
-      <p v-else class="text-sm text-muted-foreground mb-10">
-        Συνδεθείτε για να σχολιάσετε ή να κάνετε επισήμανση.
-      </p>
+        </div>
 
-      <section>
-        <h2 class="text-lg font-heading font-semibold mb-4">Σχόλια</h2>
-        <ul class="space-y-4">
+        <h2 class="mb-4 font-heading text-xl font-semibold">Σχόλια</h2>
+        <ul v-if="comments.length" class="space-y-3">
           <li
             v-for="c in comments"
             :key="c.id"
-            class="rounded-lg border border-border p-4 text-sm"
+            class="flex gap-3 rounded-3xl border border-border bg-card p-5 shadow-sm"
           >
-            <p class="font-medium">{{ c.users?.name ?? "Χρήστης" }}</p>
-            <p class="mt-1 whitespace-pre-wrap">{{ c.body }}</p>
-            <p class="text-xs text-muted-foreground mt-2">
-              {{ new Date(c.created_at).toLocaleString() }}
-            </p>
+            <span
+              class="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary"
+            >
+              <img
+                v-if="c.users?.avatar_url"
+                :src="c.users.avatar_url"
+                alt=""
+                class="size-full object-cover"
+              />
+              <VIcon
+                v-else
+                name="bi-person-circle"
+                class="size-5 text-muted-foreground"
+                aria-hidden="true"
+              />
+            </span>
+            <div class="min-w-0">
+              <p class="font-heading text-sm font-semibold text-foreground">
+                {{ c.users?.name ?? "Χρήστης" }}
+              </p>
+              <p
+                class="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-foreground"
+              >
+                {{ c.body }}
+              </p>
+              <p class="mt-2 text-xs text-muted-foreground">
+                {{ new Date(c.created_at).toLocaleString("el-GR") }}
+              </p>
+            </div>
           </li>
         </ul>
-        <p v-if="!comments.length" class="text-sm text-muted-foreground">
+        <p
+          v-else
+          class="rounded-3xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground"
+        >
           Δεν υπάρχουν σχόλια ακόμα.
         </p>
       </section>

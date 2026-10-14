@@ -1,10 +1,9 @@
 <script setup lang="ts">
-const { grades, categories, loaded, failed, ensure, ensureCategories } =
-  useCatalogNav();
+const { grades, loaded, failed, ensure } = useCatalogNav();
 const year = new Date().getFullYear();
 
 onMounted(() => {
-  void Promise.all([ensure(), ensureCategories()]);
+  void ensure();
 });
 </script>
 
@@ -92,17 +91,9 @@ onMounted(() => {
             >
           </li>
           <li>
-            <NuxtLink to="/notes" class="transition-colors hover:text-primary"
-              >Όλες οι κατηγορίες</NuxtLink
+            <a href="/#categories" class="transition-colors hover:text-primary"
+              >Κατηγορίες</a
             >
-          </li>
-          <li v-for="category in categories.slice(0, 4)" :key="category.id">
-            <NuxtLink
-              :to="`/category/${category.slug}`"
-              class="transition-colors hover:text-primary"
-            >
-              {{ category.name }}
-            </NuxtLink>
           </li>
           <li>
             <NuxtLink

@@ -1,21 +1,24 @@
 <script setup lang="ts">
-import UiCard from '~/components/ui/Card.vue'
+import type { LessonChip } from '~/lib/lessonContext'
+import { catalogListState } from '~/utils/catalogLists'
 
 interface Lesson {
   id: string
   slug: string
   title: string
   is_free: boolean
+  excerpt?: string | null
 }
 
 interface Tree {
-  grade: { slug: string }
-  subject: { slug: string }
+  grade: { name: string; slug: string }
+  subject: { name: string; slug: string }
   chapter: {
     id: string
     title: string
     description?: string | null
     slug: string
+    image_url?: string | null
   }
 }
 
@@ -30,13 +33,29 @@ const { data: tree, error } = await useFetch<Tree>('/api/tree', {
 throwIfMissing(error.value, !tree.value?.chapter)
 
 const chapter = computed(() => tree.value!.chapter)
-const lessons = ref<Lesson[]>([])
-if (chapter.value?.id) {
-  const { data: lessonsData } = await useFetch<Lesson[]>('/api/lessons', {
-    query: { chapter_id: chapter.value.id },
-  })
-  lessons.value = lessonsData.value ?? []
-}
+const { data: lessonsData, error: lessonsError } = await useFetch<Lesson[]>('/api/lessons', {
+  query: { chapter_id: chapter.value.id },
+})
+const lessons = computed(() => lessonsData.value ?? [])
+const lessonState = computed(() => catalogListState(Boolean(lessonsError.value), lessons.value.length))
+
+const gradeTo = computed(() => `/${tree.value?.grade.slug ?? ''}`)
+const subjectTo = computed(() => `${gradeTo.value}/${tree.value?.subject.slug ?? ''}`)
+const chips = computed<LessonChip[]>(() => {
+  const current = tree.value
+  if (!current) return []
+  return [
+    { name: current.grade.name, to: gradeTo.value, tone: 'grade' },
+    { name: current.subject.name, to: subjectTo.value, tone: 'subject' },
+  ]
+})
+const lessonRows = computed(() => lessons.value.map((lesson) => ({
+  id: lesson.id,
+  title: lesson.title,
+  to: `${subjectTo.value}/${chapter.value.slug}/${lesson.slug}`,
+  excerpt: lesson.excerpt,
+  is_free: lesson.is_free,
+})))
 
 useHead(() => ({ title: chapter.value ? chapter.value.title : 'Κεφάλαιο' }))
 
@@ -53,22 +72,26 @@ onMounted(() => {
 
 <template>
   <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
-    <div id="chapter-title">
-      <LayoutPageIntro eyebrow="Κεφάλαια" :title="chapter.title" :lead="chapter.description ?? undefined" />
-    </div>
-    <h2 id="chapter-lessons" class="font-heading text-xl font-semibold mt-8">Υλικό</h2>
-    <div class="space-y-3 mt-4">
-      <NuxtLink
-        v-for="l in lessons"
-        :key="l.id"
-        :to="`/${tree?.grade.slug}/${tree?.subject.slug}/${chapter.slug}/${l.slug}`"
-      >
-        <UiCard class="flex cursor-pointer items-center justify-between rounded-3xl p-4 shadow-sm transition-colors hover:bg-secondary">
-          <span class="font-medium text-foreground">{{ l.title }}</span>
-          <VIcon v-if="!l.is_free" name="bi-gem" class="size-4 text-muted-foreground" aria-hidden="true" />
-        </UiCard>
-      </NuxtLink>
-    </div>
-    <p v-if="lessons.length === 0" class="text-muted-foreground mt-4">Δεν υπάρχει ακόμη υλικό.</p>
+    <header id="chapter-title" class="max-w-3xl">
+      <CatalogBackLink :to="subjectTo" :name="tree?.subject.name ?? 'Μάθημα'" />
+      <h1 class="mt-5 font-heading text-4xl font-extrabold leading-tight tracking-tight text-balance text-foreground sm:text-5xl">
+        {{ chapter.title }}
+      </h1>
+      <CatalogChips class="mt-4" :chips="chips" />
+      <CatalogCover class="mt-6" :image-url="chapter.image_url" :alt="chapter.title" />
+      <p v-if="chapter.description" class="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">
+        {{ chapter.description }}
+      </p>
+    </header>
+
+    <section v-if="lessonState === 'ready'" id="chapter-lessons" class="mt-10">
+      <h2 class="mb-4 font-heading text-xl font-semibold">
+        Υλικό
+      </h2>
+      <CatalogLessonList :lessons="lessonRows" />
+    </section>
+    <p v-else id="chapter-lessons" class="mt-10 text-muted-foreground">
+      {{ lessonState === 'error' ? 'Το υλικό δεν φορτώθηκε. Δοκίμασε ξανά σε λίγο.' : 'Δεν υπάρχει ακόμη υλικό.' }}
+    </p>
   </div>
 </template>
