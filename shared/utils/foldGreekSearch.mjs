@@ -36,6 +36,13 @@ export function foldGreekName(value) {
   return foldGreekSearch(plainGreekLabel(value))
 }
 
+/** True when the trimmed, folded query is contained in the folded text. A query that folds away matches nothing. */
+export function includesFolded(haystack, query) {
+  const folded = foldGreekSearch(String(query ?? '').trim())
+  if (!folded) return false
+  return foldGreekSearch(String(haystack ?? '')).includes(folded)
+}
+
 export function searchLikePattern(value) {
   const like = `%${foldGreekSearch(value).replace(/[\\%_]/g, '\\$&')}%`
   if (!POSTGREST_RESERVED.test(like)) return like

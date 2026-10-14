@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { ilikeContains, orIlike } from '../server/utils/adminList.ts'
 import { loadAdminPurchases } from '../server/utils/adminPurchases.ts'
 import { loadAdminUsers } from '../server/utils/adminUsers.ts'
 
@@ -163,7 +162,7 @@ describe('admin users page', () => {
     assert.deepEqual(supabase.calls.find((call) => call[1] === 'or'), [
       'admin_user_stats',
       'or',
-      orIlike(['name', 'email'], ilikeContains('άννα')),
+      'name_sort.like."%αννα%",email.ilike."%άννα%"',
       null,
     ])
     assert.deepEqual(supabase.calls.filter((call) => call[1] === 'order'), [
@@ -174,6 +173,34 @@ describe('admin users page', () => {
       ['admin_user_stats', 'range', 20, 39],
     ])
     assert.equal(supabase.calls.some((call) => call[0] === 'users'), false)
+  })
+
+  it('keeps the typed email and folds only the name', async () => {
+    const supabase = queryClient({
+      admin_user_stats: { range: { data: [], error: null, count: 0 } },
+    })
+    await loadAdminUsers(
+      eventFor(`/api/admin/users?q=${encodeURIComponent('φίλος@example.com')}`),
+      supabase.client,
+    )
+    assert.equal(
+      supabase.calls.find((call) => call[1] === 'or')?.[2],
+      'name_sort.like."%φιλοσ@example.com%",email.ilike."%φίλος@example.com%"',
+    )
+  })
+
+  it('still filters when the query folds away', async () => {
+    const supabase = queryClient({
+      admin_user_stats: { range: { data: [], error: null, count: 0 } },
+    })
+    await loadAdminUsers(
+      eventFor(`/api/admin/users?q=${encodeURIComponent('΄')}`),
+      supabase.client,
+    )
+    assert.equal(
+      supabase.calls.find((call) => call[1] === 'or')?.[2],
+      'email.ilike."%΄%"',
+    )
   })
 
   it('sorts users by name or purchases and ignores an unknown sort', async () => {
@@ -290,11 +317,24 @@ describe('admin purchases page', () => {
     )
     assert.deepEqual(result, { items: [], total: 41, page: 3, pageSize: 20 })
     assert.deepEqual(supabase.calls.filter((call) => call[1] === 'or'), [
-      ['purchases', 'or', orIlike(['name', 'email'], ilikeContains('a@x.gr')), { referencedTable: 'users' }],
-      ['purchases', 'or', orIlike(['title'], ilikeContains('Όμηρος')), { referencedTable: 'lessons' }],
+      ['purchases', 'or', 'name_sort.like."%a@x.gr%",email.ilike."%a@x.gr%"', { referencedTable: 'users' }],
+      ['purchases', 'or', 'title_folded.like."%ομηροσ%"', { referencedTable: 'lessons' }],
     ])
     assert.deepEqual(supabase.calls.filter((call) => call[1] === 'range'), [
       ['purchases', 'range', 40, 59],
+    ])
+  })
+
+  it('still filters a lesson query that folds away', async () => {
+    const supabase = queryClient({
+      purchases: { range: { data: [], error: null, count: 0 } },
+    })
+    await loadAdminPurchases(
+      eventFor(`/api/admin/purchases?lesson=${encodeURIComponent('΄')}`),
+      supabase.client,
+    )
+    assert.deepEqual(supabase.calls.filter((call) => call[1] === 'or'), [
+      ['purchases', 'or', 'title_folded.like."%΄%"', { referencedTable: 'lessons' }],
     ])
   })
 

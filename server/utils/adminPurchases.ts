@@ -5,8 +5,8 @@ import {
   adminListPage,
   adminPage,
   firstQuery,
-  ilikeContains,
-  orIlike,
+  foldedTextOr,
+  userTextOr,
   pageRange,
 } from './adminList'
 import { requireAdmin } from './requireAdmin'
@@ -17,16 +17,16 @@ export async function loadAdminPurchases(event: H3Event, supabase: SupabaseClien
   requireAdmin(event)
   const query = getQuery(event)
   const page = adminPage(query.page)
-  const user = ilikeContains(firstQuery(query.user))
-  const lesson = ilikeContains(firstQuery(query.lesson))
+  const user = userTextOr(firstQuery(query.user))
+  const lesson = foldedTextOr('title_folded', firstQuery(query.lesson))
   const { from, to } = pageRange(page)
 
   let filtered = supabase
     .from('purchases')
     .select(PURCHASE_SELECT, { count: 'exact' })
 
-  if (user) filtered = filtered.or(orIlike(['name', 'email'], user), { referencedTable: 'users' })
-  if (lesson) filtered = filtered.or(orIlike(['title'], lesson), { referencedTable: 'lessons' })
+  if (user) filtered = filtered.or(user, { referencedTable: 'users' })
+  if (lesson) filtered = filtered.or(lesson, { referencedTable: 'lessons' })
 
   const { data, error, count } = await filtered
     .order('created_at', { ascending: false })

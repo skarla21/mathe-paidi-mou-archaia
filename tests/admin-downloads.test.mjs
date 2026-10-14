@@ -9,7 +9,7 @@ import {
   lessonTypeLabel,
 } from '../shared/utils/adminDownloads.mjs'
 import { resetAdminMainScroll } from '../shared/utils/adminShell.mjs'
-import { ilikeContains, orIlike } from '../server/utils/adminList.ts'
+import { foldedContains, orIlike } from '../server/utils/adminList.ts'
 import { loadAdminDownloads } from '../server/utils/adminDownloads.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -92,9 +92,10 @@ describe('admin downloads list', () => {
   })
 
   it('escapes like wildcards before building an or filter', () => {
-    assert.equal(ilikeContains('  '), null)
-    assert.equal(ilikeContains('  Άννα  '), '%Άννα%')
-    assert.equal(ilikeContains('100%_\\*'), '%100\\%\\_\\\\\\*%')
+    assert.equal(foldedContains('  '), null)
+    assert.equal(foldedContains('΄'), null)
+    assert.equal(foldedContains('  Άννα  '), '%αννα%')
+    assert.equal(foldedContains('100%_\\*'), '%100\\%\\_\\\\\\*%')
     assert.equal(
       orIlike(['name', 'email'], '%a"b%'),
       'name.ilike."%a\\"b%",email.ilike."%a\\"b%"',
@@ -127,8 +128,8 @@ describe('admin downloads list', () => {
     )
     assert.deepEqual(result, { items: [], total: 0, page: 2, pageSize: 20 })
     assert.deepEqual(supabase.calls.filter((call) => call[0] === 'or'), [
-      ['or', orIlike(['name', 'email'], ilikeContains('100%_\\"Άννα')), { referencedTable: 'users' }],
-      ['or', orIlike(['title'], ilikeContains('πλά')), { referencedTable: 'lessons' }],
+      ['or', "name_sort.like.\"%100\\\\%\\\\_\\\\\\\\\\\"αννα%\",email.ilike.\"%100\\\\%\\\\_\\\\\\\\\\\"Άννα%\"", { referencedTable: 'users' }],
+      ['or', 'title_folded.like."%πλα%"', { referencedTable: 'lessons' }],
     ])
     assert.deepEqual(supabase.calls.filter((call) => call[0] === 'order'), [
       ['order', 'title_folded', { referencedTable: 'lessons', ascending: true }],

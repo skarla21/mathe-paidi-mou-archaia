@@ -5,8 +5,8 @@ import {
   adminListPage,
   adminPage,
   firstQuery,
-  ilikeContains,
-  orIlike,
+  foldedTextOr,
+  userTextOr,
   pageRange,
   sortAscending,
 } from './adminList'
@@ -28,16 +28,16 @@ export async function loadAdminDownloads(event: H3Event, supabase: SupabaseClien
   const page = adminPage(query.page)
   const sort = downloadSort(query.sort)
   const ascending = sortAscending(query.order)
-  const user = ilikeContains(firstQuery(query.user))
-  const lesson = ilikeContains(firstQuery(query.lesson))
+  const user = userTextOr(firstQuery(query.user))
+  const lesson = foldedTextOr('title_folded', firstQuery(query.lesson))
   const { from, to } = pageRange(page)
 
   let filtered = supabase
     .from('downloads')
     .select(DOWNLOAD_SELECT, { count: 'exact' })
 
-  if (user) filtered = filtered.or(orIlike(['name', 'email'], user), { referencedTable: 'users' })
-  if (lesson) filtered = filtered.or(orIlike(['title'], lesson), { referencedTable: 'lessons' })
+  if (user) filtered = filtered.or(user, { referencedTable: 'users' })
+  if (lesson) filtered = filtered.or(lesson, { referencedTable: 'lessons' })
 
   const ordered = sort === 'user'
     ? filtered.order('name_sort', { referencedTable: 'users', ascending })

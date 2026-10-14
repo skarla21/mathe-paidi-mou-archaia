@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { includesFolded } from '#shared/utils/foldGreekSearch.mjs'
 import { toast } from 'vue-sonner'
 import UiButton from '~/components/ui/Button.vue'
 import UiInput from '~/components/ui/Input.vue'
@@ -37,8 +38,7 @@ const deleteLoading = ref(false)
 
 const filteredCategories = computed(() => {
   if (!search.value) return categories.value
-  const q = search.value.toLowerCase()
-  return categories.value.filter(c => c.name.toLowerCase().includes(q))
+  return categories.value.filter(c => includesFolded(c.name, search.value))
 })
 
 async function fetchCategories() {

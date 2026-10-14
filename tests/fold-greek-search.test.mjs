@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
-import { foldGreekName, foldGreekSearch, plainGreekLabel, searchLikePattern } from '../shared/utils/foldGreekSearch.mjs'
+import { foldGreekName, foldGreekSearch, includesFolded, plainGreekLabel, searchLikePattern } from '../shared/utils/foldGreekSearch.mjs'
 
 const YPOGEGRAMMENI = [837, 890]
 const COMBINING_MARK_START = 768
@@ -131,6 +131,25 @@ describe('foldGreekName', () => {
     assert.equal(foldGreekName('Αρχαία!'), `${foldGreekName('Αρχαία')}!`)
     assert.equal(foldGreekName('΄'), '')
     assert.equal(foldGreekName('   '), '')
+  })
+})
+
+describe('includesFolded', () => {
+  it('matches a name ignoring case, tonos, and final sigma', () => {
+    assert.equal(includesFolded('Αντώνης Σκαρλάτος', 'αντωνης'), true)
+    assert.equal(includesFolded('λόγος', 'ΛΟΓΟΣ'), true)
+    assert.equal(includesFolded('λόγος', 'λόγοσ'), true)
+  })
+
+  it('rejects a bare tonos and a query that is not contained', () => {
+    assert.equal(includesFolded('Αντώνης', '΄'), false)
+    assert.equal(includesFolded('Αντώνης', 'μαρια'), false)
+    assert.equal(includesFolded('', 'α'), false)
+  })
+
+  it('trims the query before folding', () => {
+    assert.equal(includesFolded('Αντώνης', '  αντωνης  '), true)
+    assert.equal(includesFolded('Αντώνης', '  ΄  '), false)
   })
 })
 

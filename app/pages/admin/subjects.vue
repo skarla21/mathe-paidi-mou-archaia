@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { includesFolded } from "#shared/utils/foldGreekSearch.mjs";
 import { toast } from "vue-sonner";
 import UiButton from "~/components/ui/Button.vue";
 import UiInput from "~/components/ui/Input.vue";
@@ -47,8 +48,7 @@ const deleteLoading = ref(false);
 const filteredSubjects = computed(() => {
   let list = subjects.value;
   if (search.value) {
-    const q = search.value.toLowerCase();
-    list = list.filter((s) => s.name.toLowerCase().includes(q));
+    list = list.filter((s) => includesFolded(s.name, search.value));
   }
   if (gradeId.value && gradeId.value !== "__all__")
     list = list.filter((s) => s.grade_id === gradeId.value);

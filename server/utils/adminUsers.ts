@@ -4,8 +4,7 @@ import {
   adminListPage,
   adminPage,
   firstQuery,
-  ilikeContains,
-  orIlike,
+  userTextOr,
   pageRange,
   sortAscending,
 } from './adminList'
@@ -68,14 +67,14 @@ export async function loadAdminUsers(event: H3Event, supabase: SupabaseClient) {
   const page = adminPage(query.page)
   const sort = userSort(query.sort)
   const ascending = sortAscending(query.order)
-  const search = ilikeContains(firstQuery(query.q))
+  const search = userTextOr(firstQuery(query.q))
   const { from, to } = pageRange(page)
 
   let filtered = supabase
     .from('admin_user_stats')
     .select(USER_SELECT, { count: 'exact' })
 
-  if (search) filtered = filtered.or(orIlike(['name', 'email'], search))
+  if (search) filtered = filtered.or(search)
 
   const ordered = sort === 'name'
     ? filtered.order('name_sort', { ascending })

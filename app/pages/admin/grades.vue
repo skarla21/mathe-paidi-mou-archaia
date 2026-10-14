@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { includesFolded } from '#shared/utils/foldGreekSearch.mjs'
 import { toast } from 'vue-sonner'
 import UiButton from '~/components/ui/Button.vue'
 import UiInput from '~/components/ui/Input.vue'
@@ -37,8 +38,7 @@ const draggedIndex = ref<number | null>(null)
 
 const filteredGrades = computed(() => {
   if (!search.value) return grades.value
-  const q = search.value.toLowerCase()
-  return grades.value.filter(g => g.name.toLowerCase().includes(q))
+  return grades.value.filter(g => includesFolded(g.name, search.value))
 })
 
 const displayedGrades = computed(() => {
