@@ -10,5 +10,5 @@ const label = computed(() => (
 </script>
 
 <template>
-  <p class="mt-1 text-sm text-muted-foreground" aria-live="polite">{{ label }}</p>
+  <span class="ml-2 text-xl font-normal text-muted-foreground" aria-live="polite">({{ label }})</span>
 </template>

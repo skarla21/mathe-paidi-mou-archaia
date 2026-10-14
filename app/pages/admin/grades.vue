@@ -145,8 +145,9 @@ function onDrop(e: DragEvent, dropIndex: number) {
   <div>
     <div class="flex items-center justify-between mb-6">
       <div class="min-w-0">
-        <h1 class="text-2xl font-bold font-heading">Τάξεις</h1>
-        <AdminListCount v-if="!loading" :shown="filteredGrades.length" :total="grades.length" />
+        <h1 class="text-2xl font-bold font-heading">
+          Τάξεις<AdminListCount v-if="!loading" :shown="filteredGrades.length" :total="grades.length" />
+        </h1>
       </div>
       <div class="flex items-center gap-2">
         <UiButton

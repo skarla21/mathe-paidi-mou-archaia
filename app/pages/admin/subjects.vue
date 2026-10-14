@@ -114,12 +114,13 @@ async function confirmDelete() {
   <div>
     <div class="flex items-center justify-between mb-6">
       <div class="min-w-0">
-        <h1 class="text-2xl font-bold font-heading">Μαθήματα</h1>
-        <AdminListCount
-          v-if="!loading"
-          :shown="filteredSubjects.length"
-          :total="subjects.length"
-        />
+        <h1 class="text-2xl font-bold font-heading">
+          Μαθήματα<AdminListCount
+            v-if="!loading"
+            :shown="filteredSubjects.length"
+            :total="subjects.length"
+          />
+        </h1>
       </div>
       <div class="flex items-center gap-2">
         <UiButton variant="outline" @click="sortModalOpen = true">
