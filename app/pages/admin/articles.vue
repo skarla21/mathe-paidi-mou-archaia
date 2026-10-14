@@ -157,7 +157,7 @@ async function confirmDelete() {
         <UiAlertDialogContent>
           <UiAlertDialogHeader>
             <UiAlertDialogTitle>Διαγραφή άρθρου</UiAlertDialogTitle>
-            <UiAlertDialogDescription>Θα αφαιρεθεί το άρθρο και όλες οι προτιμήσεις και τα σχόλια.</UiAlertDialogDescription>
+            <UiAlertDialogDescription>Θα αφαιρεθεί το άρθρο και όλες οι επισημάνσεις και τα σχόλια.</UiAlertDialogDescription>
           </UiAlertDialogHeader>
           <UiAlertDialogFooter>
             <UiAlertDialogCancel><UiButton variant="cancel">Ακύρωση</UiButton></UiAlertDialogCancel>

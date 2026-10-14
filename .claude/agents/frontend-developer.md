@@ -33,6 +33,7 @@ Nuxt 4, Vue 3, TypeScript, Tailwind CSS v4, and shadcn-vue (Radix Vue).
 - The UI is Greek only. Write user-visible strings directly in templates and scripts
 - Do not add locale files, a language toggle, or an i18n library
 - Page titles: `useHead({ title: 'Ελληνικός τίτλος' })`
+- Article likes are επισημάνσεις, not ratings. Lessons: βαθμολογία / αξιολόγηση (`lesson_ratings`). Articles: επισήμανση / επισημάνσεις (`article_likes`). Never label an article like as προτίμηση, βαθμολογία, or αξιολόγηση. Προτιμήσεις is only for settings such as notification preferences. Public like button: «Επισήμανση» / «Αναίρεση επισήμανσης».
 
 ### Tailwind CSS v4
 

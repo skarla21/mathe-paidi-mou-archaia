@@ -101,6 +101,7 @@ Env vars: copy `.env.example`. Prefix `NUXT_PUBLIC_` for client-exposed, `NUXT_`
 
 - **DO** write every user-visible string in Greek, directly in the template, script, or server route
 - **DON'T** add locale files, a language toggle, or an i18n library
+- **Article likes are επισημάνσεις, not ratings and not προτιμήσεις.** Lessons have star ratings (`lesson_ratings`): βαθμολογία / αξιολόγηση. Articles have likes (`article_likes`): επισήμανση (plural επισημάνσεις). Never label an article like as προτίμηση, βαθμολογία, or αξιολόγηση. «Προτιμήσεις» is only for settings such as notification preferences. The public like button is «Επισήμανση» / «Αναίρεση επισήμανσης».
 
 ### Notifications
 

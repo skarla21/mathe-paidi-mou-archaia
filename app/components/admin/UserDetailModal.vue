@@ -86,7 +86,7 @@ async function confirmDelete() {
     } else if (kind === 'article_like') {
       await adminFetch(`/api/admin/article-likes/${id}`, { method: 'DELETE' })
       articleLikes.value = articleLikes.value.filter(x => x.id !== id)
-      toast.success('Η προτίμηση αφαιρέθηκε')
+      toast.success('Η επισήμανση αφαιρέθηκε')
     } else {
       await adminFetch(`/api/admin/article-comments/${id}`, { method: 'DELETE' })
       articleComments.value = articleComments.value.filter(x => x.id !== id)
@@ -124,7 +124,7 @@ async function confirmDelete() {
               Σχόλια ({{ comments.length }})
             </TabsTrigger>
             <TabsTrigger value="articleLikes" class="flex-1 text-xs">
-              Προτιμήσεις άρθρων ({{ articleLikes.length }})
+              Επισημάνσεις άρθρων ({{ articleLikes.length }})
             </TabsTrigger>
             <TabsTrigger value="articleComments" class="flex-1 text-xs">
               Σχόλια άρθρων ({{ articleComments.length }})
@@ -219,7 +219,7 @@ async function confirmDelete() {
                   variant="ghost"
                   size="icon"
                   class="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
-                  aria-label="Αφαίρεση προτίμησης"
+                  aria-label="Αφαίρεση επισήμανσης"
                   @click="requestDelete('article_like', x.id)"
                 >
                   <VIcon name="bi-trash" class="w-3 h-3" />
@@ -268,9 +268,9 @@ async function confirmDelete() {
             {{
               pendingDelete?.kind === 'rating'
                 ? 'Διαγραφή βαθμολογίας'
-                : pendingDelete?.kind === 'comment'
+                : pendingDelete?.kind === 'comment' || pendingDelete?.kind === 'article_comment'
                   ? 'Διαγραφή σχολίου'
-                  : 'Αφαίρεση καταχώρισης;'
+                  : 'Αφαίρεση επισήμανσης'
             }}
           </UiAlertDialogTitle>
           <UiAlertDialogDescription>
@@ -279,7 +279,9 @@ async function confirmDelete() {
                 ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτήν τη βαθμολογία;'
                 : pendingDelete?.kind === 'comment'
                   ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το σχόλιο;'
-                  : 'Θα αφαιρεθεί η προτίμηση ή το σχόλιο από το άρθρο.'
+                  : pendingDelete?.kind === 'article_comment'
+                    ? 'Θα αφαιρεθεί το σχόλιο από το άρθρο.'
+                    : 'Θα αφαιρεθεί η επισήμανση από το άρθρο.'
             }}
           </UiAlertDialogDescription>
         </UiAlertDialogHeader>

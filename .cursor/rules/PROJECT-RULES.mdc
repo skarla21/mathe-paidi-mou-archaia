@@ -28,6 +28,7 @@ alwaysApply: true
 20. Follow clean folder structure.
 21. Dont use emojis, use oh-vue-icons and animations.
 22. The interface is Greek only. Write user-visible copy directly in Greek. Do not add a locale system or English UI.
+23. Article likes are επισημάνσεις, not ratings. Lessons use βαθμολογία / αξιολόγηση for star ratings. Articles use επισήμανση (plural επισημάνσεις) for likes. Never call an article like προτίμηση, βαθμολογία, or αξιολόγηση. Προτιμήσεις is only for settings such as notification preferences.
 
 Project philosophy:
 Minimal.

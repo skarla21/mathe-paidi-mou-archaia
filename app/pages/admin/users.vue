@@ -155,7 +155,7 @@ onMounted(load)
                   />
                 </button>
               </TableHead>
-              <TableHead class="text-center border-r border-border text-xs">Προτιμήσεις άρθρων</TableHead>
+              <TableHead class="text-center border-r border-border text-xs">Επισημάνσεις άρθρων</TableHead>
               <TableHead class="text-center border-r border-border text-xs">Σχόλια άρθρων</TableHead>
               <TableHead class="text-right" />
             </TableRow>

@@ -33,7 +33,7 @@ const kindLabels: Record<AdminNotificationKind, string> = {
   rating: 'Αξιολόγηση',
   comment: 'Σχόλιο',
   contact: 'Επικοινωνία',
-  article_like: 'Προτίμηση άρθρου',
+  article_like: 'Επισήμανση άρθρου',
   article_comment: 'Σχόλιο άρθρου',
 }
 
@@ -145,7 +145,7 @@ function lineForKind(item: AdminNotificationItem): string {
     }
     case 'article_like': {
       const at = typeof p.article_title === 'string' ? p.article_title : ''
-      return `Ο/Η ${displayName(p)} εξέφρασε προτίμηση στο "${at}".`
+      return `Ο/Η ${displayName(p)} έκανε επισήμανση στο "${at}".`
     }
     case 'article_comment': {
       const at = typeof p.article_title === 'string' ? p.article_title : ''
@@ -320,7 +320,7 @@ function togglePref(
                 />
               </div>
               <div class="flex items-center justify-between gap-3">
-                <UiLabel class="text-sm">Προτιμήσεις σε άρθρα</UiLabel>
+                <UiLabel class="text-sm">Επισημάνσεις σε άρθρα</UiLabel>
                 <Switch
                   class="cursor-pointer"
                   :model-value="prefs.notify_article_like"

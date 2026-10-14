@@ -1,172 +1,189 @@
 <script setup lang="ts">
-import { toast } from 'vue-sonner'
-import UiButton from '~/components/ui/Button.vue'
-import UiCard from '~/components/ui/Card.vue'
-import UiCardContent from '~/components/ui/CardContent.vue'
-import UiTextarea from '~/components/ui/Textarea.vue'
-import UiLabel from '~/components/ui/Label.vue'
-import UiSkeleton from '~/components/ui/Skeleton.vue'
-import { NuxtLink } from '#components'
+import { toast } from "vue-sonner";
+import UiButton from "~/components/ui/Button.vue";
+import UiCard from "~/components/ui/Card.vue";
+import UiCardContent from "~/components/ui/CardContent.vue";
+import UiTextarea from "~/components/ui/Textarea.vue";
+import UiLabel from "~/components/ui/Label.vue";
+import UiSkeleton from "~/components/ui/Skeleton.vue";
+import { NuxtLink } from "#components";
 
-definePageMeta({ layout: 'default' })
-const route = useRoute()
-const { session } = useCurrentUser()
+definePageMeta({ layout: "default" });
+const route = useRoute();
+const { session } = useCurrentUser();
 
 type ArticlePayload = {
-  id: string
-  title: string
-  body: string
-  tags: string[]
-  reading_time_minutes: number
-  created_at: string
-  likeCount: number
-  commentCount: number
-  likedByMe: boolean
-  myComment: { id: string; body: string; updated_at: string } | null
-}
+  id: string;
+  title: string;
+  body: string;
+  tags: string[];
+  reading_time_minutes: number;
+  created_at: string;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  myComment: { id: string; body: string; updated_at: string } | null;
+};
 
 type CommentRow = {
-  id: string
-  body: string
-  created_at: string
-  users?: { id: string; name: string | null; avatar_url: string | null } | null
-}
+  id: string;
+  body: string;
+  created_at: string;
+  users?: { id: string; name: string | null; avatar_url: string | null } | null;
+};
 
-const article = ref<ArticlePayload | null>(null)
-const articlePending = ref(true)
-const comments = ref<CommentRow[]>([])
-const commentText = ref('')
-const likeLoading = ref(false)
-const commentLoading = ref(false)
+const article = ref<ArticlePayload | null>(null);
+const articlePending = ref(true);
+const comments = ref<CommentRow[]>([]);
+const commentText = ref("");
+const likeLoading = ref(false);
+const commentLoading = ref(false);
 
-const id = computed(() => route.params.id as string)
+const id = computed(() => route.params.id as string);
 
 useHead(() => ({
-  title: article.value?.title ? `${article.value.title} — Άρθρα` : 'Άρθρα',
-}))
+  title: article.value?.title ? `${article.value.title} — Άρθρα` : "Άρθρα",
+}));
 
 async function loadArticle() {
-  articlePending.value = true
+  articlePending.value = true;
   try {
-    article.value = await $fetch<ArticlePayload>(`/api/articles/${id.value}`, { credentials: 'include' })
+    article.value = await $fetch<ArticlePayload>(`/api/articles/${id.value}`, {
+      credentials: "include",
+    });
   } catch {
-    article.value = null
-    toast.error('Κάτι πήγε στραβά')
+    article.value = null;
+    toast.error("Κάτι πήγε στραβά");
   } finally {
-    articlePending.value = false
+    articlePending.value = false;
   }
 }
 
 async function loadComments() {
   try {
-    comments.value = await $fetch<CommentRow[]>(`/api/articles/${id.value}/comments`, {
-      credentials: 'include',
-    })
+    comments.value = await $fetch<CommentRow[]>(
+      `/api/articles/${id.value}/comments`,
+      {
+        credentials: "include",
+      },
+    );
   } catch {
-    comments.value = []
+    comments.value = [];
   }
 }
 
 onMounted(async () => {
-  await loadArticle()
-  await loadComments()
-})
+  await loadArticle();
+  await loadComments();
+});
 
 watch(id, async () => {
-  commentText.value = ''
-  await loadArticle()
-  await loadComments()
-})
+  commentText.value = "";
+  await loadArticle();
+  await loadComments();
+});
 
 watch(
   () => article.value?.myComment,
   (mc) => {
-    if (mc?.body) commentText.value = mc.body
+    if (mc?.body) commentText.value = mc.body;
   },
   { immediate: true },
-)
+);
 
 async function toggleLike() {
   if (!session.value?.user?.id) {
-    toast.error('Συνδεθείτε για να σχολιάσετε ή να εκφράσετε προτίμηση.')
-    return
+    toast.error("Συνδεθείτε για να σχολιάσετε ή να κάνετε επισήμανση.");
+    return;
   }
-  const a = article.value
-  if (!a) return
-  likeLoading.value = true
+  const a = article.value;
+  if (!a) return;
+  likeLoading.value = true;
   try {
     if (a.likedByMe) {
-      await $fetch(`/api/articles/${id.value}/like`, { method: 'DELETE', credentials: 'include' })
-      a.likedByMe = false
-      a.likeCount = Math.max(0, a.likeCount - 1)
+      await $fetch(`/api/articles/${id.value}/like`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      a.likedByMe = false;
+      a.likeCount = Math.max(0, a.likeCount - 1);
     } else {
-      await $fetch(`/api/articles/${id.value}/like`, { method: 'POST', credentials: 'include' })
-      a.likedByMe = true
-      a.likeCount += 1
+      await $fetch(`/api/articles/${id.value}/like`, {
+        method: "POST",
+        credentials: "include",
+      });
+      a.likedByMe = true;
+      a.likeCount += 1;
     }
   } catch {
-    toast.error('Κάτι πήγε στραβά')
+    toast.error("Κάτι πήγε στραβά");
   } finally {
-    likeLoading.value = false
+    likeLoading.value = false;
   }
 }
 
 async function saveComment() {
   if (!session.value?.user?.id) {
-    toast.error('Συνδεθείτε για να σχολιάσετε ή να εκφράσετε προτίμηση.')
-    return
+    toast.error("Συνδεθείτε για να σχολιάσετε ή να κάνετε επισήμανση.");
+    return;
   }
-  const body = commentText.value.trim()
+  const body = commentText.value.trim();
   if (body.length < 1 || body.length > 2000) {
-    toast.error('Κάτι πήγε στραβά')
-    return
+    toast.error("Κάτι πήγε στραβά");
+    return;
   }
-  commentLoading.value = true
+  commentLoading.value = true;
   try {
     await $fetch(`/api/articles/${id.value}/comment`, {
-      method: 'PUT',
-      credentials: 'include',
+      method: "PUT",
+      credentials: "include",
       body: { body },
-    })
-    await loadArticle()
-    await loadComments()
-    toast.success('Το σχόλιο αποθηκεύτηκε')
+    });
+    await loadArticle();
+    await loadComments();
+    toast.success("Το σχόλιο αποθηκεύτηκε");
   } catch {
-    toast.error('Κάτι πήγε στραβά')
+    toast.error("Κάτι πήγε στραβά");
   } finally {
-    commentLoading.value = false
+    commentLoading.value = false;
   }
 }
 
 async function removeComment() {
-  if (!session.value?.user?.id) return
-  commentLoading.value = true
+  if (!session.value?.user?.id) return;
+  commentLoading.value = true;
   try {
-    await $fetch(`/api/articles/${id.value}/comment`, { method: 'DELETE', credentials: 'include' })
-    commentText.value = ''
-    await loadArticle()
-    await loadComments()
+    await $fetch(`/api/articles/${id.value}/comment`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    commentText.value = "";
+    await loadArticle();
+    await loadComments();
   } catch {
-    toast.error('Κάτι πήγε στραβά')
+    toast.error("Κάτι πήγε στραβά");
   } finally {
-    commentLoading.value = false
+    commentLoading.value = false;
   }
 }
 
 async function copyLink() {
-  const url = typeof window !== 'undefined' ? window.location.href : ''
+  const url = typeof window !== "undefined" ? window.location.href : "";
   try {
-    await navigator.clipboard.writeText(url)
-    toast.success('Ο σύνδεσμος αντιγράφηκε στο πρόχειρο.')
+    await navigator.clipboard.writeText(url);
+    toast.success("Ο σύνδεσμος αντιγράφηκε στο πρόχειρο.");
   } catch {
-    toast.error('Κάτι πήγε στραβά')
+    toast.error("Κάτι πήγε στραβά");
   }
 }
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-3xl px-4 py-12">
-    <NuxtLink to="/articles" class="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block">
+    <NuxtLink
+      to="/articles"
+      class="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block"
+    >
       Όλα τα άρθρα
     </NuxtLink>
 
@@ -201,7 +218,9 @@ async function copyLink() {
         </div>
       </header>
 
-      <div class="font-reading prose prose-neutral mb-10 max-w-none whitespace-pre-wrap dark:prose-invert">
+      <div
+        class="font-reading prose prose-neutral mb-10 max-w-none whitespace-pre-wrap dark:prose-invert"
+      >
         {{ article.body }}
       </div>
 
@@ -213,9 +232,14 @@ async function copyLink() {
             :disabled="likeLoading"
             @click="toggleLike"
           >
-            <VIcon :name="article.likedByMe ? 'bi-heart-fill' : 'bi-heart'" class="mr-2 size-4" />
-            {{ article.likedByMe ? 'Αναίρεση' : 'Μου αρέσει' }}
-            <span class="ml-1 text-muted-foreground">({{ article.likeCount }})</span>
+            <VIcon
+              :name="article.likedByMe ? 'bi-heart-fill' : 'bi-heart'"
+              class="mr-2 size-4"
+            />
+            {{ article.likedByMe ? "Αναίρεση επισήμανσης" : "Επισήμανση" }}
+            <span class="ml-1 text-muted-foreground"
+              >({{ article.likeCount }})</span
+            >
           </UiButton>
         </template>
         <UiButton variant="outline" size="sm" @click="copyLink">
@@ -227,9 +251,15 @@ async function copyLink() {
       <UiCard v-if="session?.user?.id" class="mb-10">
         <UiCardContent class="p-6 space-y-3">
           <UiLabel>Το σχόλιό σας</UiLabel>
-          <UiTextarea v-model="commentText" placeholder="Γράψτε ένα σχόλιο…" class="min-h-[100px] font-mono text-sm" />
+          <UiTextarea
+            v-model="commentText"
+            placeholder="Γράψτε ένα σχόλιο…"
+            class="min-h-25 font-mono text-sm"
+          />
           <div class="flex gap-2">
-            <UiButton size="sm" :disabled="commentLoading" @click="saveComment">Αποθήκευση</UiButton>
+            <UiButton size="sm" :disabled="commentLoading" @click="saveComment"
+              >Αποθήκευση</UiButton
+            >
             <UiButton
               v-if="article.myComment"
               size="sm"
@@ -242,18 +272,28 @@ async function copyLink() {
           </div>
         </UiCardContent>
       </UiCard>
-      <p v-else class="text-sm text-muted-foreground mb-10">Συνδεθείτε για να σχολιάσετε ή να εκφράσετε προτίμηση.</p>
+      <p v-else class="text-sm text-muted-foreground mb-10">
+        Συνδεθείτε για να σχολιάσετε ή να κάνετε επισήμανση.
+      </p>
 
       <section>
         <h2 class="text-lg font-heading font-semibold mb-4">Σχόλια</h2>
         <ul class="space-y-4">
-          <li v-for="c in comments" :key="c.id" class="rounded-lg border border-border p-4 text-sm">
-            <p class="font-medium">{{ c.users?.name ?? 'Χρήστης' }}</p>
+          <li
+            v-for="c in comments"
+            :key="c.id"
+            class="rounded-lg border border-border p-4 text-sm"
+          >
+            <p class="font-medium">{{ c.users?.name ?? "Χρήστης" }}</p>
             <p class="mt-1 whitespace-pre-wrap">{{ c.body }}</p>
-            <p class="text-xs text-muted-foreground mt-2">{{ new Date(c.created_at).toLocaleString() }}</p>
+            <p class="text-xs text-muted-foreground mt-2">
+              {{ new Date(c.created_at).toLocaleString() }}
+            </p>
           </li>
         </ul>
-        <p v-if="!comments.length" class="text-sm text-muted-foreground">Δεν υπάρχουν σχόλια ακόμα.</p>
+        <p v-if="!comments.length" class="text-sm text-muted-foreground">
+          Δεν υπάρχουν σχόλια ακόμα.
+        </p>
       </section>
     </template>
   </div>
