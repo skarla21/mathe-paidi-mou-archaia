@@ -4,6 +4,7 @@ interface ArticleCard {
   title: string;
   tags: string[] | null;
   reading_time_minutes: number | null;
+  image_url?: string | null;
 }
 
 const { categories, ensureCategories, categoriesFailed } = useCatalogNav();
@@ -150,10 +151,19 @@ try {
         :key="article.id"
         class="flex flex-col overflow-hidden rounded-3xl bg-card shadow-sm transition-shadow hover:shadow-md"
       >
-        <div
-          class="flex h-40 items-center justify-center bg-amethyst-fixed/70 text-amethyst"
-        >
-          <VIcon name="bi-newspaper" class="size-10" aria-hidden="true" />
+        <div class="h-40 bg-amethyst-fixed/70">
+          <img
+            v-if="storedImageSrc(article.image_url)"
+            :src="storedImageSrc(article.image_url)"
+            alt=""
+            class="h-full w-full object-cover"
+          />
+          <div
+            v-else
+            class="flex h-full items-center justify-center text-amethyst"
+          >
+            <VIcon name="bi-newspaper" class="size-10" aria-hidden="true" />
+          </div>
         </div>
         <div class="flex flex-1 flex-col p-6">
           <span

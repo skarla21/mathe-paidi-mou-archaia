@@ -11,7 +11,7 @@ import { storedFileName } from './safeStorageName.ts'
 export const UPLOAD_BUCKET = 'uploads'
 const TICKET_TTL_MS = 2 * 60 * 60 * 1000
 const FOLDERS = new Set(['lesson-content', 'entity-images'])
-const IMAGE_ENTITIES = new Set(['category', 'chapter', 'subject'])
+const IMAGE_ENTITIES = new Set(['category', 'chapter', 'subject', 'article'])
 
 export type UploadTarget = 'lesson' | 'image'
 export type UploadMime = 'application/pdf' | 'image/jpeg' | 'image/png'

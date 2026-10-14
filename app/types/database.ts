@@ -97,6 +97,7 @@ export interface Article {
   tags: string[]
   reading_time_minutes: number
   published: boolean
+  image_url?: string | null
   created_at: string
   updated_at: string
   likeCount?: number

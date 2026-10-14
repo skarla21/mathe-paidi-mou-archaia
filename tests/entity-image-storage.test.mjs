@@ -159,6 +159,12 @@ describe('releaseReplacedEntityImage', () => {
     await releaseReplacedEntityImage(supabase.client, IMAGE_URL, NEXT_URL, SUPABASE_URL)
     assert.deepEqual(supabase.removed, [])
   })
+
+  it('keeps a file an article still uses when another record releases it', async () => {
+    const supabase = fakeImages({ articles: [IMAGE_URL], chapters: [NEXT_URL] }, [])
+    await releaseReplacedEntityImage(supabase.client, IMAGE_URL, NEXT_URL, SUPABASE_URL)
+    assert.deepEqual(supabase.removed, [])
+  })
 })
 
 describe('releaseEntityImages', () => {
@@ -293,6 +299,35 @@ describe('listReferencedEntityImages', () => {
     const supabase = fakeImages({ categories: [] }, [], { queryError: { message: 'db down' } })
     const images = await listReferencedEntityImages(supabase.client, SUPABASE_URL)
     assert.equal(images, null)
+  })
+
+  it('lists an article image and hides it when that article is excluded', async () => {
+    const articleUrl = `${SUPABASE_URL}/storage/v1/object/public/uploads/entity-images/article-cover-cccc3333.png`
+    const tables = {
+      articles: [{ id: 'art-1', title: 'Όμηρος', image_url: articleUrl }],
+    }
+    const listed = await listReferencedEntityImages(fakeImages(tables, []).client, SUPABASE_URL)
+    assert.deepEqual(listed, [{
+      url: articleUrl,
+      usedBy: [{ type: 'article', id: 'art-1', label: 'Όμηρος' }],
+    }])
+    const excluded = await listReferencedEntityImages(fakeImages(tables, []).client, SUPABASE_URL, {
+      type: 'article',
+      id: 'art-1',
+    })
+    assert.deepEqual(excluded, [])
+  })
+
+  it('keeps a stale article image that an article still uses', async () => {
+    const now = Date.parse('2026-10-06T12:00:00.000Z')
+    const staleAt = new Date(now - 16 * 60 * 1000).toISOString()
+    const articleUrl = `${SUPABASE_URL}/storage/v1/object/public/uploads/entity-images/article-cover-cccc3333.png`
+    const supabase = fakeImages(
+      { articles: [{ id: 'art-1', title: 'Όμηρος', image_url: articleUrl }] },
+      [{ name: 'article-cover-cccc3333.png', id: 'kept', created_at: staleAt }],
+    )
+    await reapOrphanEntityImages(supabase.client, SUPABASE_URL, now)
+    assert.deepEqual(supabase.removed, [])
   })
 
   it('pages through every referenced image', async () => {

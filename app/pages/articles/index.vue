@@ -13,10 +13,12 @@ type Row = {
   title: string
   tags: string[]
   reading_time_minutes: number
+  image_url?: string | null
   created_at: string
 }
 
 const list = ref<Row[] | null>(null)
+const storedImageSrc = useStoredImageSrc()
 
 onMounted(async () => {
   try {
@@ -45,9 +47,15 @@ onMounted(async () => {
 
     <ul v-else class="space-y-4">
       <li v-for="a in list" :key="a.id">
-        <UiCard class="rounded-3xl border-border/80 shadow-sm transition-shadow hover:shadow-md">
-          <UiCardContent class="p-6">
-            <NuxtLink :to="`/articles/${a.id}`" class="block group">
+        <UiCard class="overflow-hidden rounded-3xl border-border/80 shadow-sm transition-shadow hover:shadow-md">
+          <NuxtLink :to="`/articles/${a.id}`" class="group block">
+            <img
+              v-if="storedImageSrc(a.image_url)"
+              :src="storedImageSrc(a.image_url)"
+              alt=""
+              class="h-40 w-full object-cover"
+            >
+            <UiCardContent class="p-6">
               <h2 class="text-xl font-heading font-semibold group-hover:text-primary transition-colors">
                 {{ a.title }}
               </h2>
@@ -63,8 +71,8 @@ onMounted(async () => {
                   {{ tag }}
                 </span>
               </div>
-            </NuxtLink>
-          </UiCardContent>
+            </UiCardContent>
+          </NuxtLink>
         </UiCard>
       </li>
     </ul>

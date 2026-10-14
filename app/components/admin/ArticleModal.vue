@@ -14,6 +14,8 @@ import UiBadge from "~/components/ui/Badge.vue";
 import UiLabel from "~/components/ui/Label.vue";
 import UiTextarea from "~/components/ui/Textarea.vue";
 import { Switch } from "~/components/ui/switch";
+import AdminImageDropzone from "~/components/admin/AdminImageDropzone.vue";
+import AdminExistingImagePicker from "~/components/admin/AdminExistingImagePicker.vue";
 import type { Article } from "~/types/database";
 
 const MAX_TAGS = 30;
@@ -35,6 +37,24 @@ const published = ref(false);
 const tagFieldFocused = ref(false);
 const saving = ref(false);
 const attempted = ref(false);
+const pickerOpen = ref(false);
+const {
+  imageUrl,
+  preserveExisting,
+  persistedImage,
+  uploading,
+  progress: uploadProgress,
+  statusLabel: uploadStatusLabel,
+  resetImage,
+  closeImage,
+  keepImage,
+  releaseUnsaved,
+  uploadImage,
+  useExistingImage,
+  clearImage,
+  removePersistedImage,
+  imageFields,
+} = useAdminImageDraft("article");
 
 const titleMissing = computed(() => attempted.value && !title.value.trim());
 const bodyMissing = computed(() => attempted.value && !body.value.trim());
@@ -42,8 +62,13 @@ const bodyMissing = computed(() => attempted.value && !body.value.trim());
 watch(
   () => props.open,
   (open) => {
-    if (!open) return;
+    if (!open) {
+      pickerOpen.value = false;
+      closeImage(saving.value);
+      return;
+    }
     attempted.value = false;
+    resetImage(props.article?.image_url);
     if (props.article) {
       title.value = props.article.title;
       body.value = props.article.body;
@@ -123,7 +148,26 @@ function setPublished(value: boolean) {
   published.value = value;
 }
 
+function onImageFile(file: File) {
+  void uploadImage(file, saving.value);
+}
+
+function onImagePick(url: string) {
+  useExistingImage(url);
+  pickerOpen.value = false;
+}
+
+async function onImageClear() {
+  if (persistedImage.value && props.article) {
+    const removed = await removePersistedImage(props.article.id);
+    if (removed) emit("saved");
+    return;
+  }
+  clearImage();
+}
+
 async function save() {
+  if (uploading.value) return;
   attempted.value = true;
   const tVal = title.value.trim();
   const bVal = body.value.trim();
@@ -131,6 +175,7 @@ async function save() {
   saving.value = true;
   if (tagDraft.value.trim()) commitDraft(tagDraft.value);
   try {
+    const image = imageFields(!props.article);
     if (props.article?.id) {
       await adminFetch(`/api/admin/articles/${props.article.id}`, {
         method: "PATCH",
@@ -139,6 +184,7 @@ async function save() {
           body: bVal,
           tags: tags.value,
           published: published.value,
+          ...image,
         },
       });
     } else {
@@ -149,14 +195,18 @@ async function save() {
           body: bVal,
           tags: tags.value,
           published: published.value,
+          ...image,
         },
       });
     }
+    keepImage();
     toast.success("Το άρθρο αποθηκεύτηκε");
     emit("saved");
     emit("close");
-  } catch {
-    toast.error("Κάτι πήγε στραβά");
+  } catch (error: unknown) {
+    if (!props.open) releaseUnsaved();
+    const err = error as { data?: { message?: string } };
+    toast.error(err?.data?.message ?? "Κάτι πήγε στραβά");
   } finally {
     saving.value = false;
   }
@@ -248,6 +298,25 @@ async function save() {
               </li>
             </ul>
           </div>
+          <AdminImageDropzone
+            :model-value="imageUrl"
+            :uploading="uploading"
+            :progress="uploadProgress"
+            :status-label="uploadStatusLabel"
+            :disabled="saving"
+            :preserved="preserveExisting"
+            :persisted="persistedImage"
+            @file="onImageFile"
+            @clear="onImageClear"
+            @pick="pickerOpen = true"
+          />
+          <AdminExistingImagePicker
+            :open="pickerOpen"
+            except-type="article"
+            :except-id="props.article?.id"
+            @close="pickerOpen = false"
+            @select="onImagePick"
+          />
           <div>
             <UiLabel class="mb-1.5 block">Περιεχόμενο</UiLabel>
             <UiTextarea
@@ -270,7 +339,7 @@ async function save() {
         </div>
         <UiDialogFooter class="gap-2">
           <UiButton variant="cancel" @click="emit('close')">Ακύρωση</UiButton>
-          <UiButton :disabled="saving" @click="save">Αποθήκευση</UiButton>
+          <UiButton :disabled="saving || uploading" @click="save">Αποθήκευση</UiButton>
         </UiDialogFooter>
       </UiDialogContent>
     </UiDialogPortal>

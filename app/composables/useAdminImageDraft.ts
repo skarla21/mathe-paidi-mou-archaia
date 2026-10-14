@@ -2,12 +2,13 @@ import { toast } from 'vue-sonner'
 import { acceptedEntityImageUrl, borrowEntityImage, entityImageDraft, entityImageSaveFields } from '#shared/utils/entityImageUrl.mjs'
 import { canStartUpload, imageToDiscard } from '#shared/utils/lessonAttachment.mjs'
 
-type ImageEntity = 'category' | 'chapter' | 'subject'
+type ImageEntity = 'category' | 'chapter' | 'subject' | 'article'
 
 const IMAGE_COLLECTION: Record<ImageEntity, string> = {
   category: 'categories',
   chapter: 'chapters',
   subject: 'subjects',
+  article: 'articles',
 }
 
 export function useAdminImageDraft(entity: ImageEntity) {

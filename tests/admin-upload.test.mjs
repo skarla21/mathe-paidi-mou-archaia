@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  isImageEntity,
   isUploadPath,
   mimeAllowedForPath,
   mimeFromMagic,
@@ -55,6 +56,11 @@ describe('upload paths', () => {
     assert.equal(
       uploadObjectPath('image', 'cover.png', 'image/png', 'category', 'abcd1234'),
       'entity-images/category-cover-abcd1234.png',
+    )
+    assert.equal(isImageEntity('article'), true)
+    assert.equal(
+      uploadObjectPath('image', 'cover.png', 'image/png', 'article', 'abcd1234'),
+      'entity-images/article-cover-abcd1234.png',
     )
     assert.equal(
       uploadObjectPath('lesson', 'cover.png', 'application/pdf', 'chapter', 'abcd1234'),

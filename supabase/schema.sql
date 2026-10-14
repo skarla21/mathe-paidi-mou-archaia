@@ -188,6 +188,7 @@ create table if not exists public.articles (
   tags text[] not null default '{}',
   reading_time_minutes smallint not null,
   published boolean not null default false,
+  image_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

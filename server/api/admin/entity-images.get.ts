@@ -8,7 +8,7 @@ function queryValue(value: unknown): string {
 }
 
 function imageKind(value: string): EntityImageKind | null {
-  if (value === 'category' || value === 'chapter' || value === 'subject') return value
+  if (value === 'category' || value === 'chapter' || value === 'subject' || value === 'article') return value
   return null
 }
 

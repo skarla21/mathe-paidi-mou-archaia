@@ -8,7 +8,7 @@ import {
 } from '#shared/utils/uploadProgress.mjs'
 
 type UploadKind = 'lesson' | 'image'
-type ImageEntity = 'category' | 'chapter' | 'subject'
+type ImageEntity = 'category' | 'chapter' | 'subject' | 'article'
 
 interface SignResponse {
   signedUrl: string

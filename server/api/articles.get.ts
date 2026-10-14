@@ -4,7 +4,7 @@ export default defineEventHandler(async (_event) => {
   const supabase = serverSupabaseService()
   const { data, error } = await supabase
     .from('articles')
-    .select('id, title, tags, reading_time_minutes, created_at')
+    .select('id, title, tags, reading_time_minutes, image_url, created_at')
     .eq('published', true)
     .order('created_at', { ascending: false })
   if (error) {

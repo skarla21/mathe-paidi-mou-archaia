@@ -2,6 +2,7 @@ import { serverSupabaseService } from '../../utils/supabaseServer'
 import { requireAdmin } from '../../utils/requireAdmin'
 import { normalizeArticleTags } from '../../utils/articleTags'
 import { readingTimeMinutesFromBody } from '../../utils/readingTime'
+import { storedEntityImageUrl } from '../../utils/storedEntityImage'
 
 const BODY_MAX = 500_000
 
@@ -12,6 +13,7 @@ export default defineEventHandler(async (event) => {
     body: string
     tags?: unknown
     published?: boolean
+    image_url?: string | null
   }>(event)
 
   const title = typeof body.title === 'string' ? body.title.trim() : ''
@@ -35,6 +37,7 @@ export default defineEventHandler(async (event) => {
       tags,
       reading_time_minutes,
       published,
+      image_url: storedEntityImageUrl(body.image_url),
     })
     .select()
     .single()

@@ -23,6 +23,7 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 useHead(() => ({ title: 'Διαχείριση - Άρθρα' }))
 
 const adminFetch = useAdminFetch()
+const storedImageSrc = useStoredImageSrc()
 const articles = ref<Article[]>([])
 const loading = ref(true)
 const search = ref('')
@@ -119,7 +120,13 @@ async function confirmDelete() {
       <div v-else class="space-y-3">
         <UiCard v-for="a in filteredArticles" :key="a.id" class="rounded-2xl border-border">
           <UiCardContent class="p-4 flex items-center gap-4 flex-wrap">
-            <UiIconWell>
+            <img
+              v-if="storedImageSrc(a.image_url)"
+              :src="storedImageSrc(a.image_url)"
+              :alt="a.title"
+              class="size-12 shrink-0 rounded-xl object-cover"
+            >
+            <UiIconWell v-else>
               <VIcon name="bi-newspaper" class="size-5" aria-hidden="true" />
             </UiIconWell>
             <div class="min-w-0 flex-1">

@@ -6,13 +6,14 @@ const BUCKET = 'uploads'
 const IMAGE_PREFIX = 'entity-images/'
 const IMAGE_FOLDER = 'entity-images'
 const PAGE_SIZE = 1000
-const IMAGE_TABLES = ['categories', 'chapters', 'subjects'] as const
+const IMAGE_TABLES = ['categories', 'chapters', 'subjects', 'articles'] as const
 const IMAGE_KIND = {
   categories: 'category',
   chapters: 'chapter',
   subjects: 'subject',
+  articles: 'article',
 } as const
-const KIND_ORDER = { subject: 0, chapter: 1, category: 2 } as const
+const KIND_ORDER = { subject: 0, chapter: 1, category: 2, article: 3 } as const
 
 export type EntityImageKind = (typeof IMAGE_KIND)[keyof typeof IMAGE_KIND]
 type ImageUse = { type: EntityImageKind; id: string; label: string }
@@ -197,6 +198,7 @@ function relatedImageName(value: unknown): string {
 
 function imageLabel(table: (typeof IMAGE_TABLES)[number], row: Record<string, unknown>): string {
   if (table === 'categories') return imageText(row.name)
+  if (table === 'articles') return imageText(row.title)
   if (table === 'subjects') return joinImageLabel([relatedImageName(row.grades), imageText(row.name)])
   const subject = relatedImageRecord(row.subjects)
   return joinImageLabel([
@@ -243,6 +245,14 @@ function listImageRows(
     return pageImageRows((from, to) => supabase
       .from('chapters')
       .select('id, title, image_url, subjects(name, grades(name))')
+      .not('image_url', 'is', null)
+      .order('id')
+      .range(from, to))
+  }
+  if (table === 'articles') {
+    return pageImageRows((from, to) => supabase
+      .from('articles')
+      .select('id, title, image_url')
       .not('image_url', 'is', null)
       .order('id')
       .range(from, to))

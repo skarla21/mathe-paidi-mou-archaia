@@ -19,6 +19,7 @@ type ArticlePayload = {
   body: string;
   tags: string[];
   reading_time_minutes: number;
+  image_url?: string | null;
   created_at: string;
   likeCount: number;
   commentCount: number;
@@ -209,7 +210,6 @@ async function removeComment() {
         <UiSkeleton class="h-5 w-16 rounded-md" />
         <UiSkeleton class="h-5 w-20 rounded-md" />
       </div>
-      <UiSkeleton class="mt-8 h-64 w-full rounded-3xl" />
     </template>
 
     <template v-else-if="!article">
@@ -232,6 +232,12 @@ async function removeComment() {
           </span>
         </div>
       </header>
+
+      <CatalogCover
+        class="mb-8"
+        :image-url="article.image_url"
+        :alt="article.title"
+      />
 
       <div
         class="font-reading prose prose-neutral mb-10 max-w-none whitespace-pre-wrap dark:prose-invert"

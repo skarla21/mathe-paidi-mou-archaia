@@ -12,7 +12,7 @@ import UiDialogDescription from '~/components/ui/dialog/DialogDescription.vue'
 import UiButton from '~/components/ui/Button.vue'
 import UiInput from '~/components/ui/Input.vue'
 
-type ImageKind = 'subject' | 'chapter' | 'category'
+type ImageKind = 'subject' | 'chapter' | 'category' | 'article'
 type ExistingImage = {
   url: string
   usedBy: { type: ImageKind; id: string; label: string }[]
@@ -33,6 +33,7 @@ const TYPE_LABEL: Record<ImageKind, string> = {
   subject: 'Μάθημα',
   chapter: 'Κεφάλαιο',
   category: 'Κατηγορία',
+  article: 'Άρθρο',
 }
 
 const adminFetch = useAdminFetch()
@@ -98,7 +99,7 @@ watch(() => props.open, (open) => {
         <UiDialogHeader class="shrink-0">
           <UiDialogTitle>Υπάρχουσες εικόνες</UiDialogTitle>
           <UiDialogDescription class="sr-only">
-            Επιλογή εικόνας που χρησιμοποιείται ήδη από μάθημα, κεφάλαιο ή κατηγορία.
+            Επιλογή εικόνας που χρησιμοποιείται ήδη από μάθημα, κεφάλαιο, κατηγορία ή άρθρο.
           </UiDialogDescription>
         </UiDialogHeader>
         <div v-if="!loading && !failed && images.length" class="relative shrink-0">
