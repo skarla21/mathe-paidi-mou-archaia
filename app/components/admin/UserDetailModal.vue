@@ -7,6 +7,7 @@ import UiDialogHeader from '~/components/ui/dialog/DialogHeader.vue'
 import UiDialogFooter from '~/components/ui/dialog/DialogFooter.vue'
 import UiDialogTitle from '~/components/ui/dialog/DialogTitle.vue'
 import UiButton from '~/components/ui/Button.vue'
+import AdminTablePager from '~/components/admin/AdminTablePager.vue'
 import UiAlertDialogRoot from '~/components/ui/alert-dialog/AlertDialogRoot.vue'
 import UiAlertDialogPortal from '~/components/ui/alert-dialog/AlertDialogPortal.vue'
 import UiAlertDialogOverlay from '~/components/ui/alert-dialog/AlertDialogOverlay.vue'
@@ -19,19 +20,19 @@ import UiAlertDialogCancel from '~/components/ui/alert-dialog/AlertDialogCancel.
 import UiAlertDialogAction from '~/components/ui/alert-dialog/AlertDialogAction.vue'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { toast } from 'vue-sonner'
-
+import type { AdminListPage } from '~~/types/domain'
 import type { Purchase, Download, LessonRating, LessonComment, ArticleLike, ArticleComment } from '~/types/database'
 
 const props = defineProps<{ open: boolean; userId: string | null }>()
 const emit = defineEmits<{ close: [] }>()
 const adminFetch = useAdminFetch()
 
-const purchases = ref<Purchase[]>([])
-const downloads = ref<Download[]>([])
-const ratings = ref<LessonRating[]>([])
-const comments = ref<LessonComment[]>([])
-const articleLikes = ref<ArticleLike[]>([])
-const articleComments = ref<ArticleComment[]>([])
+const purchases = reactive(useAdminDetailTab<Purchase>())
+const downloads = reactive(useAdminDetailTab<Download>())
+const ratings = reactive(useAdminDetailTab<LessonRating>())
+const comments = reactive(useAdminDetailTab<LessonComment>())
+const articleLikes = reactive(useAdminDetailTab<ArticleLike>())
+const articleComments = reactive(useAdminDetailTab<ArticleComment>())
 const loading = ref(false)
 
 type PendingDelete =
@@ -43,27 +44,58 @@ const pendingDelete = ref<PendingDelete | null>(null)
 const deleteDialogOpen = ref(false)
 const deleteLoading = ref(false)
 
-watch(() => props.open, async (val) => {
-  if (!val || !props.userId) return
+function fetchPage<T>(path: string, pageNumber: number) {
+  return adminFetch<AdminListPage<T>>(path, { query: { page: pageNumber } })
+}
+
+async function loadAll() {
+  if (!props.userId) return
   loading.value = true
   try {
-    const [p, d, r, c, al, ac] = await Promise.all([
-      adminFetch<Purchase[]>(`/api/admin/users/${props.userId}/purchases`),
-      adminFetch<Download[]>(`/api/admin/users/${props.userId}/downloads`),
-      adminFetch<LessonRating[]>(`/api/admin/users/${props.userId}/ratings`),
-      adminFetch<LessonComment[]>(`/api/admin/users/${props.userId}/comments`),
-      adminFetch<ArticleLike[]>(`/api/admin/users/${props.userId}/article-likes`),
-      adminFetch<ArticleComment[]>(`/api/admin/users/${props.userId}/article-comments`),
+    const uid = props.userId
+    await Promise.all([
+      purchases.load((p) => fetchPage(`/api/admin/users/${uid}/purchases`, p)),
+      downloads.load((p) => fetchPage(`/api/admin/users/${uid}/downloads`, p)),
+      ratings.load((p) => fetchPage(`/api/admin/users/${uid}/ratings`, p)),
+      comments.load((p) => fetchPage(`/api/admin/users/${uid}/comments`, p)),
+      articleLikes.load((p) => fetchPage(`/api/admin/users/${uid}/article-likes`, p)),
+      articleComments.load((p) => fetchPage(`/api/admin/users/${uid}/article-comments`, p)),
     ])
-    purchases.value = p
-    downloads.value = d
-    ratings.value = r
-    comments.value = c
-    articleLikes.value = al
-    articleComments.value = ac
-  } catch { toast.error('Κάτι πήγε στραβά') }
-  finally { loading.value = false }
+  } catch {
+    toast.error('Κάτι πήγε στραβά')
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(() => props.open, async (val) => {
+  if (!val || !props.userId) return
+  purchases.reset()
+  downloads.reset()
+  ratings.reset()
+  comments.reset()
+  articleLikes.reset()
+  articleComments.reset()
+  await loadAll()
 })
+
+function watchTabPage(pageSource: { page: number }, loader: () => Promise<void>) {
+  watch(() => pageSource.page, async () => {
+    if (!props.open || !props.userId || loading.value) return
+    try {
+      await loader()
+    } catch {
+      toast.error('Κάτι πήγε στραβά')
+    }
+  })
+}
+
+watchTabPage(purchases, () => purchases.load((p) => fetchPage(`/api/admin/users/${props.userId}/purchases`, p)))
+watchTabPage(downloads, () => downloads.load((p) => fetchPage(`/api/admin/users/${props.userId}/downloads`, p)))
+watchTabPage(ratings, () => ratings.load((p) => fetchPage(`/api/admin/users/${props.userId}/ratings`, p)))
+watchTabPage(comments, () => comments.load((p) => fetchPage(`/api/admin/users/${props.userId}/comments`, p)))
+watchTabPage(articleLikes, () => articleLikes.load((p) => fetchPage(`/api/admin/users/${props.userId}/article-likes`, p)))
+watchTabPage(articleComments, () => articleComments.load((p) => fetchPage(`/api/admin/users/${props.userId}/article-comments`, p)))
 
 function requestDelete(kind: PendingDelete['kind'], id: string) {
   pendingDelete.value = { kind, id } as PendingDelete
@@ -77,19 +109,23 @@ async function confirmDelete() {
   try {
     if (kind === 'rating') {
       await adminFetch(`/api/admin/ratings/${id}`, { method: 'DELETE' })
-      ratings.value = ratings.value.filter(r => r.id !== id)
+      ratings.items = ratings.items.filter(r => r.id !== id)
+      ratings.total = Math.max(0, ratings.total - 1)
       toast.success('Η βαθμολογία διαγράφηκε')
     } else if (kind === 'comment') {
       await adminFetch(`/api/admin/comments/${id}`, { method: 'DELETE' })
-      comments.value = comments.value.filter(c => c.id !== id)
+      comments.items = comments.items.filter(c => c.id !== id)
+      comments.total = Math.max(0, comments.total - 1)
       toast.success('Το σχόλιο διαγράφηκε')
     } else if (kind === 'article_like') {
       await adminFetch(`/api/admin/article-likes/${id}`, { method: 'DELETE' })
-      articleLikes.value = articleLikes.value.filter(x => x.id !== id)
+      articleLikes.items = articleLikes.items.filter(x => x.id !== id)
+      articleLikes.total = Math.max(0, articleLikes.total - 1)
       toast.success('Η επισήμανση αφαιρέθηκε')
     } else {
       await adminFetch(`/api/admin/article-comments/${id}`, { method: 'DELETE' })
-      articleComments.value = articleComments.value.filter(x => x.id !== id)
+      articleComments.items = articleComments.items.filter(x => x.id !== id)
+      articleComments.total = Math.max(0, articleComments.total - 1)
       toast.success('Το σχόλιο διαγράφηκε')
     }
     deleteDialogOpen.value = false
@@ -112,49 +148,61 @@ async function confirmDelete() {
         <Tabs v-else default-value="downloads" class="min-w-0 max-w-full">
           <TabsList class="w-max max-w-full overflow-x-auto">
             <TabsTrigger value="downloads" class="flex-1 text-xs">
-              Λήψεις ({{ downloads.length }})
+              Λήψεις ({{ downloads.total }})
             </TabsTrigger>
             <TabsTrigger value="purchases" class="flex-1 text-xs">
-              Αγορές ({{ purchases.length }})
+              Αγορές ({{ purchases.total }})
             </TabsTrigger>
             <TabsTrigger value="ratings" class="flex-1 text-xs">
-              Βαθμολογίες ({{ ratings.length }})
+              Βαθμολογίες ({{ ratings.total }})
             </TabsTrigger>
             <TabsTrigger value="comments" class="flex-1 text-xs">
-              Σχόλια ({{ comments.length }})
+              Σχόλια ({{ comments.total }})
             </TabsTrigger>
             <TabsTrigger value="articleLikes" class="flex-1 text-xs">
-              Επισημάνσεις άρθρων ({{ articleLikes.length }})
+              Επισημάνσεις άρθρων ({{ articleLikes.total }})
             </TabsTrigger>
             <TabsTrigger value="articleComments" class="flex-1 text-xs">
-              Σχόλια άρθρων ({{ articleComments.length }})
+              Σχόλια άρθρων ({{ articleComments.total }})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="downloads" class="mt-4">
-            <p v-if="!downloads.length" class="text-xs text-muted-foreground">—</p>
+            <p v-if="!downloads.items.length" class="text-xs text-muted-foreground">—</p>
             <ul v-else class="text-xs space-y-1">
-              <li v-for="d in downloads" :key="d.id" class="flex justify-between gap-2">
+              <li v-for="d in downloads.items" :key="d.id" class="flex justify-between gap-2">
                 <span>{{ d.lessons?.title }}</span>
                 <span class="text-muted-foreground shrink-0">{{ new Date(d.downloaded_at).toLocaleDateString() }}</span>
               </li>
             </ul>
+            <AdminTablePager
+              v-model:page="downloads.page"
+              :total="downloads.total"
+              :page-size="downloads.pageSize"
+              :disabled="downloads.loading"
+            />
           </TabsContent>
 
           <TabsContent value="purchases" class="mt-4">
-            <p v-if="!purchases.length" class="text-xs text-muted-foreground">—</p>
+            <p v-if="!purchases.items.length" class="text-xs text-muted-foreground">—</p>
             <ul v-else class="text-xs space-y-1">
-              <li v-for="p in purchases" :key="p.id" class="flex justify-between gap-2">
+              <li v-for="p in purchases.items" :key="p.id" class="flex justify-between gap-2">
                 <span>{{ p.lessons?.title }}</span>
                 <span class="text-muted-foreground shrink-0">{{ new Date(p.created_at).toLocaleDateString() }}</span>
               </li>
             </ul>
+            <AdminTablePager
+              v-model:page="purchases.page"
+              :total="purchases.total"
+              :page-size="purchases.pageSize"
+              :disabled="purchases.loading"
+            />
           </TabsContent>
 
           <TabsContent value="ratings" class="mt-4">
-            <p v-if="!ratings.length" class="text-xs text-muted-foreground">Δεν υπάρχουν βαθμολογίες ακόμα.</p>
+            <p v-if="!ratings.items.length" class="text-xs text-muted-foreground">Δεν υπάρχουν βαθμολογίες ακόμα.</p>
             <ul v-else class="text-xs space-y-2">
-              <li v-for="r in ratings" :key="r.id" class="flex items-center justify-between gap-2">
+              <li v-for="r in ratings.items" :key="r.id" class="flex items-center justify-between gap-2">
                 <div class="flex flex-col gap-0.5 min-w-0">
                   <span class="truncate">{{ r.lessons?.title }}</span>
                   <span class="flex items-center gap-0.5">
@@ -181,12 +229,18 @@ async function confirmDelete() {
                 </div>
               </li>
             </ul>
+            <AdminTablePager
+              v-model:page="ratings.page"
+              :total="ratings.total"
+              :page-size="ratings.pageSize"
+              :disabled="ratings.loading"
+            />
           </TabsContent>
 
           <TabsContent value="comments" class="mt-4">
-            <p v-if="!comments.length" class="text-xs text-muted-foreground">Δεν υπάρχουν σχόλια ακόμα.</p>
+            <p v-if="!comments.items.length" class="text-xs text-muted-foreground">Δεν υπάρχουν σχόλια ακόμα.</p>
             <ul v-else class="text-xs space-y-2">
-              <li v-for="c in comments" :key="c.id" class="flex items-start justify-between gap-2">
+              <li v-for="c in comments.items" :key="c.id" class="flex items-start justify-between gap-2">
                 <div class="flex flex-col gap-0.5 min-w-0">
                   <span class="truncate font-medium">{{ c.lessons?.title }}</span>
                   <span class="text-muted-foreground line-clamp-2">{{ c.body }}</span>
@@ -205,12 +259,18 @@ async function confirmDelete() {
                 </div>
               </li>
             </ul>
+            <AdminTablePager
+              v-model:page="comments.page"
+              :total="comments.total"
+              :page-size="comments.pageSize"
+              :disabled="comments.loading"
+            />
           </TabsContent>
 
           <TabsContent value="articleLikes" class="mt-4">
-            <p v-if="!articleLikes.length" class="text-xs text-muted-foreground">—</p>
+            <p v-if="!articleLikes.items.length" class="text-xs text-muted-foreground">—</p>
             <ul v-else class="text-xs space-y-2">
-              <li v-for="x in articleLikes" :key="x.id" class="flex items-start justify-between gap-2">
+              <li v-for="x in articleLikes.items" :key="x.id" class="flex items-start justify-between gap-2">
                 <div class="flex flex-col gap-0.5 min-w-0">
                   <span class="truncate font-medium">{{ x.articles?.title }}</span>
                   <span class="text-muted-foreground">{{ new Date(x.created_at).toLocaleDateString() }}</span>
@@ -226,12 +286,18 @@ async function confirmDelete() {
                 </UiButton>
               </li>
             </ul>
+            <AdminTablePager
+              v-model:page="articleLikes.page"
+              :total="articleLikes.total"
+              :page-size="articleLikes.pageSize"
+              :disabled="articleLikes.loading"
+            />
           </TabsContent>
 
           <TabsContent value="articleComments" class="mt-4">
-            <p v-if="!articleComments.length" class="text-xs text-muted-foreground">Δεν υπάρχουν σχόλια ακόμα.</p>
+            <p v-if="!articleComments.items.length" class="text-xs text-muted-foreground">Δεν υπάρχουν σχόλια ακόμα.</p>
             <ul v-else class="text-xs space-y-2">
-              <li v-for="x in articleComments" :key="x.id" class="flex items-start justify-between gap-2">
+              <li v-for="x in articleComments.items" :key="x.id" class="flex items-start justify-between gap-2">
                 <div class="flex flex-col gap-0.5 min-w-0">
                   <span class="truncate font-medium">
                     {{ x.articles?.title }}
@@ -256,6 +322,12 @@ async function confirmDelete() {
                 </div>
               </li>
             </ul>
+            <AdminTablePager
+              v-model:page="articleComments.page"
+              :total="articleComments.total"
+              :page-size="articleComments.pageSize"
+              :disabled="articleComments.loading"
+            />
           </TabsContent>
         </Tabs>
         <UiDialogFooter class="mt-4 min-w-0">

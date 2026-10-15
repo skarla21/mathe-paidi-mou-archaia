@@ -28,17 +28,12 @@ const props = defineProps<{
   articleId: string;
   isReply?: boolean;
   canModerate: boolean;
-  replyOpen?: boolean;
-  replyText?: string;
-  replyLoading?: boolean;
 }>();
 
 const emit = defineEmits<{
   deleted: [];
   updated: [];
   "toggle-reply": [];
-  "update:replyText": [value: string];
-  "submit-reply": [];
 }>();
 
 const { session, isAdmin } = useCurrentUser();
@@ -176,7 +171,6 @@ async function confirmDelete() {
           </p>
           <div class="mt-3 flex flex-wrap items-center gap-1">
             <UiButton
-              v-if="!isReply"
               variant="ghost"
               size="sm"
               class="h-8 gap-1.5 px-2 text-muted-foreground"
@@ -210,35 +204,6 @@ async function confirmDelete() {
             </template>
           </div>
         </template>
-      </div>
-    </div>
-
-    <div
-      v-if="!isReply && replyOpen"
-      class="mt-4 ml-8 sm:ml-12 rounded-3xl border border-border bg-secondary/40 p-4"
-    >
-      <UiTextarea
-        :model-value="replyText"
-        placeholder="Γράψτε μια απάντηση…"
-        class="min-h-24 rounded-2xl border-none bg-card font-reading text-base"
-        @update:model-value="emit('update:replyText', String($event))"
-      />
-      <div class="mt-3 flex flex-wrap gap-2">
-        <UiButton
-          size="sm"
-          :disabled="replyLoading"
-          @click="emit('submit-reply')"
-        >
-          Απάντηση
-        </UiButton>
-        <UiButton
-          size="sm"
-          variant="outline"
-          :disabled="replyLoading"
-          @click="emit('toggle-reply')"
-        >
-          Ακύρωση
-        </UiButton>
       </div>
     </div>
   </li>

@@ -134,14 +134,20 @@ async function loadLessons() {
       : kind === 'subject'
         ? { subject_id: subjectId }
         : { chapter_id: chapterId }
-    const list = await adminFetch<{ id: string; title: string; order: number }[]>(
-      '/api/lessons',
-      { query },
-    )
+    const page = await adminFetch<{
+      items: { id: string; title: string; order: number }[]
+      total?: number
+      truncated?: boolean
+    }>('/api/lessons', {
+      query: { ...query, all: '1' },
+    })
     if (gen !== lessonFetchGen) return
-    orderedRows.value = [...list]
+    orderedRows.value = [...(page.items ?? [])]
       .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title))
       .map(l => ({ id: l.id, label: l.title }))
+    if (page.truncated) {
+      toast.error('Φορτώθηκαν μόνο τα πρώτα 500 μαθήματα. Η αναδιάταξη είναι ελλιπής.')
+    }
   } catch {
     if (gen !== lessonFetchGen) return
     orderedRows.value = []

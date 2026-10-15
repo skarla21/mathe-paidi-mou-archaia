@@ -2,6 +2,7 @@
 interface ArticleCard {
   id: string;
   title: string;
+  slug: string;
   tags: string[] | null;
   reading_time_minutes: number | null;
   image_url?: string | null;
@@ -12,11 +13,14 @@ const articles = ref<ArticleCard[]>([]);
 const articlesFailed = ref(false);
 
 const storedImageSrc = useStoredImageSrc();
-const shownArticles = computed(() => articles.value.slice(0, 3));
+const shownArticles = computed(() => articles.value);
 
 await ensureCategories();
 try {
-  articles.value = (await $fetch<ArticleCard[]>("/api/articles")) ?? [];
+  const page = await $fetch<{ items: ArticleCard[] }>("/api/articles", {
+    query: { limit: 3 },
+  });
+  articles.value = page?.items ?? [];
 } catch {
   articlesFailed.value = true;
 }
@@ -174,7 +178,7 @@ try {
           </span>
           <h3 class="font-heading text-xl font-bold">{{ article.title }}</h3>
           <NuxtLink
-            :to="`/articles/${article.id}`"
+            :to="`/articles/${article.slug}`"
             class="mt-4 inline-flex items-center gap-1 text-sm font-bold text-amethyst"
           >
             Ανάγνωση άρθρου

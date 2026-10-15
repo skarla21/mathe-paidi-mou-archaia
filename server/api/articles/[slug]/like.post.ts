@@ -4,7 +4,7 @@ import { serverSupabaseService } from '../../../utils/supabaseServer'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireVerifiedEmail(event)
-  const articleId = getRouterParam(event, 'id')
+  const articleId = getRouterParam(event, 'slug')
   if (!articleId) throw createError({ statusCode: 400, message: 'Λείπει το id άρθρου' })
 
   const supabase = serverSupabaseService()
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     .single()
 
   if (error) {
-    console.error('[articles/[id]/like.post]', error.message)
+    console.error('[articles/[slug]/like.post]', error.message)
     throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
   }
 
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     try {
       await notifyArticleLikeCreated(supabase, data.id)
     } catch (e) {
-      console.error('[articles/[id]/like.post] notify', e)
+      console.error('[articles/[slug]/like.post] notify', e)
     }
   }
 

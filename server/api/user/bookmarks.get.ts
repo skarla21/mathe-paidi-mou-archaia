@@ -1,4 +1,10 @@
 import { lessonExcerpt } from '#shared/utils/lessonExcerpt.mjs'
+import {
+  publicListPage,
+  publicPage,
+  publicPageRange,
+  publicPageSize,
+} from '../../utils/publicListPage'
 import { requireAuth } from '../../utils/requireAuth'
 import { serverSupabaseService } from '../../utils/supabaseServer'
 import { canonicalLessonPaths } from '../../utils/contentPath'
@@ -16,13 +22,21 @@ type LessonRow = {
 
 export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)
+  const query = getQuery(event)
+  const page = publicPage(query.page)
+  const pageSize = publicPageSize(query.limit ?? query.pageSize)
+  const { from, to } = publicPageRange(page, pageSize)
   const supabase = serverSupabaseService()
 
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from('lesson_bookmarks')
-    .select('lesson_id, created_at, lessons(id, title, content, is_free, price, preview_url, page_count, file_bytes)')
+    .select(
+      'lesson_id, created_at, lessons(id, title, content, is_free, price, preview_url, page_count, file_bytes)',
+      { count: 'exact' },
+    )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
+    .range(from, to)
 
   if (error) {
     console.error('[user/bookmarks.get]', error.message)
@@ -35,7 +49,7 @@ export default defineEventHandler(async (event) => {
     .filter((lesson): lesson is LessonRow => Boolean(lesson?.id))
 
   const paths = await canonicalLessonPaths(supabase, lessons.map((lesson) => lesson.id))
-  return lessons.map((lesson) => ({
+  const items = lessons.map((lesson) => ({
     id: lesson.id,
     title: lesson.title,
     is_free: lesson.is_free,
@@ -47,4 +61,6 @@ export default defineEventHandler(async (event) => {
     url: paths.get(lesson.id) ?? null,
     bookmarked: true,
   }))
+
+  return publicListPage(items, count ?? 0, page, pageSize)
 })

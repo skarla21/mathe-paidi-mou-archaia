@@ -22,17 +22,39 @@ interface Lesson {
   tags?: string[]
 }
 
+type LessonsPage = {
+  items: Lesson[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 const route = useRoute()
 const categorySlug = route.params.categoryId as string
+
+const page = computed(() => {
+  const raw = route.query.page
+  const value = Number(Array.isArray(raw) ? raw[0] : raw)
+  if (!Number.isFinite(value) || value < 1) return 1
+  return Math.floor(value)
+})
 
 const { data: category, error } = await useFetch<Category>(`/api/categories/${categorySlug}`)
 throwIfMissing(error.value, !category.value)
 
-const { data: lessonsData, error: lessonsError } = await useFetch<Lesson[]>('/api/lessons', {
-  query: { category_id: category.value!.id },
+const { data: lessonsPage, error: lessonsError, status: lessonsStatus } = await useFetch<LessonsPage>('/api/lessons', {
+  query: computed(() => ({
+    category_id: category.value!.id,
+    page: page.value,
+  })),
+  credentials: 'include',
+  watch: [page],
+  default: () => ({ items: [], total: 0, page: 1, pageSize: 20 }),
 })
-const lessons = computed(() => lessonsData.value ?? [])
-const lessonState = computed(() => catalogListState(Boolean(lessonsError.value), lessons.value.length))
+const lessons = computed(() => lessonsPage.value?.items ?? [])
+const lessonsTotal = computed(() => lessonsPage.value?.total ?? 0)
+const pageSize = computed(() => lessonsPage.value?.pageSize ?? 20)
+const lessonState = computed(() => catalogListState(Boolean(lessonsError.value), lessonsTotal.value))
 const chips = computed<LessonChip[]>(() => [
   { name: 'Κατηγορίες', to: '/#categories', tone: 'category' },
 ])
@@ -48,6 +70,15 @@ const lessonRows = computed(() => lessons.value.map((lesson) => ({
   bookmarked: lesson.bookmarked,
   tags: lesson.tags,
 })))
+
+async function onPageChange(next: number) {
+  await navigateTo({
+    path: route.path,
+    query: {
+      ...(next > 1 ? { page: String(next) } : {}),
+    },
+  })
+}
 
 useHead(() => ({ title: category.value?.name ?? 'Κατηγορία' }))
 
@@ -79,6 +110,13 @@ onMounted(() => {
     <section v-if="lessonState === 'ready'" id="category-lessons" class="mt-10">
       <CatalogSectionHeading title="Υλικό" icon="bi-folder" tone="laurel" />
       <CatalogLessonList :lessons="lessonRows" />
+      <CatalogPager
+        :page="page"
+        :total="lessonsTotal"
+        :page-size="pageSize"
+        :disabled="lessonsStatus === 'pending'"
+        @update:page="onPageChange"
+      />
     </section>
     <p v-else id="category-lessons" class="mt-10 text-muted-foreground">
       {{ lessonState === 'error' ? 'Το υλικό δεν φορτώθηκε. Δοκίμασε ξανά σε λίγο.' : 'Δεν υπάρχει ακόμη υλικό.' }}

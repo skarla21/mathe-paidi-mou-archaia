@@ -2,7 +2,6 @@
 import { toast } from "vue-sonner";
 import UiButton from "~/components/ui/Button.vue";
 import UiTextarea from "~/components/ui/Textarea.vue";
-import UiLabel from "~/components/ui/Label.vue";
 import ArticleCommentItem, {
   type ArticleCommentRow,
 } from "~/components/article/ArticleCommentItem.vue";
@@ -10,10 +9,13 @@ import ArticleCommentItem, {
 const props = defineProps<{
   articleId: string;
   comments: ArticleCommentRow[];
+  hasMore?: boolean;
+  loadingMore?: boolean;
 }>();
 
 const emit = defineEmits<{
   refresh: [];
+  loadMore: [];
 }>();
 
 const route = useRoute();
@@ -149,18 +151,24 @@ function onDeleted() {
   <section id="article-comments" class="scroll-mt-24">
     <h2 class="mb-4 font-heading text-xl font-semibold">Σχόλια</h2>
 
+    <div v-if="hasMore" class="mb-4 flex justify-center">
+      <UiButton
+        variant="outline"
+        size="sm"
+        :disabled="loadingMore"
+        @click="emit('loadMore')"
+      >
+        {{ loadingMore ? "Φόρτωση…" : "Φόρτωση παλαιότερων" }}
+      </UiButton>
+    </div>
+
     <ul v-if="threads.length" class="space-y-3">
       <template v-for="thread in threads" :key="thread.master.id">
         <ArticleCommentItem
           :comment="thread.master"
           :article-id="articleId"
           :can-moderate="isAdmin"
-          :reply-open="replyToId === thread.master.id"
-          :reply-text="replyText"
-          :reply-loading="replyLoading"
           @toggle-reply="toggleReply(thread.master.id)"
-          @update:reply-text="replyText = $event"
-          @submit-reply="submitReply(thread.master.id)"
           @updated="emit('refresh')"
           @deleted="onDeleted"
         />
@@ -171,9 +179,37 @@ function onDeleted() {
           :article-id="articleId"
           is-reply
           :can-moderate="isAdmin"
+          @toggle-reply="toggleReply(thread.master.id)"
           @updated="emit('refresh')"
           @deleted="onDeleted"
         />
+        <li
+          v-if="replyToId === thread.master.id"
+          class="ml-8 rounded-3xl border border-border bg-secondary/40 p-4 sm:ml-12"
+        >
+          <UiTextarea
+            v-model="replyText"
+            placeholder="Γράψτε μια απάντηση…"
+            class="min-h-24 rounded-2xl border-none bg-card font-reading text-base"
+          />
+          <div class="mt-3 flex flex-wrap gap-2">
+            <UiButton
+              size="sm"
+              :disabled="replyLoading"
+              @click="submitReply(thread.master.id)"
+            >
+              Απάντηση
+            </UiButton>
+            <UiButton
+              size="sm"
+              variant="outline"
+              :disabled="replyLoading"
+              @click="toggleReply(thread.master.id)"
+            >
+              Ακύρωση
+            </UiButton>
+          </div>
+        </li>
       </template>
     </ul>
     <p
@@ -184,11 +220,10 @@ function onDeleted() {
     </p>
 
     <div class="mt-6 rounded-3xl border border-border bg-card p-5 shadow-sm">
-      <UiLabel>Το σχόλιό σας</UiLabel>
       <UiTextarea
         v-model="composerText"
         placeholder="Γράψτε ένα σχόλιο…"
-        class="mt-3 min-h-28 rounded-2xl border-none bg-secondary font-reading text-base focus:bg-card"
+        class="min-h-28 rounded-2xl border-none bg-secondary font-reading text-base focus:bg-card"
       />
       <div class="mt-4">
         <UiButton size="sm" :disabled="composerLoading" @click="submitComposer">

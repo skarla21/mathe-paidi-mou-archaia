@@ -8,6 +8,7 @@ describe('publicArticleList', () => {
       {
         id: 'a1',
         title: 'Τίτλος',
+        slug: 'titlos',
         body: '<p>Πρώτη πρόταση για το άρθρο.</p>',
         tags: ['εκπαίδευση'],
         reading_time_minutes: 2,
@@ -17,6 +18,7 @@ describe('publicArticleList', () => {
     ])
     assert.equal(article.excerpt, 'Πρώτη πρόταση για το άρθρο.')
     assert.equal(article.title, 'Τίτλος')
+    assert.equal(article.slug, 'titlos')
     assert.deepEqual(article.tags, ['εκπαίδευση'])
     assert.equal(article.reading_time_minutes, 2)
     assert.equal(Object.hasOwn(article, 'body'), false)

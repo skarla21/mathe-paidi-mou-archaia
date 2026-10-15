@@ -2,7 +2,7 @@ import { requireAuth } from "../../../../utils/requireAuth";
 import { serverSupabaseService } from "../../../../utils/supabaseServer";
 
 export default defineEventHandler(async (event) => {
-  const articleId = getRouterParam(event, "id");
+  const articleId = getRouterParam(event, "slug");
   const commentId = getRouterParam(event, "commentId");
   if (!articleId || !commentId) {
     throw createError({ statusCode: 400, message: "Λείπει το id" });
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
 
   if (error) {
     console.error(
-      "[articles/[id]/comments/[commentId].delete]",
+      "[articles/[slug]/comments/[commentId].delete]",
       error.message,
     );
     throw createError({ statusCode: 500, message: "Κάτι πήγε στραβά" });

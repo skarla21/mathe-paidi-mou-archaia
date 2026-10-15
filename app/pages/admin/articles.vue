@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { includesFolded } from '#shared/utils/foldGreekSearch.mjs'
 import { toast } from 'vue-sonner'
+import AdminTablePager from '~/components/admin/AdminTablePager.vue'
 import UiButton from '~/components/ui/Button.vue'
 import UiInput from '~/components/ui/Input.vue'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
@@ -17,6 +17,7 @@ import UiAlertDialogTitle from '~/components/ui/alert-dialog/AlertDialogTitle.vu
 import UiAlertDialogDescription from '~/components/ui/alert-dialog/AlertDialogDescription.vue'
 import UiAlertDialogCancel from '~/components/ui/alert-dialog/AlertDialogCancel.vue'
 import UiAlertDialogAction from '~/components/ui/alert-dialog/AlertDialogAction.vue'
+import type { AdminListPage } from '~~/types/domain'
 import type { Article } from '~/types/database'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
@@ -24,8 +25,6 @@ useHead(() => ({ title: 'Διαχείριση - Άρθρα' }))
 
 const adminFetch = useAdminFetch()
 const storedImageSrc = useStoredImageSrc()
-const articles = ref<Article[]>([])
-const loading = ref(true)
 const search = ref('')
 const modalOpen = ref(false)
 const editingArticle = ref<Article | null>(null)
@@ -35,24 +34,30 @@ const deleteLoading = ref(false)
 const detailModalOpen = ref(false)
 const detailArticleId = ref<string | null>(null)
 
-const filteredArticles = computed(() => {
-  if (!search.value) return articles.value
-  return articles.value.filter(a => includesFolded(a.title, search.value))
+const {
+  page,
+  total,
+  pageSize,
+  items: articles,
+  loading,
+  ready,
+  load,
+  onSearchInput,
+} = useAdminTablePage<Article>(
+  (pageNumber) => adminFetch<AdminListPage<Article>>('/api/admin/articles', {
+    query: {
+      page: pageNumber,
+      q: search.value.trim(),
+    },
+  }),
+  () => toast.error('Κάτι πήγε στραβά'),
+)
+
+watch(search, () => {
+  onSearchInput()
 })
 
-async function fetchAll() {
-  loading.value = true
-  try {
-    articles.value = await adminFetch<Article[]>('/api/admin/articles')
-  } catch {
-    articles.value = []
-    toast.error('Κάτι πήγε στραβά')
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(fetchAll)
+onMounted(load)
 
 function openCreate() {
   editingArticle.value = null
@@ -76,7 +81,7 @@ async function confirmDelete() {
   deleteLoading.value = true
   try {
     await adminFetch(`/api/admin/articles/${deletingId.value}`, { method: 'DELETE' })
-    await fetchAll()
+    await load()
     deleteDialogOpen.value = false
   } catch {
     toast.error('Κάτι πήγε στραβά')
@@ -101,7 +106,7 @@ async function confirmDelete() {
       <UiInput v-model="search" placeholder="Αναζήτηση..." class="pl-9" />
     </div>
 
-    <template v-if="loading">
+    <template v-if="loading && !ready">
       <div class="space-y-3">
         <UiCard v-for="i in 5" :key="i" class="rounded-2xl border-border">
           <UiCardContent class="p-4 flex items-center gap-4">
@@ -113,12 +118,12 @@ async function confirmDelete() {
     </template>
 
     <template v-else>
-      <div v-if="!filteredArticles.length" class="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
+      <div v-if="!articles.length" class="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
         <VIcon name="bi-inbox" class="size-12 mx-auto mb-3 opacity-50" />
-        <p>Δεν υπάρχουν άρθρα ακόμα.</p>
+        <p>{{ search.trim() ? 'Δεν βρέθηκαν άρθρα.' : 'Δεν υπάρχουν άρθρα ακόμα.' }}</p>
       </div>
       <div v-else class="space-y-3">
-        <UiCard v-for="a in filteredArticles" :key="a.id" class="rounded-2xl border-border">
+        <UiCard v-for="a in articles" :key="a.id" class="rounded-2xl border-border">
           <UiCardContent class="p-4 flex items-center gap-4 flex-wrap">
             <img
               v-if="storedImageSrc(a.image_url)"
@@ -153,9 +158,15 @@ async function confirmDelete() {
           </UiCardContent>
         </UiCard>
       </div>
+      <AdminTablePager
+        v-model:page="page"
+        :total="total"
+        :page-size="pageSize"
+        :disabled="loading"
+      />
     </template>
 
-    <AdminArticleModal :open="modalOpen" :article="editingArticle" :articles="articles" @close="modalOpen = false" @saved="fetchAll" />
+    <AdminArticleModal :open="modalOpen" :article="editingArticle" :articles="articles" @close="modalOpen = false" @saved="load" />
     <AdminArticleDetailModal :open="detailModalOpen" :article-id="detailArticleId" @close="detailModalOpen = false" />
 
     <UiAlertDialogRoot v-model:open="deleteDialogOpen">

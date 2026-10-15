@@ -96,6 +96,7 @@ export interface User {
 export interface Article {
   id: string
   title: string
+  slug: string
   body: string
   tags: string[]
   reading_time_minutes: number

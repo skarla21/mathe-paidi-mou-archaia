@@ -17,16 +17,18 @@ import UiAlertDialogTitle from "~/components/ui/alert-dialog/AlertDialogTitle.vu
 import UiAlertDialogDescription from "~/components/ui/alert-dialog/AlertDialogDescription.vue";
 import UiAlertDialogCancel from "~/components/ui/alert-dialog/AlertDialogCancel.vue";
 import UiAlertDialogAction from "~/components/ui/alert-dialog/AlertDialogAction.vue";
+import AdminTablePager from "~/components/admin/AdminTablePager.vue";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toast } from "vue-sonner";
+import type { AdminListPage } from "~~/types/domain";
 import type { ArticleLike, ArticleComment } from "~/types/database";
 
 const props = defineProps<{ open: boolean; articleId: string | null }>();
 const emit = defineEmits<{ close: [] }>();
 const adminFetch = useAdminFetch();
 
-const likes = ref<ArticleLike[]>([]);
-const comments = ref<ArticleComment[]>([]);
+const likesTab = reactive(useAdminDetailTab<ArticleLike>())
+const commentsTab = reactive(useAdminDetailTab<ArticleComment>())
 const loading = ref(false);
 
 type PendingDelete =
@@ -36,28 +38,72 @@ const pendingDelete = ref<PendingDelete | null>(null);
 const deleteDialogOpen = ref(false);
 const deleteLoading = ref(false);
 
+async function loadTabs() {
+  if (!props.articleId) return;
+  loading.value = true;
+  try {
+    const id = props.articleId;
+    await Promise.all([
+      likesTab.load((page) =>
+        adminFetch<AdminListPage<ArticleLike>>(
+          `/api/admin/articles/${id}/likes`,
+          { query: { page } },
+        ),
+      ),
+      commentsTab.load((page) =>
+        adminFetch<AdminListPage<ArticleComment>>(
+          `/api/admin/articles/${id}/comments`,
+          { query: { page } },
+        ),
+      ),
+    ]);
+  } catch {
+    toast.error("Κάτι πήγε στραβά");
+  } finally {
+    loading.value = false;
+  }
+}
+
 watch(
   () => props.open,
   async (val) => {
     if (!val || !props.articleId) return;
-    loading.value = true;
-    likes.value = [];
-    comments.value = [];
+    likesTab.reset();
+    commentsTab.reset();
+    await loadTabs();
+  },
+);
+
+watch(
+  () => likesTab.page,
+  async () => {
+    if (!props.open || !props.articleId || loading.value) return;
     try {
-      const [l, c] = await Promise.all([
-        adminFetch<ArticleLike[]>(
+      await likesTab.load((page) =>
+        adminFetch<AdminListPage<ArticleLike>>(
           `/api/admin/articles/${props.articleId}/likes`,
+          { query: { page } },
         ),
-        adminFetch<ArticleComment[]>(
-          `/api/admin/articles/${props.articleId}/comments`,
-        ),
-      ]);
-      likes.value = l;
-      comments.value = c;
+      );
     } catch {
       toast.error("Κάτι πήγε στραβά");
-    } finally {
-      loading.value = false;
+    }
+  },
+);
+
+watch(
+  () => commentsTab.page,
+  async () => {
+    if (!props.open || !props.articleId || loading.value) return;
+    try {
+      await commentsTab.load((page) =>
+        adminFetch<AdminListPage<ArticleComment>>(
+          `/api/admin/articles/${props.articleId}/comments`,
+          { query: { page } },
+        ),
+      );
+    } catch {
+      toast.error("Κάτι πήγε στραβά");
     }
   },
 );
@@ -79,13 +125,15 @@ async function confirmDelete() {
   try {
     if (kind === "like") {
       await adminFetch(`/api/admin/article-likes/${id}`, { method: "DELETE" });
-      likes.value = likes.value.filter((x) => x.id !== id);
+      likesTab.items = likesTab.items.filter((x) => x.id !== id);
+      likesTab.total = Math.max(0, likesTab.total - 1);
       toast.success("Η επισήμανση αφαιρέθηκε");
     } else {
       await adminFetch(`/api/admin/article-comments/${id}`, {
         method: "DELETE",
       });
-      comments.value = comments.value.filter((x) => x.id !== id);
+      commentsTab.items = commentsTab.items.filter((x) => x.id !== id);
+      commentsTab.total = Math.max(0, commentsTab.total - 1);
       toast.success("Το σχόλιο διαγράφηκε");
     }
     deleteDialogOpen.value = false;
@@ -121,18 +169,18 @@ function formatDate(iso: string) {
         <Tabs v-else default-value="likes">
           <TabsList class="w-full">
             <TabsTrigger value="likes" class="flex-1">
-              Επισημάνσεις ({{ likes.length }})
+              Επισημάνσεις ({{ likesTab.total }})
             </TabsTrigger>
             <TabsTrigger value="comments" class="flex-1">
-              Σχόλια ({{ comments.length }})
+              Σχόλια ({{ commentsTab.total }})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="likes" class="mt-4 space-y-2">
-            <p v-if="!likes.length" class="text-xs text-muted-foreground">—</p>
+            <p v-if="!likesTab.items.length" class="text-xs text-muted-foreground">—</p>
             <ul v-else class="space-y-2">
               <li
-                v-for="like in likes"
+                v-for="like in likesTab.items"
                 :key="like.id"
                 class="flex items-start justify-between gap-3 rounded-md bg-accent/30 px-3 py-2 text-xs"
               >
@@ -156,15 +204,21 @@ function formatDate(iso: string) {
                 </UiButton>
               </li>
             </ul>
+            <AdminTablePager
+              v-model:page="likesTab.page"
+              :total="likesTab.total"
+              :page-size="likesTab.pageSize"
+              :disabled="likesTab.loading"
+            />
           </TabsContent>
 
           <TabsContent value="comments" class="mt-4 space-y-2">
-            <p v-if="!comments.length" class="text-xs text-muted-foreground">
+            <p v-if="!commentsTab.items.length" class="text-xs text-muted-foreground">
               Δεν υπάρχουν σχόλια ακόμα.
             </p>
             <ul v-else class="space-y-2">
               <li
-                v-for="comment in comments"
+                v-for="comment in commentsTab.items"
                 :key="comment.id"
                 class="flex items-start justify-between gap-3 rounded-md bg-accent/30 px-3 py-2 text-xs"
               >
@@ -198,6 +252,12 @@ function formatDate(iso: string) {
                 </UiButton>
               </li>
             </ul>
+            <AdminTablePager
+              v-model:page="commentsTab.page"
+              :total="commentsTab.total"
+              :page-size="commentsTab.pageSize"
+              :disabled="commentsTab.loading"
+            />
           </TabsContent>
         </Tabs>
 

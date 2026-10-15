@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ContentCard from '~/components/content/ContentCard.vue'
+import CatalogPager from '~/components/catalog/CatalogPager.vue'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
 
 definePageMeta({ middleware: 'auth' })
@@ -20,18 +21,53 @@ type BookmarkRow = {
   tags?: string[]
 }
 
-const { data: bookmarksData, pending, refresh } = await useFetch<BookmarkRow[]>(
+type BookmarksPage = {
+  items: BookmarkRow[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+const route = useRoute()
+const page = computed(() => {
+  const raw = route.query.page
+  const value = Number(Array.isArray(raw) ? raw[0] : raw)
+  if (!Number.isFinite(value) || value < 1) return 1
+  return Math.floor(value)
+})
+
+const { data: bookmarksPage, pending, refresh, status } = await useFetch<BookmarksPage>(
   '/api/user/bookmarks',
+  {
+    query: computed(() => ({ page: page.value })),
+    watch: [page],
+    default: () => ({ items: [], total: 0, page: 1, pageSize: 20 }),
+  },
 )
 
 const lessons = computed(() =>
-  (bookmarksData.value ?? []).filter((lesson) => Boolean(lesson.url)),
+  (bookmarksPage.value?.items ?? []).filter((lesson) => Boolean(lesson.url)),
 )
+const total = computed(() => bookmarksPage.value?.total ?? 0)
+const pageSize = computed(() => bookmarksPage.value?.pageSize ?? 20)
 
 function onBookmarked(id: string, saved: boolean) {
-  if (saved || !bookmarksData.value) return
-  bookmarksData.value = bookmarksData.value.filter((lesson) => lesson.id !== id)
+  if (saved || !bookmarksPage.value) return
+  bookmarksPage.value = {
+    ...bookmarksPage.value,
+    items: bookmarksPage.value.items.filter((lesson) => lesson.id !== id),
+    total: Math.max(0, bookmarksPage.value.total - 1),
+  }
   void refresh()
+}
+
+async function onPageChange(next: number) {
+  await navigateTo({
+    path: '/dashboard',
+    query: {
+      ...(next > 1 ? { page: String(next) } : {}),
+    },
+  })
 }
 
 onMounted(() => {
@@ -53,12 +89,12 @@ onMounted(() => {
     <section>
       <h2 class="mb-4 font-heading text-xl font-semibold">Το Υλικό Μου</h2>
 
-      <div v-if="pending" class="space-y-3">
+      <div v-if="pending && !lessons.length" class="space-y-3">
         <UiSkeleton v-for="i in 3" :key="i" class="h-36 rounded-3xl" />
       </div>
 
       <div
-        v-else-if="lessons.length === 0"
+        v-else-if="total === 0"
         class="max-w-md rounded-3xl border border-dashed border-border bg-card p-10 text-center shadow-sm"
       >
         <VIcon name="bi-bookmark" class="mx-auto size-10 text-muted-foreground/70" aria-hidden="true" />
@@ -91,6 +127,13 @@ onMounted(() => {
           :bookmarked="true"
           :is-free="lesson.is_free"
           @update:bookmarked="(saved) => onBookmarked(lesson.id, saved)"
+        />
+        <CatalogPager
+          :page="page"
+          :total="total"
+          :page-size="pageSize"
+          :disabled="status === 'pending'"
+          @update:page="onPageChange"
         />
       </div>
     </section>

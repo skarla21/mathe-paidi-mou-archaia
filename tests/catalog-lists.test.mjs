@@ -139,8 +139,11 @@ describe('catalog pages', () => {
     assert.match(thumbCard, /group-hover:bg-primary\/90/)
   })
 
-  it('filters articles with the shared list filter', () => {
-    assert.match(articlesPage, /filterArticlesByQuery/)
+  it('paginates articles with a server search query', () => {
+    assert.match(articlesPage, /CatalogPager/)
+    assert.match(articlesPage, /\/api\/articles/)
+    assert.match(articlesPage, /\bq:\s*searchQuery/)
   })
 })
+
 

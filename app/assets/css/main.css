@@ -316,6 +316,10 @@
   .font-ui {
     font-family: "Plus Jakarta Sans", "Manrope", sans-serif;
   }
+
+  input[type="search"]::-webkit-search-cancel-button {
+    cursor: pointer;
+  }
 }
 
 @layer utilities {

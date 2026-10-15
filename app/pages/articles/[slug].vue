@@ -19,6 +19,7 @@ const { openLogin } = useAuthModal();
 type ArticlePayload = {
   id: string;
   title: string;
+  slug: string;
   body: string;
   tags: string[];
   reading_time_minutes: number;
@@ -29,16 +30,27 @@ type ArticlePayload = {
   likedByMe: boolean;
 };
 
+type CommentsPage = {
+  items: ArticleCommentRow[];
+  totalRoots: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+};
+
 const article = ref<ArticlePayload | null>(null);
 const articlePending = ref(true);
 const comments = ref<ArticleCommentRow[]>([]);
+const commentsPage = ref(1);
+const commentsHasMore = ref(false);
+const commentsLoadingMore = ref(false);
 const likeLoading = ref(false);
 const likeLabel = computed(() =>
   article.value?.likedByMe ? "Αναίρεση επισήμανσης" : "Επισήμανση",
 );
 const shareOpen = ref(false);
 
-const id = computed(() => route.params.id as string);
+const slug = computed(() => route.params.slug as string);
 
 useHead(() => ({
   title: article.value?.title ? `${article.value.title} — Άρθρα` : "Άρθρα",
@@ -68,9 +80,20 @@ function ensureCanInteract(): boolean {
 async function loadArticle() {
   articlePending.value = true;
   try {
-    article.value = await $fetch<ArticlePayload>(`/api/articles/${id.value}`, {
-      credentials: "include",
-    });
+    const payload = await $fetch<ArticlePayload>(
+      `/api/articles/${slug.value}`,
+      {
+        credentials: "include",
+      },
+    );
+    if (payload.slug && payload.slug !== slug.value) {
+      await navigateTo(`/articles/${payload.slug}`, {
+        redirectCode: 301,
+        replace: true,
+      });
+      return;
+    }
+    article.value = payload;
   } catch {
     article.value = null;
     toast.error("Κάτι πήγε στραβά");
@@ -79,25 +102,46 @@ async function loadArticle() {
   }
 }
 
-async function loadComments() {
+async function loadComments(opts: { append?: boolean } = {}) {
+  const articleId = article.value?.id;
+  if (!articleId) {
+    comments.value = [];
+    commentsHasMore.value = false;
+    return;
+  }
+  const nextPage = opts.append ? commentsPage.value + 1 : 1;
+  if (opts.append) commentsLoadingMore.value = true;
   try {
-    comments.value = await $fetch<ArticleCommentRow[]>(
-      `/api/articles/${id.value}/comments`,
+    const page = await $fetch<CommentsPage>(
+      `/api/articles/${articleId}/comments`,
       {
         credentials: "include",
+        query: { page: nextPage },
       },
     );
+    const items = page.items ?? [];
+    comments.value = opts.append ? [...items, ...comments.value] : items;
+    commentsPage.value = page.page;
+    commentsHasMore.value = Boolean(page.hasMore);
   } catch {
-    comments.value = [];
+    if (!opts.append) {
+      comments.value = [];
+      commentsHasMore.value = false;
+    }
     toast.error("Αποτυχία φόρτωσης σχολίων");
+  } finally {
+    commentsLoadingMore.value = false;
   }
 }
 
 async function syncCommentCount() {
   try {
-    const payload = await $fetch<ArticlePayload>(`/api/articles/${id.value}`, {
-      credentials: "include",
-    });
+    const payload = await $fetch<ArticlePayload>(
+      `/api/articles/${slug.value}`,
+      {
+        credentials: "include",
+      },
+    );
     if (article.value) {
       article.value.commentCount = payload.commentCount;
     }
@@ -111,12 +155,17 @@ async function onCommentsRefresh() {
   await syncCommentCount();
 }
 
+async function onLoadMoreComments() {
+  if (!commentsHasMore.value || commentsLoadingMore.value) return;
+  await loadComments({ append: true });
+}
+
 onMounted(async () => {
   await loadArticle();
   await loadComments();
 });
 
-watch(id, async () => {
+watch(slug, async () => {
   await loadArticle();
   await loadComments();
 });
@@ -132,14 +181,14 @@ async function toggleLike() {
   likeLoading.value = true;
   try {
     if (a.likedByMe) {
-      await $fetch(`/api/articles/${id.value}/like`, {
+      await $fetch(`/api/articles/${a.id}/like`, {
         method: "DELETE",
         credentials: "include",
       });
       a.likedByMe = false;
       a.likeCount = Math.max(0, a.likeCount - 1);
     } else {
-      await $fetch(`/api/articles/${id.value}/like`, {
+      await $fetch(`/api/articles/${a.id}/like`, {
         method: "POST",
         credentials: "include",
       });
@@ -284,7 +333,10 @@ function scrollToComments() {
       <ArticleComments
         :article-id="article.id"
         :comments="comments"
+        :has-more="commentsHasMore"
+        :loading-more="commentsLoadingMore"
         @refresh="onCommentsRefresh"
+        @load-more="onLoadMoreComments"
       />
     </template>
   </div>

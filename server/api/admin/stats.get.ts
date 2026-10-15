@@ -1,17 +1,20 @@
 import { serverSupabaseService } from '../../utils/supabaseServer'
 import { requireAdmin } from '../../utils/requireAdmin'
 
+function asNumber(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
 export default defineEventHandler(async (event) => {
   requireAdmin(event)
   const supabase = serverSupabaseService()
 
-  // ── Date boundaries ──────────────────────────────────────────────────────
   const now = new Date()
   const startOfThisYear = new Date(now.getFullYear(), 0, 1).toISOString()
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
 
-  // ── Parallel queries ─────────────────────────────────────────────────────
   const [
     usersRes,
     lessonsRes,
@@ -25,7 +28,8 @@ export default defineEventHandler(async (event) => {
     chaptersRes,
     categoriesRes,
     purchasesCountRes,
-    freeVsPaidRes,
+    freeLessonsRes,
+    paidLessonsRes,
     newUsersThisMonthRes,
     newUsersLastMonthRes,
     newUsersThisYearRes,
@@ -38,14 +42,12 @@ export default defineEventHandler(async (event) => {
     recentPurchasesRes,
     recentUsersRes,
     lessonsByGradeRes,
-    subjectPlacementsByGradeRes,
     ratingsCountRes,
     commentsCountRes,
-    allRatingsRes,
+    avgRatingRes,
     ratingsThisMonthRes,
     commentsThisMonthRes,
   ] = await Promise.all([
-    // Existing queries
     supabase.from('users').select('*', { count: 'exact', head: true }),
     supabase.from('lessons').select('*', { count: 'exact', head: true }),
     supabase
@@ -53,7 +55,7 @@ export default defineEventHandler(async (event) => {
       .select('*', { count: 'exact', head: true })
       .gte('created_at', startOfThisMonth),
     supabase.from('downloads').select('*', { count: 'exact', head: true }),
-    supabase.from('purchases').select('lessons(price, is_free)'),
+    supabase.rpc('admin_purchase_revenue'),
     supabase
       .from('downloads')
       .select('id, downloaded_at, users(name), lessons(title)')
@@ -61,17 +63,15 @@ export default defineEventHandler(async (event) => {
       .limit(2),
     supabase.rpc('get_top_downloaded_lessons', { lim: 10 }),
 
-    // New count queries
     supabase.from('grades').select('*', { count: 'exact', head: true }),
     supabase.from('subjects').select('*', { count: 'exact', head: true }),
     supabase.from('chapters').select('*', { count: 'exact', head: true }),
     supabase.from('categories').select('*', { count: 'exact', head: true }),
     supabase.from('purchases').select('*', { count: 'exact', head: true }),
 
-    // Free vs paid lesson counts
-    supabase.from('lessons').select('is_free'),
+    supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('is_free', true),
+    supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('is_free', false),
 
-    // New users this month / last month / this year
     supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
@@ -86,7 +86,6 @@ export default defineEventHandler(async (event) => {
       .select('*', { count: 'exact', head: true })
       .gte('created_at', startOfThisYear),
 
-    // Downloads this month / last month / this year
     supabase
       .from('downloads')
       .select('*', { count: 'exact', head: true })
@@ -101,166 +100,50 @@ export default defineEventHandler(async (event) => {
       .select('*', { count: 'exact', head: true })
       .gte('downloaded_at', startOfThisYear),
 
-    // Revenue this month
-    supabase
-      .from('purchases')
-      .select('lessons(price, is_free)')
-      .gte('created_at', startOfThisMonth),
+    supabase.rpc('admin_purchase_revenue', { p_from: startOfThisMonth }),
+    supabase.rpc('admin_purchase_revenue', {
+      p_from: startOfLastMonth,
+      p_to: startOfThisMonth,
+    }),
+    supabase.rpc('admin_purchase_revenue', { p_from: startOfThisYear }),
 
-    // Revenue last month / this year
-    supabase
-      .from('purchases')
-      .select('lessons(price, is_free)')
-      .gte('created_at', startOfLastMonth)
-      .lt('created_at', startOfThisMonth),
-    supabase
-      .from('purchases')
-      .select('lessons(price, is_free)')
-      .gte('created_at', startOfThisYear),
-
-    // Recent purchases with user + lesson info
     supabase
       .from('purchases')
       .select('id, created_at, users(name, email), lessons(title, price)')
       .order('created_at', { ascending: false })
       .limit(2),
 
-    // Recent user signups
     supabase
       .from('users')
       .select('id, name, email, avatar_url, created_at')
       .order('created_at', { ascending: false })
       .limit(2),
 
-    // Lessons by grade via chapter placements and direct subject placements
-    supabase
-      .from('lesson_placements')
-      .select('lesson_id, chapters(grade_id, grades(name))')
-      .not('chapter_id', 'is', null),
-    supabase
-      .from('lesson_placements')
-      .select('lesson_id, subjects(grade_id, grades(name))')
-      .not('subject_id', 'is', null),
+    supabase.rpc('admin_lessons_by_grade'),
 
-    // Rating & comment stats
     supabase.from('lesson_ratings').select('*', { count: 'exact', head: true }),
     supabase.from('lesson_comments').select('*', { count: 'exact', head: true }),
-    supabase.from('lesson_ratings').select('rating'),
+    supabase.rpc('admin_avg_lesson_rating'),
     supabase.from('lesson_ratings').select('*', { count: 'exact', head: true }).gte('created_at', startOfThisMonth),
     supabase.from('lesson_comments').select('*', { count: 'exact', head: true }).gte('created_at', startOfThisMonth),
   ])
 
-  // ── Log any query errors (non-blocking) ────────────────────────────────
   const allResults = [
     usersRes, lessonsRes, newLessonsThisMonthRes, downloadsRes, revenueRes, recentDownloadsRes, topLessonsRes,
-    gradesRes, subjectsRes, chaptersRes, categoriesRes, purchasesCountRes, freeVsPaidRes,
+    gradesRes, subjectsRes, chaptersRes, categoriesRes, purchasesCountRes, freeLessonsRes, paidLessonsRes,
     newUsersThisMonthRes, newUsersLastMonthRes, newUsersThisYearRes,
     downloadsThisMonthRes, downloadsLastMonthRes, downloadsThisYearRes,
     revenueThisMonthRes, revenueLastMonthRes, revenueThisYearRes,
-    recentPurchasesRes, recentUsersRes, lessonsByGradeRes, subjectPlacementsByGradeRes,
-    ratingsCountRes, commentsCountRes, allRatingsRes, ratingsThisMonthRes, commentsThisMonthRes,
+    recentPurchasesRes, recentUsersRes, lessonsByGradeRes,
+    ratingsCountRes, commentsCountRes, avgRatingRes, ratingsThisMonthRes, commentsThisMonthRes,
   ]
   for (const r of allResults) {
     if (r.error) console.error('[admin/stats]', r.error.message)
   }
 
-  // ── Derive: total revenue (all time) ────────────────────────────────────
-  const revenue = (revenueRes.data ?? []).reduce((sum: number, row: unknown) => {
-    const lesson = (row as { lessons?: { is_free?: boolean; price?: number } }).lessons
-    if (lesson && !lesson.is_free) sum += (lesson.price ?? 0)
-    return sum
-  }, 0)
-
-  // ── Derive: revenue this month ───────────────────────────────────────────
-  const revenueThisMonth = (revenueThisMonthRes.data ?? []).reduce((sum: number, row: unknown) => {
-    const lesson = (row as { lessons?: { is_free?: boolean; price?: number } }).lessons
-    if (lesson && !lesson.is_free) sum += (lesson.price ?? 0)
-    return sum
-  }, 0)
-
-  // ── Derive: revenue last month ───────────────────────────────────────────
-  const revenueLastMonth = (revenueLastMonthRes.data ?? []).reduce((sum: number, row: unknown) => {
-    const lesson = (row as { lessons?: { is_free?: boolean; price?: number } }).lessons
-    if (lesson && !lesson.is_free) sum += (lesson.price ?? 0)
-    return sum
-  }, 0)
-
-  // ── Derive: revenue this year ───────────────────────────────────────────
-  const revenueThisYear = (revenueThisYearRes.data ?? []).reduce((sum: number, row: unknown) => {
-    const lesson = (row as { lessons?: { is_free?: boolean; price?: number } }).lessons
-    if (lesson && !lesson.is_free) sum += (lesson.price ?? 0)
-    return sum
-  }, 0)
-
-  // ── Derive: free vs paid lesson counts ──────────────────────────────────
-  const allLessons = (freeVsPaidRes.data ?? []) as { is_free: boolean }[]
-  const freeVsPaid = allLessons.reduce(
-    (acc, row) => {
-      if (row.is_free) acc.free++
-      else acc.paid++
-      return acc
-    },
-    { free: 0, paid: 0 },
-  )
-
-  // ── Derive: lessons by grade ─────────────────────────────────────────────
-  type LessonByGradeRow = {
-    lesson_id?: string
-    chapters?: {
-      grade_id?: string | null
-      grades?: { name?: string | null } | null
-    } | null
-  }
-  const gradeCountMap: Record<string, { name: string; lessonIds: Set<string> }> = {}
-  for (const row of (lessonsByGradeRes.data ?? []) as LessonByGradeRow[]) {
-    const chapter = row.chapters
-    if (!chapter?.grade_id || !row.lesson_id) continue
-    const gradeName = chapter.grades?.name ?? chapter.grade_id
-    const gid = chapter.grade_id
-    if (!gradeCountMap[gid]) {
-      gradeCountMap[gid] = { name: gradeName, lessonIds: new Set() }
-    }
-    gradeCountMap[gid]!.lessonIds.add(row.lesson_id)
-  }
-  type SubjectPlacementByGradeRow = {
-    lesson_id?: string
-    subjects?: {
-      grade_id?: string | null
-      grades?: { name?: string | null } | null
-    } | null
-  }
-  for (const row of (subjectPlacementsByGradeRes.data ?? []) as SubjectPlacementByGradeRow[]) {
-    const subject = row.subjects
-    if (!subject?.grade_id || !row.lesson_id) continue
-    const gradeName = subject.grades?.name ?? subject.grade_id
-    const gid = subject.grade_id
-    if (!gradeCountMap[gid]) {
-      gradeCountMap[gid] = { name: gradeName, lessonIds: new Set() }
-    }
-    gradeCountMap[gid]!.lessonIds.add(row.lesson_id)
-  }
-  const lessonsByGrade = Object.values(gradeCountMap)
-    .map(({ name, lessonIds }) => ({ grade: name, count: lessonIds.size }))
-    .sort((a, b) => b.count - a.count)
-
-  // ── Derive: topLessons (keep existing fallback logic) ────────────────────
   let topLessons: { lesson_id: string; title: string; count: number }[]
   if (topLessonsRes.error) {
-    const { data: fallback } = await supabase
-      .from('downloads')
-      .select('lesson_id, lessons(title)')
-      .limit(500)
-    const lessonCounts: Record<string, { count: number; title: string }> = {}
-    for (const d of (fallback ?? [])) {
-      const row = d as { lesson_id: string; lessons?: { title?: string } }
-      const id = row.lesson_id
-      if (!lessonCounts[id]) lessonCounts[id] = { count: 0, title: row.lessons?.title ?? id }
-      lessonCounts[id].count++
-    }
-    topLessons = Object.entries(lessonCounts)
-      .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 10)
-      .map(([id, { count, title }]) => ({ lesson_id: id, title, count }))
+    topLessons = []
   }
   else {
     topLessons = (topLessonsRes.data ?? []).map(
@@ -272,46 +155,42 @@ export default defineEventHandler(async (event) => {
     )
   }
 
-  // ── Derive: average rating ───────────────────────────────────────────────
-  const ratingsData = (allRatingsRes.data ?? []) as { rating: number }[]
-  const averageRating = ratingsData.length > 0
-    ? Math.round((ratingsData.reduce((sum, r) => sum + r.rating, 0) / ratingsData.length) * 100) / 100
-    : 0
+  const lessonsByGrade = ((lessonsByGradeRes.data ?? []) as { grade: string; count: number }[])
+    .map((row) => ({ grade: row.grade, count: Number(row.count) }))
 
-  // ── Response ─────────────────────────────────────────────────────────────
   return {
-    // Existing fields
     totalUsers: usersRes.count ?? 0,
     totalLessons: lessonsRes.count ?? 0,
     downloads: downloadsRes.count ?? 0,
-    revenue,
+    revenue: asNumber(revenueRes.data),
     recentDownloads: recentDownloadsRes.data ?? [],
     topLessons,
 
-    // New fields
     totalGrades: gradesRes.count ?? 0,
     totalSubjects: subjectsRes.count ?? 0,
     totalChapters: chaptersRes.count ?? 0,
     totalCategories: categoriesRes.count ?? 0,
     totalPurchases: purchasesCountRes.count ?? 0,
     newLessonsThisMonth: newLessonsThisMonthRes.count ?? 0,
-    freeVsPaid,
+    freeVsPaid: {
+      free: freeLessonsRes.count ?? 0,
+      paid: paidLessonsRes.count ?? 0,
+    },
     newUsersThisMonth: newUsersThisMonthRes.count ?? 0,
     newUsersLastMonth: newUsersLastMonthRes.count ?? 0,
     newUsersThisYear: newUsersThisYearRes.count ?? 0,
     downloadsThisMonth: downloadsThisMonthRes.count ?? 0,
     downloadsLastMonth: downloadsLastMonthRes.count ?? 0,
     downloadsThisYear: downloadsThisYearRes.count ?? 0,
-    revenueThisMonth,
-    revenueLastMonth,
-    revenueThisYear,
+    revenueThisMonth: asNumber(revenueThisMonthRes.data),
+    revenueLastMonth: asNumber(revenueLastMonthRes.data),
+    revenueThisYear: asNumber(revenueThisYearRes.data),
     recentPurchases: recentPurchasesRes.data ?? [],
     recentUsers: recentUsersRes.data ?? [],
     lessonsByGrade,
 
-    // Rating & comment KPIs
     totalRatings: ratingsCountRes.count ?? 0,
-    averageRating,
+    averageRating: asNumber(avgRatingRes.data),
     totalComments: commentsCountRes.count ?? 0,
     ratingsThisMonth: ratingsThisMonthRes.count ?? 0,
     commentsThisMonth: commentsThisMonthRes.count ?? 0,

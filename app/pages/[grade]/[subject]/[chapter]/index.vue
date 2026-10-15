@@ -15,6 +15,13 @@ interface Lesson {
   tags?: string[]
 }
 
+type LessonsPage = {
+  items: Lesson[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 interface Tree {
   grade: { name: string; slug: string }
   subject: { name: string; slug: string }
@@ -28,6 +35,13 @@ interface Tree {
 }
 
 const route = useRoute()
+const page = computed(() => {
+  const raw = route.query.page
+  const value = Number(Array.isArray(raw) ? raw[0] : raw)
+  if (!Number.isFinite(value) || value < 1) return 1
+  return Math.floor(value)
+})
+
 const { data: tree, error } = await useFetch<Tree>('/api/tree', {
   query: {
     grade: route.params.grade,
@@ -38,11 +52,19 @@ const { data: tree, error } = await useFetch<Tree>('/api/tree', {
 throwIfMissing(error.value, !tree.value?.chapter)
 
 const chapter = computed(() => tree.value!.chapter)
-const { data: lessonsData, error: lessonsError } = await useFetch<Lesson[]>('/api/lessons', {
-  query: { chapter_id: chapter.value.id },
+const { data: lessonsPage, error: lessonsError, status: lessonsStatus } = await useFetch<LessonsPage>('/api/lessons', {
+  query: computed(() => ({
+    chapter_id: chapter.value.id,
+    page: page.value,
+  })),
+  credentials: 'include',
+  watch: [page],
+  default: () => ({ items: [], total: 0, page: 1, pageSize: 20 }),
 })
-const lessons = computed(() => lessonsData.value ?? [])
-const lessonState = computed(() => catalogListState(Boolean(lessonsError.value), lessons.value.length))
+const lessons = computed(() => lessonsPage.value?.items ?? [])
+const lessonsTotal = computed(() => lessonsPage.value?.total ?? 0)
+const pageSize = computed(() => lessonsPage.value?.pageSize ?? 20)
+const lessonState = computed(() => catalogListState(Boolean(lessonsError.value), lessonsTotal.value))
 
 const gradeTo = computed(() => `/${tree.value?.grade.slug ?? ''}`)
 const subjectTo = computed(() => `${gradeTo.value}/${tree.value?.subject.slug ?? ''}`)
@@ -66,6 +88,15 @@ const lessonRows = computed(() => lessons.value.map((lesson) => ({
   bookmarked: lesson.bookmarked,
   tags: lesson.tags,
 })))
+
+async function onPageChange(next: number) {
+  await navigateTo({
+    path: route.path,
+    query: {
+      ...(next > 1 ? { page: String(next) } : {}),
+    },
+  })
+}
 
 useHead(() => ({ title: chapter.value ? chapter.value.title : 'Κεφάλαιο' }))
 
@@ -106,6 +137,13 @@ onMounted(() => {
     <section v-if="lessonState === 'ready'" id="chapter-lessons" class="mt-10">
       <CatalogSectionHeading title="Υλικό" icon="bi-folder" tone="laurel" />
       <CatalogLessonList :lessons="lessonRows" />
+      <CatalogPager
+        :page="page"
+        :total="lessonsTotal"
+        :page-size="pageSize"
+        :disabled="lessonsStatus === 'pending'"
+        @update:page="onPageChange"
+      />
     </section>
     <p v-else id="chapter-lessons" class="mt-10 text-muted-foreground">
       {{ lessonState === 'error' ? 'Το υλικό δεν φορτώθηκε. Δοκίμασε ξανά σε λίγο.' : 'Δεν υπάρχει ακόμη υλικό.' }}

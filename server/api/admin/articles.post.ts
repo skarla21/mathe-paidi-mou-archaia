@@ -3,6 +3,7 @@ import { requireAdmin } from '../../utils/requireAdmin'
 import { normalizeArticleTags } from '../../utils/articleTags'
 import { readingTimeMinutesFromBody } from '../../utils/readingTime'
 import { storedEntityImageUrl } from '../../utils/storedEntityImage'
+import { nextArticleSlug } from '../../utils/contentSlug'
 
 const BODY_MAX = 500_000
 
@@ -29,10 +30,12 @@ export default defineEventHandler(async (event) => {
   const published = Boolean(body.published)
 
   const supabase = serverSupabaseService()
+  const slug = await nextArticleSlug(supabase, title)
   const { data, error } = await supabase
     .from('articles')
     .insert({
       title,
+      slug,
       body: mainBody,
       tags,
       reading_time_minutes,

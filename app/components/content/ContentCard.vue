@@ -68,16 +68,14 @@ const imageSrc = computed(() => {
   return storedImageSrc(props.previewUrl);
 });
 
-const lessonMeta = computed(() => {
-  const parts: string[] = [];
-  if (props.pageCount != null && props.pageCount > 0) {
-    parts.push(lessonPageCountLabel(props.pageCount));
-  }
-  if (props.fileBytes != null && props.fileBytes > 0) {
-    const size = lessonFileSizeLabel(props.fileBytes);
-    if (size) parts.push(size);
-  }
-  return parts.join(" · ");
+const pageCountLabel = computed(() => {
+  if (props.pageCount == null || props.pageCount <= 0) return "";
+  return lessonPageCountLabel(props.pageCount);
+});
+
+const fileSizeLabel = computed(() => {
+  if (props.fileBytes == null || props.fileBytes <= 0) return "";
+  return lessonFileSizeLabel(props.fileBytes);
 });
 
 const showBookmark = computed(() => Boolean(props.lessonId));
@@ -124,7 +122,7 @@ async function toggleBookmark() {
     class="flex w-full flex-col gap-4 rounded-3xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-stretch sm:gap-5 sm:p-5"
   >
     <div
-      class="flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-muted"
+      class="relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-muted"
       :class="
         thumbLayout === 'landscape'
           ? 'aspect-4/3 w-full max-w-56 sm:w-44 sm:max-w-none'
@@ -147,6 +145,12 @@ async function toggleBookmark() {
         :name="placeholderIcon"
         class="size-8 text-muted-foreground/70"
       />
+      <span
+        v-if="fileSizeLabel"
+        class="pointer-events-none absolute right-1 bottom-1 rounded-md bg-card/95 px-1.5 py-0.5 text-[10px] font-semibold text-foreground shadow-sm tabular-nums"
+      >
+        {{ fileSizeLabel }}
+      </span>
     </div>
 
     <div class="min-w-0 flex-1">
@@ -189,9 +193,11 @@ async function toggleBookmark() {
           class="text-start"
           :minutes="readingMinutes"
         />
-        <p v-else-if="lessonMeta" class="text-sm text-muted-foreground">
-          {{ lessonMeta }}
+        <p v-else-if="pageCountLabel" class="text-sm text-muted-foreground">
+          {{ pageCountLabel }}
+          <span v-if="fileSizeLabel" class="sr-only"> · {{ fileSizeLabel }}</span>
         </p>
+        <span v-else-if="fileSizeLabel" class="sr-only">{{ fileSizeLabel }}</span>
       </div>
     </div>
 

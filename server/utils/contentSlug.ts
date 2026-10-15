@@ -80,6 +80,16 @@ export async function nextCategorySlug(
   return uniqueSlug(slugifyGreek(name) || 'category', takenSlugs(data, exceptId))
 }
 
+export async function nextArticleSlug(
+  supabase: SupabaseClient,
+  title: string,
+  exceptId?: string,
+): Promise<string> {
+  const { data, error } = await supabase.from('articles').select('id, slug')
+  if (error) throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
+  return uniqueSlug(slugifyGreek(title) || 'article', takenSlugs(data, exceptId))
+}
+
 function embeddedSlug(value: unknown): string | null {
   if (!value) return null
   if (Array.isArray(value)) return embeddedSlug(value[0])

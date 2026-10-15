@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { toast } from 'vue-sonner'
 import ContentCard from '~/components/content/ContentCard.vue'
+import CatalogPager from '~/components/catalog/CatalogPager.vue'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
-import { filterArticlesByQuery } from '~/utils/articleListFilter'
+import { catalogListState } from '~/utils/catalogLists'
 
 definePageMeta({ layout: 'default' })
 useHead(() => ({ title: 'Άρθρα' }))
@@ -10,6 +10,7 @@ useHead(() => ({ title: 'Άρθρα' }))
 type Row = {
   id: string
   title: string
+  slug: string
   tags: string[]
   reading_time_minutes: number
   image_url?: string | null
@@ -17,24 +18,84 @@ type Row = {
   excerpt?: string
 }
 
-const list = ref<Row[] | null>(null)
-const search = ref('')
+type ArticlesPage = {
+  items: Row[]
+  total: number
+  page: number
+  pageSize: number
+}
 
-const filtered = computed(() => {
-  const rows = list.value
-  if (!rows) return []
-  return filterArticlesByQuery(rows, search.value)
+const route = useRoute()
+
+const searchInput = ref('')
+const searchQuery = computed(() => {
+  const raw = route.query.q
+  return (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? ''
 })
 
-onMounted(async () => {
-  try {
-    list.value = await $fetch<Row[]>('/api/articles', {
-      credentials: 'include',
-    })
-  } catch {
-    list.value = []
-    toast.error('Κάτι πήγε στραβά')
-  }
+watch(searchQuery, (value) => {
+  if (value !== searchInput.value) searchInput.value = value
+})
+
+const page = computed(() => {
+  const raw = route.query.page
+  const value = Number(Array.isArray(raw) ? raw[0] : raw)
+  if (!Number.isFinite(value) || value < 1) return 1
+  return Math.floor(value)
+})
+
+const { data, error, status } = await useFetch<ArticlesPage>('/api/articles', {
+  query: computed(() => ({
+    page: page.value,
+    ...(searchQuery.value ? { q: searchQuery.value } : {}),
+  })),
+  credentials: 'include',
+  watch: [page, searchQuery],
+  immediate: true,
+  default: () => ({ items: [], total: 0, page: 1, pageSize: 20 }),
+})
+
+const listState = computed(() => {
+  if (status.value === 'pending' && !data.value?.items.length) return 'loading' as const
+  if (error.value) return 'error' as const
+  return catalogListState(Boolean(error.value), data.value?.items.length ?? 0)
+})
+
+const rows = computed(() => data.value?.items ?? [])
+const total = computed(() => data.value?.total ?? 0)
+const pageSize = computed(() => data.value?.pageSize ?? 20)
+
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+
+async function applySearch(q: string) {
+  await navigateTo({
+    path: '/articles',
+    query: {
+      ...(q ? { q } : {}),
+    },
+  })
+}
+
+function onSearchInput() {
+  if (searchTimer !== undefined) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    searchTimer = undefined
+    void applySearch(searchInput.value.trim())
+  }, 300)
+}
+
+async function onPageChange(next: number) {
+  await navigateTo({
+    path: '/articles',
+    query: {
+      ...(searchQuery.value ? { q: searchQuery.value } : {}),
+      ...(next > 1 ? { page: String(next) } : {}),
+    },
+  })
+}
+
+onBeforeUnmount(() => {
+  if (searchTimer !== undefined) clearTimeout(searchTimer)
 })
 </script>
 
@@ -44,7 +105,7 @@ onMounted(async () => {
       <LayoutPageIntro title="Άρθρα" />
     </div>
 
-    <div v-if="list !== null && list.length > 0" class="mt-2 mb-6 max-w-md">
+    <div class="mt-2 mb-6 max-w-md">
       <div
         class="flex w-full items-center gap-2 rounded-full border border-border bg-secondary px-3.5 shadow-sm transition-all hover:bg-muted focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/30"
       >
@@ -54,16 +115,17 @@ onMounted(async () => {
           class="size-4 shrink-0 text-muted-foreground pointer-events-none"
         />
         <input
-          v-model="search"
+          v-model="searchInput"
           type="search"
           placeholder="Αναζήτηση άρθρων..."
           aria-label="Αναζήτηση άρθρων..."
           class="h-9 w-full border-none bg-transparent text-[13.5px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+          @input="onSearchInput"
         />
       </div>
     </div>
 
-    <div v-if="list === null" class="mt-2 space-y-4">
+    <div v-if="listState === 'loading'" class="mt-2 space-y-4">
       <div
         v-for="i in 4"
         :key="i"
@@ -78,28 +140,41 @@ onMounted(async () => {
       </div>
     </div>
 
-    <p v-else-if="!list.length" class="mt-2 text-muted-foreground">
-      Δεν υπάρχουν άρθρα ακόμα.
+    <p v-else-if="listState === 'error'" class="mt-2 text-muted-foreground">
+      Κάτι πήγε στραβά. Δοκίμασε ξανά σε λίγο.
     </p>
 
-    <p v-else-if="!filtered.length" class="mt-2 text-muted-foreground">
+    <p v-else-if="listState === 'empty' && searchQuery" class="mt-2 text-muted-foreground">
       Δεν βρέθηκαν άρθρα.
     </p>
 
-    <ul v-else class="mt-2 flex w-full flex-col gap-3">
-      <li v-for="a in filtered" :key="a.id" class="w-full">
-        <ContentCard
-          :to="`/articles/${a.id}`"
-          :title="a.title"
-          :description="a.excerpt"
-          :chips="a.tags ?? []"
-          :preview-url="a.image_url"
-          thumb-layout="landscape"
-          preview-mode="cover"
-          placeholder-icon="bi-newspaper"
-          :reading-minutes="a.reading_time_minutes"
-        />
-      </li>
-    </ul>
+    <p v-else-if="listState === 'empty'" class="mt-2 text-muted-foreground">
+      Δεν υπάρχουν άρθρα ακόμα.
+    </p>
+
+    <template v-else>
+      <ul class="mt-2 flex w-full flex-col gap-3">
+        <li v-for="a in rows" :key="a.id" class="w-full">
+          <ContentCard
+            :to="`/articles/${a.slug}`"
+            :title="a.title"
+            :description="a.excerpt"
+            :chips="a.tags ?? []"
+            :preview-url="a.image_url"
+            thumb-layout="landscape"
+            preview-mode="cover"
+            placeholder-icon="bi-newspaper"
+            :reading-minutes="a.reading_time_minutes"
+          />
+        </li>
+      </ul>
+      <CatalogPager
+        :page="page"
+        :total="total"
+        :page-size="pageSize"
+        :disabled="status === 'pending'"
+        @update:page="onPageChange"
+      />
+    </template>
   </div>
 </template>

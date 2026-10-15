@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { includesFolded } from "#shared/utils/foldGreekSearch.mjs";
 import { toast } from "vue-sonner";
+import AdminTablePager from "~/components/admin/AdminTablePager.vue";
 import UiButton from "~/components/ui/Button.vue";
 import UiInput from "~/components/ui/Input.vue";
 import UiSkeleton from "~/components/ui/Skeleton.vue";
@@ -27,6 +27,7 @@ import AdminLessonModal from "~/components/admin/LessonModal.vue";
 import AdminListCount from "~/components/admin/AdminListCount.vue";
 import AdminSortModal from "~/components/admin/AdminSortModal.vue";
 import AdminLessonDetailModal from "~/components/admin/LessonDetailModal.vue";
+import type { AdminListPage } from "~~/types/domain";
 import type { Lesson } from "~/types/database";
 
 type Chapter = {
@@ -42,12 +43,11 @@ definePageMeta({ layout: "admin", middleware: "admin" });
 useHead(() => ({ title: "Διαχείριση - Υλικό" }));
 
 const adminFetch = useAdminFetch();
-const lessons = ref<Lesson[]>([]);
 const grades = ref<{ id: string; name: string }[]>([]);
 const subjects = ref<Subject[]>([]);
 const chapters = ref<Chapter[]>([]);
 const categories = ref<Category[]>([]);
-const loading = ref(true);
+const metaLoading = ref(true);
 const search = ref("");
 const gradeId = ref("__all__");
 const subjectId = ref("__all__");
@@ -73,53 +73,51 @@ const filteredChapters = computed(() =>
     : [],
 );
 
-const filteredLessons = computed(() => {
-  let list = lessons.value;
-  if (search.value) {
-    list = list.filter((l) => includesFolded(l.title, search.value));
-  }
-  if (chapterId.value && chapterId.value !== "__all__") {
-    list = list.filter((l) =>
-      l.placements?.some((p) => p.chapter_id === chapterId.value),
-    );
-  } else if (subjectId.value && subjectId.value !== "__all__") {
-    list = list.filter((l) =>
-      l.placements?.some(
-        (p) =>
-          p.subject_id === subjectId.value ||
-          p.chapters?.subject_id === subjectId.value,
-      ),
-    );
-  } else if (categoryId.value && categoryId.value !== "__all__") {
-    list = list.filter((l) =>
-      l.placements?.some((p) => p.category_id === categoryId.value),
-    );
-  } else if (gradeId.value && gradeId.value !== "__all__") {
-    list = list.filter((l) =>
-      l.placements?.some(
-        (p) =>
-          p.chapters?.grade_id === gradeId.value ||
-          p.subjects?.grade_id === gradeId.value,
-      ),
-    );
-  }
-  return list;
-});
+function filterQuery() {
+  return {
+    q: search.value.trim(),
+    ...(gradeId.value !== "__all__" ? { grade_id: gradeId.value } : {}),
+    ...(subjectId.value !== "__all__" ? { subject_id: subjectId.value } : {}),
+    ...(chapterId.value !== "__all__" ? { chapter_id: chapterId.value } : {}),
+    ...(categoryId.value !== "__all__" ? { category_id: categoryId.value } : {}),
+  };
+}
+
+const {
+  page,
+  total,
+  pageSize,
+  items: lessons,
+  loading,
+  ready,
+  load,
+  onSearchInput,
+  onSortChange,
+} = useAdminTablePage<Lesson>(
+  (pageNumber) =>
+    adminFetch<AdminListPage<Lesson>>("/api/admin/lessons", {
+      query: { page: pageNumber, ...filterQuery() },
+    }),
+  () => toast.error("Κάτι πήγε στραβά"),
+);
 
 watch(gradeId, () => {
   subjectId.value = "__all__";
   chapterId.value = "__all__";
   if (gradeId.value && gradeId.value !== "__all__")
     categoryId.value = "__all__";
+  onSortChange();
 });
 watch(subjectId, () => {
   chapterId.value = "__all__";
   if (subjectId.value && subjectId.value !== "__all__")
     categoryId.value = "__all__";
+  onSortChange();
 });
 watch(chapterId, () => {
   if (chapterId.value && chapterId.value !== "__all__")
     categoryId.value = "__all__";
+  onSortChange();
 });
 watch(categoryId, () => {
   if (categoryId.value && categoryId.value !== "__all__") {
@@ -127,32 +125,36 @@ watch(categoryId, () => {
     subjectId.value = "__all__";
     chapterId.value = "__all__";
   }
+  onSortChange();
+});
+watch(search, () => {
+  onSearchInput();
 });
 
-async function fetchAll() {
-  loading.value = true;
+async function fetchMeta() {
+  metaLoading.value = true;
   try {
-    const [less, gr, sub, ch, cat] = await Promise.all([
-      adminFetch<Lesson[]>("/api/admin/lessons"),
+    const [gr, sub, ch, cat] = await Promise.all([
       adminFetch<{ id: string; name: string }[]>("/api/admin/grades"),
       adminFetch<Subject[]>("/api/admin/subjects"),
       adminFetch<Chapter[]>("/api/admin/chapters"),
       adminFetch<Category[]>("/api/admin/categories"),
     ]);
-    lessons.value = less;
     grades.value = gr;
     subjects.value = sub;
     chapters.value = ch;
     categories.value = cat;
   } catch {
-    lessons.value = [];
     toast.error("Κάτι πήγε στραβά");
   } finally {
-    loading.value = false;
+    metaLoading.value = false;
   }
 }
 
-onMounted(fetchAll);
+onMounted(async () => {
+  await fetchMeta();
+  await load();
+});
 
 function openCreate() {
   editingLesson.value = null;
@@ -178,7 +180,7 @@ async function confirmDelete() {
     await adminFetch(`/api/admin/lessons/${deletingId.value}`, {
       method: "DELETE",
     });
-    await fetchAll();
+    await load();
     deleteDialogOpen.value = false;
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } };
@@ -235,9 +237,9 @@ function placementSummary(lesson: Lesson): string {
       <div class="min-w-0">
         <h1 class="text-2xl font-bold font-heading">
           Υλικό<AdminListCount
-            v-if="!loading"
-            :shown="filteredLessons.length"
-            :total="lessons.length"
+            v-if="ready"
+            :shown="lessons.length"
+            :total="total"
           />
         </h1>
       </div>
@@ -253,7 +255,6 @@ function placementSummary(lesson: Lesson): string {
       </div>
     </div>
 
-    <!-- Filters -->
     <div class="flex flex-wrap items-center gap-4 mb-6">
       <Select v-model="gradeId">
         <SelectTrigger class="w-40">
@@ -308,8 +309,7 @@ function placementSummary(lesson: Lesson): string {
       </div>
     </div>
 
-    <!-- Skeleton -->
-    <template v-if="loading">
+    <template v-if="(loading && !ready) || metaLoading">
       <div class="space-y-3">
         <UiCard v-for="i in 5" :key="i" class="rounded-2xl border-border">
           <UiCardContent class="p-4 flex items-center gap-4">
@@ -320,17 +320,16 @@ function placementSummary(lesson: Lesson): string {
       </div>
     </template>
 
-    <!-- Cards -->
     <template v-else>
       <div
-        v-if="!filteredLessons.length"
+        v-if="!lessons.length"
         class="rounded-lg border border-dashed p-12 text-center text-muted-foreground"
       >
         <VIcon name="bi-inbox" class="size-12 mx-auto mb-3 opacity-50" />
         <p>Δεν υπάρχει υλικό ακόμα.</p>
       </div>
       <div v-else class="space-y-3">
-        <UiCard v-for="l in filteredLessons" :key="l.id" class="rounded-2xl border-border">
+        <UiCard v-for="l in lessons" :key="l.id" class="rounded-2xl border-border">
           <UiCardContent class="p-4 flex items-center gap-4">
             <UiIconWell>
               <VIcon
@@ -389,13 +388,19 @@ function placementSummary(lesson: Lesson): string {
           </UiCardContent>
         </UiCard>
       </div>
+      <AdminTablePager
+        v-model:page="page"
+        :total="total"
+        :page-size="pageSize"
+        :disabled="loading"
+      />
     </template>
 
     <AdminLessonModal
       :open="modalOpen"
       :lesson="editingLesson"
       @close="modalOpen = false"
-      @saved="fetchAll"
+      @saved="load"
     />
     <AdminLessonDetailModal
       :open="detailModalOpen"
@@ -407,7 +412,7 @@ function placementSummary(lesson: Lesson): string {
       :open="sortModalOpen"
       mode="lessons"
       @close="sortModalOpen = false"
-      @saved="fetchAll"
+      @saved="load"
     />
 
     <UiAlertDialogRoot v-model:open="deleteDialogOpen">

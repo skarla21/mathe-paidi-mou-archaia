@@ -15,6 +15,13 @@ interface SubjectLesson {
   bookmarked?: boolean
 }
 
+type LessonsPage = {
+  items: SubjectLesson[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 interface ChapterWithCounts extends Chapter {
   lesson_count?: number
 }
@@ -22,6 +29,13 @@ interface ChapterWithCounts extends Chapter {
 const route = useRoute()
 const gradeSlug = route.params.grade as string
 const subjectSlug = route.params.subject as string
+
+const page = computed(() => {
+  const raw = route.query.page
+  const value = Number(Array.isArray(raw) ? raw[0] : raw)
+  if (!Number.isFinite(value) || value < 1) return 1
+  return Math.floor(value)
+})
 
 const { data: gradesData, error: gradesError } = await useFetch<Grade[]>('/api/grades')
 throwIfMissing(gradesError.value, false)
@@ -36,17 +50,25 @@ throwIfMissing(null, !subject)
 const { data: chaptersData, error: chaptersError } = await useFetch<ChapterWithCounts[]>('/api/chapters', {
   query: { subject_id: subject!.id, counts: '1' },
 })
-const { data: subjectLessonsData, error: lessonsError } = await useFetch<SubjectLesson[]>('/api/lessons', {
-  query: { subject_id: subject!.id },
+const { data: lessonsPage, error: lessonsError, status: lessonsStatus } = await useFetch<LessonsPage>('/api/lessons', {
+  query: computed(() => ({
+    subject_id: subject!.id,
+    page: page.value,
+  })),
+  credentials: 'include',
+  watch: [page],
+  default: () => ({ items: [], total: 0, page: 1, pageSize: 20 }),
 })
 
 const chapters = computed(() => chaptersData.value ?? [])
-const subjectLessons = computed(() => subjectLessonsData.value ?? [])
+const subjectLessons = computed(() => lessonsPage.value?.items ?? [])
+const lessonsTotal = computed(() => lessonsPage.value?.total ?? 0)
+const pageSize = computed(() => lessonsPage.value?.pageSize ?? 20)
 const catalog = computed(() => subjectCatalogView({
   chaptersFailed: Boolean(chaptersError.value),
   chapterCount: chapters.value.length,
   lessonsFailed: Boolean(lessonsError.value),
-  lessonCount: subjectLessons.value.length,
+  lessonCount: lessonsTotal.value,
 }))
 const gradeTo = computed(() => `/${grade?.slug ?? ''}`)
 const chips = computed<LessonChip[]>(() => (
@@ -65,6 +87,15 @@ const lessonRows = computed(() => subjectLessons.value.map((lesson) => ({
   file_bytes: lesson.file_bytes,
   bookmarked: lesson.bookmarked,
 })))
+
+async function onPageChange(next: number) {
+  await navigateTo({
+    path: route.path,
+    query: {
+      ...(next > 1 ? { page: String(next) } : {}),
+    },
+  })
+}
 
 useHead(() => ({
   title: subject ? `${subject.name} - ${grade?.name}` : 'Μάθημα',
@@ -116,6 +147,13 @@ useHead(() => ({
         tone="laurel"
       />
       <CatalogLessonList :lessons="lessonRows" />
+      <CatalogPager
+        :page="page"
+        :total="lessonsTotal"
+        :page-size="pageSize"
+        :disabled="lessonsStatus === 'pending'"
+        @update:page="onPageChange"
+      />
     </section>
     <p v-else-if="catalog.lessonsMessage" class="mt-10 text-muted-foreground">
       {{ catalog.lessonsMessage }}

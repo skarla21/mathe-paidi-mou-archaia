@@ -1,13 +1,15 @@
+import { loadAdminDetailPage } from '../../../../utils/adminDetailPage'
 import { serverSupabaseService } from '../../../../utils/supabaseServer'
-import { requireAdmin } from '../../../../utils/requireAdmin'
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event)
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, message: 'Missing id parameter' })
   const supabase = serverSupabaseService()
-  const { data, error } = await supabase
-    .from('downloads').select('*, lessons(title)').eq('user_id', id).order('downloaded_at', { ascending: false }).limit(20)
-  if (error) throw createError({ statusCode: 500, message: error.message })
-  return data ?? []
+  return loadAdminDetailPage(event, supabase, {
+    table: 'downloads',
+    select: '*, lessons(title)',
+    eq: { column: 'user_id', value: id },
+    order: { column: 'downloaded_at', ascending: false },
+    logLabel: '[admin/users/[id]/downloads.get]',
+  })
 })

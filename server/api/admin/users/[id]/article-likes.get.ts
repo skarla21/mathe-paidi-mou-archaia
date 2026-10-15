@@ -1,20 +1,15 @@
+import { loadAdminDetailPage } from '../../../../utils/adminDetailPage'
 import { serverSupabaseService } from '../../../../utils/supabaseServer'
-import { requireAdmin } from '../../../../utils/requireAdmin'
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event)
   const id = getRouterParam(event, 'id')
-  if (!id) throw createError({ statusCode: 400, message: 'Missing user id' })
+  if (!id) throw createError({ statusCode: 400, message: 'Missing id parameter' })
   const supabase = serverSupabaseService()
-  const { data, error } = await supabase
-    .from('article_likes')
-    .select('*, articles(title)')
-    .eq('user_id', id)
-    .order('created_at', { ascending: false })
-    .limit(50)
-  if (error) {
-    console.error('[admin/users/[id]/article-likes.get]', error.message)
-    throw createError({ statusCode: 500, message: 'Database operation failed' })
-  }
-  return data ?? []
+  return loadAdminDetailPage(event, supabase, {
+    table: 'article_likes',
+    select: '*, articles(title)',
+    eq: { column: 'user_id', value: id },
+    order: { column: 'created_at', ascending: false },
+    logLabel: '[admin/users/[id]/article-likes.get]',
+  })
 })
