@@ -4,7 +4,9 @@ import { serverSupabaseService } from '../../../utils/supabaseServer'
 export default defineEventHandler(async (event) => {
   const userId = requireAuth(event)
   const articleId = getRouterParam(event, 'id')
-  if (!articleId) throw createError({ statusCode: 400, message: 'Missing article id' })
+  if (!articleId) {
+    throw createError({ statusCode: 400, message: 'Λείπει το id άρθρου' })
+  }
 
   const supabase = serverSupabaseService()
   const { error } = await supabase
@@ -15,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
   if (error) {
     console.error('[articles/[id]/like.delete]', error.message)
-    throw createError({ statusCode: 500, message: 'Database operation failed' })
+    throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
   }
   return { ok: true }
 })

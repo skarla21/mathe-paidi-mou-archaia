@@ -98,7 +98,7 @@ function scrollTo(id: string) {
           τα κείμενα και τα άρθρα μένουν τακτοποιημένα, ώστε κάθε μαθητής να
           βρίσκει αυτό που χρειάζεται.
         </p>
-        <SearchGlobalSearch size="lg" class="max-w-xl" />
+        <SearchGlobalSearch size="lg" submit-button class="max-w-xl" />
         <div id="hero-cta" class="flex flex-wrap items-center gap-4 pt-1">
           <button
             type="button"

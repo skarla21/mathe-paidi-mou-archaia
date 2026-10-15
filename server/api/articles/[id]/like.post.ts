@@ -1,11 +1,11 @@
 import { notifyArticleLikeCreated } from '../../../utils/adminNotifications'
-import { requireAuth } from '../../../utils/requireAuth'
+import { requireVerifiedEmail } from '../../../utils/requireVerifiedEmail'
 import { serverSupabaseService } from '../../../utils/supabaseServer'
 
 export default defineEventHandler(async (event) => {
-  const userId = requireAuth(event)
+  const userId = await requireVerifiedEmail(event)
   const articleId = getRouterParam(event, 'id')
-  if (!articleId) throw createError({ statusCode: 400, message: 'Missing article id' })
+  if (!articleId) throw createError({ statusCode: 400, message: 'Λείπει το id άρθρου' })
 
   const supabase = serverSupabaseService()
   const { data: article } = await supabase
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     .eq('id', articleId)
     .eq('published', true)
     .maybeSingle()
-  if (!article) throw createError({ statusCode: 404, message: 'Not found' })
+  if (!article) throw createError({ statusCode: 404, message: 'Δεν βρέθηκε' })
 
   const { data: existing } = await supabase
     .from('article_likes')
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
 
   if (error) {
     console.error('[articles/[id]/like.post]', error.message)
-    throw createError({ statusCode: 500, message: 'Database operation failed' })
+    throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
   }
 
   if (data?.id) {

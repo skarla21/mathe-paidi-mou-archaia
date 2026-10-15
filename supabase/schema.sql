@@ -230,13 +230,15 @@ create table if not exists public.article_comments (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
   article_id uuid not null references public.articles(id) on delete cascade,
+  parent_id uuid references public.article_comments(id) on delete cascade,
   body text not null check (char_length(body) >= 1 and char_length(body) <= 2000),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique(user_id, article_id)
+  updated_at timestamptz not null default now()
 );
 create index if not exists article_comments_user_id_idx on public.article_comments(user_id);
 create index if not exists article_comments_article_id_idx on public.article_comments(article_id);
+create index if not exists article_comments_parent_id_idx on public.article_comments(parent_id);
+create index if not exists article_comments_article_created_idx on public.article_comments(article_id, created_at);
 
 -- Admin in-app notifications (feed + read state + preferences)
 create table if not exists public.admin_notifications (
@@ -783,6 +785,45 @@ create trigger article_comments_set_updated_at
   before update on public.article_comments
   for each row execute function public.set_updated_at();
 
+create or replace function public.article_comments_validate_parent()
+returns trigger
+language plpgsql
+as $$
+declare
+  parent_article uuid;
+  parent_parent uuid;
+begin
+  if new.parent_id is null then
+    return new;
+  end if;
+
+  select article_id, parent_id
+    into parent_article, parent_parent
+  from public.article_comments
+  where id = new.parent_id;
+
+  if parent_article is null then
+    raise exception 'invalid parent comment' using errcode = '23514';
+  end if;
+
+  if parent_article <> new.article_id then
+    raise exception 'parent comment article mismatch' using errcode = '23514';
+  end if;
+
+  if parent_parent is not null then
+    raise exception 'cannot reply to a reply' using errcode = '23514';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists article_comments_validate_parent on public.article_comments;
+create trigger article_comments_validate_parent
+  before insert or update of parent_id, article_id
+  on public.article_comments
+  for each row execute function public.article_comments_validate_parent();
+
 -- Grade pages live at /:slug, so a grade cannot use a top-level route name.
 -- Keep this list aligned with RESERVED_GRADE_SLUGS in shared/utils/slugify.mjs.
 
@@ -802,7 +843,8 @@ begin
     'notes',
     'profile',
     'register',
-    'reset-password'
+    'reset-password',
+    'search'
   ]) then
     raise exception 'reserved grade slug' using errcode = '23514';
   end if;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { toast } from 'vue-sonner'
+import { foldGreekSearch } from '#shared/utils/foldGreekSearch.mjs'
 import { registerSearchInput, topmostSearchInput, unregisterSearchInput } from '~/composables/useSearchHotkey'
 import UiPopover from '~/components/ui/popover/Popover.vue'
 import UiPopoverAnchor from '~/components/ui/popover/PopoverAnchor.vue'
@@ -17,18 +18,37 @@ const props = withDefaults(defineProps<{
   class?: string
   hotkey?: boolean
   size?: 'md' | 'lg'
+  submitButton?: boolean
+  modelValue?: string
 }>(), {
   size: 'md',
   hotkey: false,
+  submitButton: false,
+  modelValue: undefined,
 })
+
+const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+
 const rootRef = ref<HTMLElement | null>(null)
-const query = ref('')
+const query = ref(props.modelValue ?? '')
 const results = ref<SearchResult[]>([])
 const loading = ref(false)
 const open = ref(false)
 const debounceMs = 300
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
+const canSubmit = computed(() => foldGreekSearch(query.value.trim()).length >= 2)
+
+watch(() => props.modelValue, (value) => {
+  if (value === undefined) return
+  if (value !== query.value) query.value = value
+})
+
+watch(query, (value) => {
+  emit('update:modelValue', value)
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(search, debounceMs)
+})
 
 async function search() {
   const q = query.value.trim()
@@ -50,11 +70,6 @@ async function search() {
   }
 }
 
-watch(query, () => {
-  if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(search, debounceMs)
-})
-
 function close() {
   open.value = false
 }
@@ -63,6 +78,20 @@ function onFocus() {
   if (query.value.trim()) {
     open.value = true
   }
+}
+
+async function goToResults() {
+  const q = query.value.trim()
+  if (foldGreekSearch(q).length < 2) return
+  close()
+  await navigateTo({ path: '/search', query: { q } })
+}
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Enter') return
+  if (!canSubmit.value) return
+  event.preventDefault()
+  void goToResults()
 }
 
 const placeholder = computed(() => 'Αναζήτηση υλικού...')
@@ -97,28 +126,44 @@ onUnmounted(() => {
   <UiPopover v-model:open="open">
     <UiPopoverAnchor as-child>
       <div ref="rootRef" :class="props.class">
-      <div class="flex w-full items-center gap-2 rounded-full border border-border bg-secondary px-3.5 shadow-sm transition-all hover:bg-muted focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/30">
-        <VIcon
-          name="bi-search"
-          aria-hidden="true"
-          class="size-4 shrink-0 text-muted-foreground pointer-events-none"
-        />
-        <input
-          v-model="query"
-          type="search"
-          :placeholder="placeholder"
-          aria-label="Αναζήτηση υλικού..."
-          class="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none border-none"
-          :class="props.size === 'lg' ? 'h-12 text-base' : 'h-9 text-[13.5px]'"
-          @focus="onFocus"
+        <div
+          class="flex w-full items-center gap-2 rounded-full border border-border bg-secondary px-3.5 shadow-sm transition-all hover:bg-muted focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/30"
+          :class="props.submitButton ? 'pr-1.5' : ''"
         >
-        <kbd
-          v-if="props.hotkey"
-          class="hidden lg:inline-flex shrink-0 rounded-full border border-border bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground pointer-events-none"
-        >
-          Ctrl K
-        </kbd>
-      </div>
+          <VIcon
+            name="bi-search"
+            aria-hidden="true"
+            class="size-4 shrink-0 text-muted-foreground pointer-events-none"
+          />
+          <input
+            v-model="query"
+            type="search"
+            :placeholder="placeholder"
+            aria-label="Αναζήτηση υλικού..."
+            class="w-full min-w-0 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none border-none"
+            :class="props.size === 'lg' ? 'h-12 text-base' : 'h-9 text-[13.5px]'"
+            @focus="onFocus"
+            @keydown="onKeydown"
+          >
+          <button
+            v-if="props.submitButton"
+            type="button"
+            class="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-4 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+            :class="props.size === 'lg' ? 'h-9 text-sm' : 'h-7 text-xs'"
+            :disabled="!canSubmit"
+            aria-label="Αναζήτηση"
+            @click="goToResults"
+          >
+            <span>Αναζήτηση</span>
+            <VIcon name="bi-arrow-right" class="size-3.5" aria-hidden="true" />
+          </button>
+          <kbd
+            v-else-if="props.hotkey"
+            class="hidden lg:inline-flex shrink-0 rounded-full border border-border bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground pointer-events-none"
+          >
+            Ctrl K
+          </kbd>
+        </div>
       </div>
     </UiPopoverAnchor>
     <UiPopoverContent

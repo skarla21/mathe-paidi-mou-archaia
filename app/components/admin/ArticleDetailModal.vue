@@ -171,6 +171,12 @@ function formatDate(iso: string) {
                 <div class="min-w-0 flex-1 space-y-0.5">
                   <p class="font-medium truncate">
                     {{ comment.users?.name ?? comment.user_id }}
+                    <span
+                      v-if="comment.parent_id"
+                      class="ml-1 font-normal text-muted-foreground"
+                    >
+                      (απάντηση)
+                    </span>
                   </p>
                   <p
                     class="text-foreground wrap-break-word whitespace-pre-wrap"
@@ -218,7 +224,7 @@ function formatDate(iso: string) {
             {{
               pendingDelete?.kind === "like"
                 ? "Θα αφαιρεθεί η επισήμανση από το άρθρο."
-                : "Θα αφαιρεθεί το σχόλιο από το άρθρο."
+                : "Θα διαγραφεί το σχόλιο και, αν υπάρχουν, οι απαντήσεις του."
             }}
           </UiAlertDialogDescription>
         </UiAlertDialogHeader>

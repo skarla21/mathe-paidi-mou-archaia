@@ -1,8 +1,17 @@
+import {
+  ARTICLE_COMMENT_ROOT_LIMIT,
+  mergeCommentThreads,
+} from '../../../utils/articleCommentThreads'
 import { serverSupabaseService } from '../../../utils/supabaseServer'
+
+const COMMENT_SELECT =
+  'id, user_id, parent_id, body, created_at, updated_at, users(id, name, avatar_url)'
 
 export default defineEventHandler(async (event) => {
   const articleId = getRouterParam(event, 'id')
-  if (!articleId) throw createError({ statusCode: 400, message: 'Missing article id' })
+  if (!articleId) {
+    throw createError({ statusCode: 400, message: 'Λείπει το id άρθρου' })
+  }
 
   const supabase = serverSupabaseService()
   const { data: article } = await supabase
@@ -11,22 +20,42 @@ export default defineEventHandler(async (event) => {
     .eq('id', articleId)
     .eq('published', true)
     .maybeSingle()
-  if (!article) throw createError({ statusCode: 404, message: 'Not found' })
+  if (!article) throw createError({ statusCode: 404, message: 'Δεν βρέθηκε' })
 
   const query = getQuery(event)
-  const limit = Math.min(Math.max(Number(query.limit) || 50, 1), 100)
+  const rootLimit = Math.min(
+    Math.max(Number(query.limit) || ARTICLE_COMMENT_ROOT_LIMIT, 1),
+    500,
+  )
 
-  const { data, error } = await supabase
+  const { data: rootsNewestFirst, error: rootsError } = await supabase
     .from('article_comments')
-    .select('id, body, created_at, updated_at, users(id, name, avatar_url)')
+    .select(COMMENT_SELECT)
     .eq('article_id', articleId)
+    .is('parent_id', null)
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .limit(rootLimit)
 
-  if (error) {
-    console.error('[articles/[id]/comments.get]', error.message)
-    throw createError({ statusCode: 500, message: 'Database operation failed' })
+  if (rootsError) {
+    console.error('[articles/[id]/comments.get] roots', rootsError.message)
+    throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
   }
 
-  return data ?? []
+  const roots = rootsNewestFirst ?? []
+  if (!roots.length) return []
+
+  const rootIds = roots.map((row) => row.id)
+  const { data: replies, error: repliesError } = await supabase
+    .from('article_comments')
+    .select(COMMENT_SELECT)
+    .eq('article_id', articleId)
+    .in('parent_id', rootIds)
+    .order('created_at', { ascending: true })
+
+  if (repliesError) {
+    console.error('[articles/[id]/comments.get] replies', repliesError.message)
+    throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
+  }
+
+  return mergeCommentThreads(roots, replies ?? [])
 })

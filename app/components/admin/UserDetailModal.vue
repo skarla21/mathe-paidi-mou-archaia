@@ -233,7 +233,13 @@ async function confirmDelete() {
             <ul v-else class="text-xs space-y-2">
               <li v-for="x in articleComments" :key="x.id" class="flex items-start justify-between gap-2">
                 <div class="flex flex-col gap-0.5 min-w-0">
-                  <span class="truncate font-medium">{{ x.articles?.title }}</span>
+                  <span class="truncate font-medium">
+                    {{ x.articles?.title }}
+                    <span
+                      v-if="x.parent_id"
+                      class="ml-1 font-normal text-muted-foreground"
+                    >(απάντηση)</span>
+                  </span>
                   <span class="text-muted-foreground line-clamp-2">{{ x.body }}</span>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">

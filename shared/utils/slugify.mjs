@@ -117,6 +117,7 @@ export const RESERVED_GRADE_SLUGS = [
   'profile',
   'register',
   'reset-password',
+  'search',
 ]
 
 export function gradeSlug(base, taken) {

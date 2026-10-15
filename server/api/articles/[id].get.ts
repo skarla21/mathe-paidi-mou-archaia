@@ -25,16 +25,14 @@ export default defineEventHandler(async (event) => {
 
   const userId = event.context.auth?.userId ?? null
   let likedByMe = false
-  let myComment: { id: string; body: string; updated_at: string } | null = null
   if (userId) {
-    const [{ data: likeRow }, { data: commentRow }] = await Promise.all([
-      supabase.from('article_likes').select('id').eq('article_id', id).eq('user_id', userId).maybeSingle(),
-      supabase.from('article_comments').select('id, body, updated_at').eq('article_id', id).eq('user_id', userId).maybeSingle(),
-    ])
+    const { data: likeRow } = await supabase
+      .from('article_likes')
+      .select('id')
+      .eq('article_id', id)
+      .eq('user_id', userId)
+      .maybeSingle()
     likedByMe = Boolean(likeRow)
-    myComment = commentRow
-      ? { id: commentRow.id, body: commentRow.body, updated_at: commentRow.updated_at }
-      : null
   }
 
   return {
@@ -42,6 +40,5 @@ export default defineEventHandler(async (event) => {
     likeCount: likeCount ?? 0,
     commentCount: commentCount ?? 0,
     likedByMe,
-    myComment,
   }
 })
