@@ -1,12 +1,20 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
-import { catalogListState, subjectCatalogView } from '../app/utils/catalogLists.ts'
+import {
+  catalogChapterCountLabel,
+  catalogListState,
+  catalogSubjectCountLabel,
+  subjectCatalogView,
+} from '../app/utils/catalogLists.ts'
 
 const subjectPage = readFileSync(new URL('../app/pages/[grade]/[subject]/index.vue', import.meta.url), 'utf8')
 const gradePage = readFileSync(new URL('../app/pages/[grade]/index.vue', import.meta.url), 'utf8')
 const chapterPage = readFileSync(new URL('../app/pages/[grade]/[subject]/[chapter]/index.vue', import.meta.url), 'utf8')
 const categoryPage = readFileSync(new URL('../app/pages/category/[categoryId]/index.vue', import.meta.url), 'utf8')
+const thumbCard = readFileSync(new URL('../app/components/catalog/CatalogThumbCard.vue', import.meta.url), 'utf8')
+const articlesPage = readFileSync(new URL('../app/pages/articles/index.vue', import.meta.url), 'utf8')
+
 
 describe('subjectCatalogView', () => {
   it('calls direct lessons material when the subject has no chapters', () => {
@@ -84,11 +92,35 @@ describe('catalogListState', () => {
   })
 })
 
+describe('catalog count labels', () => {
+  it('names subject chapters and total lessons in Greek', () => {
+    assert.equal(catalogSubjectCountLabel(0, 0), 'Χωρίς υλικό')
+    assert.equal(catalogSubjectCountLabel(1, 0), '1 κεφάλαιο')
+    assert.equal(catalogSubjectCountLabel(3, 0), '3 κεφάλαια')
+    assert.equal(catalogSubjectCountLabel(0, 1), '1 αρχείο')
+    assert.equal(catalogSubjectCountLabel(0, 4), '4 αρχεία')
+    assert.equal(catalogSubjectCountLabel(2, 1), '2 κεφάλαια · 1 αρχείο')
+  })
+
+  it('names chapter lessons in Greek', () => {
+    assert.equal(catalogChapterCountLabel(0), 'Χωρίς υλικό')
+    assert.equal(catalogChapterCountLabel(1), '1 αρχείο')
+    assert.equal(catalogChapterCountLabel(5), '5 αρχεία')
+  })
+})
+
 describe('catalog pages', () => {
   it('uses the subject view for the lesson heading and the failure messages', () => {
     assert.match(subjectPage, /subjectCatalogView/)
     assert.match(subjectPage, /catalog\.lessonHeading/)
     assert.doesNotMatch(subjectPage, /Άλλο Υλικό/)
+  })
+
+  it('requests embedded counts for grade subjects and subject chapters', () => {
+    assert.match(gradePage, /counts:\s*'1'/)
+    assert.match(subjectPage, /counts:\s*'1'/)
+    assert.match(gradePage, /catalogSubjectCountLabel/)
+    assert.match(subjectPage, /catalogChapterCountLabel/)
   })
 
   it('shows a load failure instead of an empty catalog', () => {
@@ -99,4 +131,16 @@ describe('catalog pages', () => {
     assert.match(categoryPage, /catalogListState/)
     assert.match(categoryPage, /Το υλικό δεν φορτώθηκε/)
   })
+
+  it('keeps a single whole-card link on catalog thumb cards', () => {
+    const links = thumbCard.match(/<NuxtLink\b/g) ?? []
+    assert.equal(links.length, 1)
+    assert.match(thumbCard, /group-hover:text-primary/)
+    assert.match(thumbCard, /group-hover:bg-primary\/90/)
+  })
+
+  it('filters articles with the shared list filter', () => {
+    assert.match(articlesPage, /filterArticlesByQuery/)
+  })
 })
+

@@ -82,22 +82,29 @@ onMounted(() => {
 
 <template>
   <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
-    <header id="chapter-title" class="max-w-3xl">
+    <header id="chapter-title">
       <CatalogBackLink :to="subjectTo" :name="tree?.subject.name ?? 'Μάθημα'" />
-      <h1 class="mt-5 font-heading text-4xl font-extrabold leading-tight tracking-tight text-balance text-foreground sm:text-5xl">
-        {{ chapter.title }}
-      </h1>
-      <CatalogChips class="mt-4" :chips="chips" />
-      <CatalogCover class="mt-6" :image-url="chapter.image_url" :alt="chapter.title" />
-      <p v-if="chapter.description" class="mt-5 max-w-3xl text-lg leading-relaxed text-muted-foreground">
-        {{ chapter.description }}
-      </p>
+      <div class="mt-5 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
+        <div class="min-w-0 max-w-3xl flex-1">
+          <h1 class="font-heading text-4xl font-extrabold leading-tight tracking-tight text-balance text-foreground sm:text-5xl">
+            {{ chapter.title }}
+          </h1>
+          <CatalogChips class="mt-4" :chips="chips" />
+          <p v-if="chapter.description" class="mt-5 text-lg leading-relaxed text-muted-foreground">
+            {{ chapter.description }}
+          </p>
+        </div>
+        <CatalogCover
+          class="w-full max-w-52 shrink-0 sm:max-w-60"
+          :image-url="chapter.image_url"
+          :alt="chapter.title"
+          show-full
+        />
+      </div>
     </header>
 
     <section v-if="lessonState === 'ready'" id="chapter-lessons" class="mt-10">
-      <h2 class="mb-4 font-heading text-xl font-semibold">
-        Υλικό
-      </h2>
+      <CatalogSectionHeading title="Υλικό" icon="bi-folder" tone="laurel" />
       <CatalogLessonList :lessons="lessonRows" />
     </section>
     <p v-else id="chapter-lessons" class="mt-10 text-muted-foreground">

@@ -77,9 +77,7 @@ onMounted(() => {
     </header>
 
     <section v-if="lessonState === 'ready'" id="category-lessons" class="mt-10">
-      <h2 class="mb-4 font-heading text-xl font-semibold">
-        Υλικό
-      </h2>
+      <CatalogSectionHeading title="Υλικό" icon="bi-folder" tone="laurel" />
       <CatalogLessonList :lessons="lessonRows" />
     </section>
     <p v-else id="category-lessons" class="mt-10 text-muted-foreground">

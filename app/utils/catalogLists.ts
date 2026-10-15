@@ -27,3 +27,23 @@ export function subjectCatalogView(input: {
       : '',
   }
 }
+
+function greekCount(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`
+}
+
+/** Label for a subject card: chapters and/or total lesson placements (direct + via chapters). */
+export function catalogSubjectCountLabel(chapterCount: number, lessonCount: number): string {
+  const chapters = chapterCount > 0 ? greekCount(chapterCount, 'κεφάλαιο', 'κεφάλαια') : ''
+  const lessons = lessonCount > 0 ? greekCount(lessonCount, 'αρχείο', 'αρχεία') : ''
+  if (chapters && lessons) return `${chapters} · ${lessons}`
+  if (chapters) return chapters
+  if (lessons) return lessons
+  return 'Χωρίς υλικό'
+}
+
+/** Label for a chapter card: lessons placed on that chapter. */
+export function catalogChapterCountLabel(lessonCount: number): string {
+  if (lessonCount <= 0) return 'Χωρίς υλικό'
+  return greekCount(lessonCount, 'αρχείο', 'αρχεία')
+}

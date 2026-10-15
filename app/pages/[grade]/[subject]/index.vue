@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { LessonChip } from '~/lib/lessonContext'
 import type { Chapter, Grade, Subject } from '~/types/database'
-import { subjectCatalogView } from '~/utils/catalogLists'
+import { catalogChapterCountLabel, subjectCatalogView } from '~/utils/catalogLists'
 
 interface SubjectLesson {
   id: string
@@ -13,7 +13,10 @@ interface SubjectLesson {
   page_count?: number | null
   file_bytes?: number | null
   bookmarked?: boolean
-  tags?: string[]
+}
+
+interface ChapterWithCounts extends Chapter {
+  lesson_count?: number
 }
 
 const route = useRoute()
@@ -30,8 +33,8 @@ const { data: subjectsData, error: subjectsError } = await useFetch<Subject[]>('
 throwIfMissing(subjectsError.value, false)
 const subject = subjectsData.value?.find((item) => item.slug === subjectSlug)
 throwIfMissing(null, !subject)
-const { data: chaptersData, error: chaptersError } = await useFetch<Chapter[]>('/api/chapters', {
-  query: { subject_id: subject!.id },
+const { data: chaptersData, error: chaptersError } = await useFetch<ChapterWithCounts[]>('/api/chapters', {
+  query: { subject_id: subject!.id, counts: '1' },
 })
 const { data: subjectLessonsData, error: lessonsError } = await useFetch<SubjectLesson[]>('/api/lessons', {
   query: { subject_id: subject!.id },
@@ -61,7 +64,6 @@ const lessonRows = computed(() => subjectLessons.value.map((lesson) => ({
   page_count: lesson.page_count,
   file_bytes: lesson.file_bytes,
   bookmarked: lesson.bookmarked,
-  tags: lesson.tags,
 })))
 
 useHead(() => ({
@@ -71,19 +73,27 @@ useHead(() => ({
 
 <template>
   <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
-    <header class="max-w-3xl">
+    <header>
       <CatalogBackLink :to="gradeTo" :name="grade?.name ?? 'Τάξη'" />
-      <h1 class="mt-5 font-heading text-4xl font-extrabold leading-tight tracking-tight text-balance text-foreground sm:text-5xl">
-        {{ subject?.name ?? 'Μάθημα' }}
-      </h1>
-      <CatalogChips class="mt-4" :chips="chips" />
+      <div class="mt-5 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
+        <div class="min-w-0 max-w-3xl flex-1">
+          <h1 class="font-heading text-4xl font-extrabold leading-tight tracking-tight text-balance text-foreground sm:text-5xl">
+            {{ subject?.name ?? 'Μάθημα' }}
+          </h1>
+          <CatalogChips class="mt-4" :chips="chips" />
+        </div>
+        <CatalogCover
+          class="w-full max-w-52 shrink-0 sm:max-w-60"
+          :image-url="subject?.image_url"
+          :alt="subject?.name ?? 'Μάθημα'"
+          show-full
+        />
+      </div>
     </header>
 
     <section v-if="catalog.showChapters" class="mt-10">
-      <h2 class="mb-4 font-heading text-xl font-semibold">
-        Κεφάλαια
-      </h2>
-      <div class="grid gap-4 lg:grid-cols-2">
+      <CatalogSectionHeading title="Κεφάλαια" icon="bi-journal-bookmark" tone="amethyst" />
+      <div class="flex flex-col gap-4">
         <CatalogThumbCard
           v-for="chapter in chapters"
           :key="chapter.id"
@@ -91,6 +101,7 @@ useHead(() => ({
           :title="chapter.title"
           :text="chapter.description"
           :image-url="chapter.image_url"
+          :count-label="catalogChapterCountLabel(chapter.lesson_count ?? 0)"
         />
       </div>
     </section>
@@ -99,9 +110,11 @@ useHead(() => ({
     </p>
 
     <section v-if="catalog.showLessons" class="mt-10">
-      <h2 class="mb-4 font-heading text-xl font-semibold">
-        {{ catalog.lessonHeading }}
-      </h2>
+      <CatalogSectionHeading
+        :title="catalog.lessonHeading"
+        icon="bi-folder"
+        tone="laurel"
+      />
       <CatalogLessonList :lessons="lessonRows" />
     </section>
     <p v-else-if="catalog.lessonsMessage" class="mt-10 text-muted-foreground">

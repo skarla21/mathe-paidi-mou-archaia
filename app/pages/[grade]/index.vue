@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import type { Subject } from '~/types/database'
-import { catalogListState } from '~/utils/catalogLists'
+import { catalogListState, catalogSubjectCountLabel } from '~/utils/catalogLists'
 
 interface Grade {
   id: string
   slug: string
   name: string
   order?: number
+}
+
+interface SubjectWithCounts extends Subject {
+  chapter_count?: number
+  lesson_count?: number
 }
 
 const route = useRoute()
@@ -17,8 +22,8 @@ throwIfMissing(gradesError.value, false)
 const grade = gradeData.value?.find((item) => item.slug === gradeSlug)
 throwIfMissing(null, !grade)
 
-const { data: subjectsData, error: subjectsError } = await useFetch<Subject[]>('/api/subjects', {
-  query: { grade_id: grade!.id },
+const { data: subjectsData, error: subjectsError } = await useFetch<SubjectWithCounts[]>('/api/subjects', {
+  query: { grade_id: grade!.id, counts: '1' },
 })
 const subjects = computed(() => subjectsData.value ?? [])
 const subjectsState = computed(() => catalogListState(Boolean(subjectsError.value), subjects.value.length))
@@ -44,18 +49,21 @@ onMounted(() => {
       <LayoutPageIntro
         eyebrow="Τάξεις"
         :title="grade?.name ?? 'Τάξη'"
-        lead="Μαθήματα"
       />
     </div>
-    <div v-if="subjectsState === 'ready'" id="grade-content" class="grid gap-4 lg:grid-cols-2">
-      <CatalogThumbCard
-        v-for="subject in subjects"
-        :key="subject.id"
-        :to="`/${grade?.slug}/${subject.slug}`"
-        :title="subject.name"
-        :image-url="subject.image_url"
-        icon="bi-book"
-      />
+    <div v-if="subjectsState === 'ready'" id="grade-content">
+      <CatalogSectionHeading title="Μαθήματα" icon="bi-journal-text" tone="flame" />
+      <div class="flex flex-col gap-4">
+        <CatalogThumbCard
+          v-for="subject in subjects"
+          :key="subject.id"
+          :to="`/${grade?.slug}/${subject.slug}`"
+          :title="subject.name"
+          :image-url="subject.image_url"
+          :count-label="catalogSubjectCountLabel(subject.chapter_count ?? 0, subject.lesson_count ?? 0)"
+          icon="bi-book"
+        />
+      </div>
     </div>
     <p v-else id="grade-content" class="text-muted-foreground">
       {{ subjectsState === 'error' ? 'Τα μαθήματα δεν φορτώθηκαν. Δοκίμασε ξανά σε λίγο.' : 'Δεν υπάρχουν ακόμη μαθήματα για αυτή την τάξη.' }}
