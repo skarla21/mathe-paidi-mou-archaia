@@ -7,6 +7,7 @@ type LessonSearchItem = {
   title: string
   url: string
   excerpt: string
+  tags: string[]
   is_free: boolean
   preview_url: string | null
   page_count: number | null
@@ -66,6 +67,7 @@ const lessonRows = computed(() => (data.value?.items ?? []).map((lesson) => ({
   title: lesson.title,
   to: lesson.url,
   excerpt: lesson.excerpt,
+  tags: lesson.tags ?? [],
   is_free: lesson.is_free,
   preview_url: lesson.preview_url,
   page_count: lesson.page_count,

@@ -113,8 +113,13 @@ export async function loadAdminLessons(event: H3Event, supabase: SupabaseClient)
     .select('*, lesson_comments(count)', { count: 'exact' })
 
   if (filterIds) filtered = filtered.in('id', filterIds)
-  const title = q ? foldedTextOr('title_folded', q) : null
-  if (title) filtered = filtered.or(title)
+  if (q) {
+    const parts = [
+      foldedTextOr('title_folded', q),
+      foldedTextOr('tags_folded', q),
+    ].filter(Boolean)
+    if (parts.length) filtered = filtered.or(parts.join(','))
+  }
 
   const { data: lessons, error, count } = await filtered
     .order('created_at', { ascending: false })

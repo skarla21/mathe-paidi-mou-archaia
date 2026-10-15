@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import type { LessonChip, LessonChipTone } from '~/lib/lessonContext'
 
-defineProps<{
-  chips: LessonChip[]
-}>()
+withDefaults(
+  defineProps<{
+    chips: LessonChip[]
+    /** Content tags — muted pills that open /search?q=… in a new tab. */
+    tags?: string[]
+  }>(),
+  { tags: () => [] },
+)
 
 const chipClass: Record<LessonChipTone, string> = {
   grade: 'bg-laurel-fixed text-laurel-fixed-foreground',
@@ -14,7 +19,10 @@ const chipClass: Record<LessonChipTone, string> = {
 </script>
 
 <template>
-  <div v-if="chips.length" class="flex flex-wrap gap-2">
+  <div
+    v-if="chips.length || tags.length"
+    class="flex flex-wrap gap-2"
+  >
     <NuxtLink
       v-for="chip in chips"
       :key="`${chip.tone}-${chip.to}`"
@@ -23,5 +31,15 @@ const chipClass: Record<LessonChipTone, string> = {
     >
       {{ chip.name }}
     </NuxtLink>
+    <a
+      v-for="tag in tags"
+      :key="`tag-${tag}`"
+      :href="`/search?q=${encodeURIComponent(tag)}`"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center rounded-full bg-muted px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+    >
+      {{ tag }}
+    </a>
   </div>
 </template>

@@ -365,6 +365,18 @@ function placementSummary(lesson: Lesson): string {
                   >| <VIcon name="bi-chat-text" class="size-3" />
                   {{ l.commentCount }}</span
                 >
+                <span
+                  v-if="l.tags?.length"
+                  class="flex items-center gap-1 flex-wrap text-xs text-muted-foreground"
+                >
+                  |
+                  <span
+                    v-for="tag in l.tags"
+                    :key="tag"
+                    class="rounded bg-muted px-1.5 py-0.5"
+                    >{{ tag }}</span
+                  >
+                </span>
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -399,6 +411,7 @@ function placementSummary(lesson: Lesson): string {
     <AdminLessonModal
       :open="modalOpen"
       :lesson="editingLesson"
+      :lessons="lessons"
       @close="modalOpen = false"
       @saved="load"
     />

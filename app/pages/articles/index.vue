@@ -160,6 +160,8 @@ onBeforeUnmount(() => {
             :title="a.title"
             :description="a.excerpt"
             :chips="a.tags ?? []"
+            chip-search
+            chip-search-path="/articles"
             :preview-url="a.image_url"
             thumb-layout="landscape"
             preview-mode="cover"

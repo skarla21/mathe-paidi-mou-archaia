@@ -11,6 +11,12 @@ import {
 import { adminPage } from '../../utils/adminList'
 import { serverSupabaseAnon, serverSupabaseService } from '../../utils/supabaseServer'
 
+/** PostgREST `or` value: always double-quote (searchLikePattern may already quote). */
+function orLikeValue(pattern: string): string {
+  if (pattern.startsWith('"') && pattern.endsWith('"')) return pattern
+  return `"${pattern.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+}
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const q = (query.q as string)?.trim() ?? ''
@@ -21,11 +27,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const supabase = serverSupabaseAnon()
-  const pattern = searchLikePattern(q)
+  const like = orLikeValue(searchLikePattern(q))
   const { data, error } = await supabase
     .from('lessons')
-    .select('id, title, slug, is_free, content, preview_url, page_count, file_bytes')
-    .like('title_folded', pattern)
+    .select('id, title, slug, is_free, content, tags, preview_url, page_count, file_bytes')
+    .or(`title_folded.like.${like},tags_folded.like.${like}`)
     .order('title')
     .limit(LESSON_SEARCH_FETCH_CAP)
 

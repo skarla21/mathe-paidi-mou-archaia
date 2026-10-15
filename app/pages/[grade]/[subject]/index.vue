@@ -9,6 +9,7 @@ interface SubjectLesson {
   title: string
   is_free: boolean
   excerpt?: string | null
+  tags?: string[]
   preview_url?: string | null
   page_count?: number | null
   file_bytes?: number | null
@@ -81,6 +82,7 @@ const lessonRows = computed(() => subjectLessons.value.map((lesson) => ({
   title: lesson.title,
   to: `${gradeTo.value}/${subject?.slug}/lesson/${lesson.slug}`,
   excerpt: lesson.excerpt,
+  tags: lesson.tags,
   is_free: lesson.is_free,
   preview_url: lesson.preview_url,
   page_count: lesson.page_count,

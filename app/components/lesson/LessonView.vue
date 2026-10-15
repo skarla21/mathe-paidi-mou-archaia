@@ -22,6 +22,7 @@ interface Lesson {
   id: string
   title: string
   content?: string | null
+  tags?: string[]
   is_free: boolean
   price: number
   content_url?: string | null
@@ -136,7 +137,11 @@ onMounted(() => {
       >
         {{ lesson.title }}
       </h1>
-      <CatalogChips class="mt-4" :chips="chips" />
+      <CatalogChips
+        class="mt-4"
+        :chips="chips"
+        :tags="lesson?.tags ?? []"
+      />
     </header>
     <template v-if="lesson">
       <ClientOnly v-if="lesson.content">

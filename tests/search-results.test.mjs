@@ -53,6 +53,7 @@ describe('publicSearchResults', () => {
     assert.match(source, /chaptersRes\.error/)
     assert.match(source, /lessonsRes\.error/)
     assert.match(source, /title_folded/)
+    assert.match(source, /tags_folded/)
     assert.match(source, /searchLikePattern/)
     assert.doesNotMatch(source, /\.ilike\(/)
     assert.doesNotMatch(source, /\.limit\(10\)/)

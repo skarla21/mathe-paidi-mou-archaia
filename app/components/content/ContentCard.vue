@@ -13,6 +13,10 @@ const props = withDefaults(
     title: string;
     description?: string | null;
     chips?: string[];
+    /** When true, chips open chipSearchPath?q=… in a new tab (content tags). */
+    chipSearch?: boolean;
+    /** Base path for clickable chips (e.g. /search or /articles). */
+    chipSearchPath?: string;
     previewUrl?: string | null;
     /** portrait = PDF page teaser; landscape = article cover */
     thumbLayout?: "portrait" | "landscape";
@@ -28,6 +32,8 @@ const props = withDefaults(
   {
     description: null,
     chips: () => [],
+    chipSearch: false,
+    chipSearchPath: "/search",
     previewUrl: null,
     thumbLayout: "portrait",
     previewMode: "cover",
@@ -155,13 +161,28 @@ async function toggleBookmark() {
 
     <div class="min-w-0 flex-1">
       <div v-if="chips.length" class="mb-2 flex flex-wrap gap-2">
-        <span
-          v-for="chip in chips"
-          :key="chip"
-          class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-        >
-          {{ chip }}
-        </span>
+        <template v-if="chipSearch">
+          <a
+            v-for="chip in chips"
+            :key="chip"
+            :href="`${chipSearchPath}?q=${encodeURIComponent(chip)}`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+            @click.stop
+          >
+            {{ chip }}
+          </a>
+        </template>
+        <template v-else>
+          <span
+            v-for="chip in chips"
+            :key="chip"
+            class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+          >
+            {{ chip }}
+          </span>
+        </template>
       </div>
 
       <div class="flex items-start gap-2">

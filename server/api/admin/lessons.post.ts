@@ -1,5 +1,6 @@
 import { serverSupabaseService } from '../../utils/supabaseServer'
 import { requireAdmin } from '../../utils/requireAdmin'
+import { normalizeContentTags } from '../../utils/contentTags'
 import { placementRowsForCreate } from '../../utils/placementOrder'
 import { nextLessonSlug } from '../../utils/contentSlug'
 import { isLessonSlugConflict, isUniqueViolation } from '../../utils/uniqueViolation'
@@ -9,6 +10,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     title: string
     content?: string
+    tags?: unknown
     is_free?: boolean
     price?: number
     content_url?: string
@@ -29,6 +31,7 @@ export default defineEventHandler(async (event) => {
   }
   const supabase = serverSupabaseService()
   const title = body.title.trim()
+  const tags = normalizeContentTags(body.tags)
   let placementErr: { code?: string; message?: string } | null = null
   const contentUrl = body.content_url ?? null
   const previewUrl = contentUrl ? (body.preview_url ?? null) : null
@@ -45,6 +48,7 @@ export default defineEventHandler(async (event) => {
       title,
       slug,
       content: body.content ?? null,
+      tags,
       is_free: body.is_free ?? true,
       price: body.is_free ? 0 : (body.price ?? 0),
       content_url: contentUrl,

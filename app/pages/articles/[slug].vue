@@ -249,13 +249,16 @@ function scrollToComments() {
           :minutes="article.reading_time_minutes"
         />
         <div v-if="article.tags?.length" class="flex flex-wrap gap-2 mt-4">
-          <span
+          <a
             v-for="tag in article.tags"
             :key="tag"
-            class="text-xs rounded-md bg-muted px-2 py-0.5 text-muted-foreground"
+            :href="`/articles?q=${encodeURIComponent(tag)}`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-xs rounded-md bg-muted px-2 py-0.5 text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
           >
             {{ tag }}
-          </span>
+          </a>
         </div>
       </header>
 

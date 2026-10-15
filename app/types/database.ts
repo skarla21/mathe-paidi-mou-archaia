@@ -60,6 +60,7 @@ export interface Lesson {
   title: string
   slug: string
   content: string | null
+  tags: string[]
   is_free: boolean
   price: number
   content_url: string | null

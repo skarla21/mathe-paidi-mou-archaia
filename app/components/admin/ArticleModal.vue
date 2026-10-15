@@ -17,6 +17,7 @@ import { Switch } from "~/components/ui/switch";
 import AdminImageDropzone from "~/components/admin/AdminImageDropzone.vue";
 import AdminExistingImagePicker from "~/components/admin/AdminExistingImagePicker.vue";
 import type { Article } from "~/types/database";
+import { foldGreekSearch } from "#shared/utils/foldGreekSearch.mjs";
 
 const MAX_TAGS = 30;
 const MAX_TAG_LEN = 64;
@@ -84,18 +85,17 @@ watch(
   },
 );
 
-/** Compare tags ignoring case, accents, and final sigma. Stored text stays unchanged. */
-function tagFold(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .replace(/ς/g, "σ")
-    .toLowerCase();
-}
-
 function addTag(raw: string) {
   const tag = raw.trim().slice(0, MAX_TAG_LEN);
-  if (!tag || tags.value.includes(tag) || tags.value.length >= MAX_TAGS) return;
+  const key = foldGreekSearch(tag);
+  if (
+    !tag
+    || !key
+    || tags.value.some((existing) => foldGreekSearch(existing) === key)
+    || tags.value.length >= MAX_TAGS
+  ) {
+    return;
+  }
   tags.value = [...tags.value, tag];
 }
 
@@ -128,13 +128,13 @@ function onTagBlur() {
 }
 
 const tagSuggestions = computed(() => {
-  const draftKey = tagFold(tagDraft.value.trim());
-  const selected = new Set(tags.value.map(tagFold));
+  const draftKey = foldGreekSearch(tagDraft.value.trim());
+  const selected = new Set(tags.value.map((tag) => foldGreekSearch(tag)));
   const seen = new Set<string>();
   const out: string[] = [];
   for (const article of props.articles) {
     for (const tag of article.tags ?? []) {
-      const key = tagFold(tag);
+      const key = foldGreekSearch(tag);
       if (seen.has(key) || selected.has(key)) continue;
       if (draftKey && !key.includes(draftKey)) continue;
       seen.add(key);

@@ -118,6 +118,7 @@ onMounted(() => {
           :title="lesson.title"
           :description="lesson.excerpt"
           :chips="lesson.tags ?? []"
+          chip-search
           :preview-url="lesson.preview_url"
           thumb-layout="portrait"
           preview-mode="contain"

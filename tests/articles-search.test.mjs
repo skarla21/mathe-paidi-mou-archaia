@@ -41,6 +41,7 @@ describe('article public search folding', () => {
     assert.match(adminArticles, /foldedTextOr\('tags_folded'/)
     assert.doesNotMatch(adminArticles, /orIlike\(\['title'\]/)
     assert.match(adminLessons, /foldedTextOr\('title_folded'/)
+    assert.match(adminLessons, /foldedTextOr\('tags_folded'/)
     assert.doesNotMatch(adminLessons, /orIlike\(\['title'\]/)
   })
 

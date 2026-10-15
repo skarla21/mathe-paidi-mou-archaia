@@ -33,6 +33,7 @@ describe('lesson search page helpers', () => {
           title: 'Αγωγή',
           is_free: true,
           content: '<p>Πρώτη παράγραφος για απόσπασμα.</p>',
+          tags: ['Οδύσσεια'],
           preview_url: 'previews/a.webp',
           page_count: 12,
           file_bytes: 4096,
@@ -51,6 +52,7 @@ describe('lesson search page helpers', () => {
       title: 'Αγωγή',
       url: '/a-lykeiou/archaia/enotita/agogi',
       excerpt: 'Πρώτη παράγραφος για απόσπασμα.',
+      tags: ['Οδύσσεια'],
       is_free: true,
       preview_url: 'previews/a.webp',
       page_count: 12,
@@ -59,6 +61,7 @@ describe('lesson search page helpers', () => {
     })
     assert.equal(items[1].id, 'c')
     assert.equal(items[1].excerpt, '')
+    assert.deepEqual(items[1].tags, [])
     assert.equal(items[1].is_free, false)
     assert.equal(items[1].preview_url, null)
     assert.equal(items[1].page_count, null)
@@ -75,6 +78,7 @@ describe('lesson search page helpers', () => {
           title: 'Α',
           url: '/a',
           excerpt: '',
+          tags: [],
           is_free: true,
           preview_url: null,
           page_count: null,
@@ -86,6 +90,7 @@ describe('lesson search page helpers', () => {
           title: 'Β',
           url: '/b',
           excerpt: '',
+          tags: [],
           is_free: true,
           preview_url: null,
           page_count: null,
@@ -105,6 +110,7 @@ describe('lesson search page helpers', () => {
       title: `Μάθημα ${i}`,
       url: `/x/${i}`,
       excerpt: '',
+      tags: [],
       is_free: true,
       preview_url: null,
       page_count: null,
@@ -121,9 +127,10 @@ describe('lesson search page helpers', () => {
 })
 
 describe('GET /api/search/lessons', () => {
-  it('searches folded titles then paginates path-resolved rows', () => {
+  it('searches folded titles and tags then paginates path-resolved rows', () => {
     const source = readFileSync(new URL('../server/api/search/lessons.get.ts', import.meta.url), 'utf8')
     assert.match(source, /title_folded/)
+    assert.match(source, /tags_folded/)
     assert.match(source, /searchLikePattern/)
     assert.match(source, /canonicalLessonPaths/)
     assert.match(source, /mapLessonSearchRows/)
@@ -132,19 +139,36 @@ describe('GET /api/search/lessons', () => {
     assert.match(source, /lesson_bookmarks/)
     assert.match(source, /LESSON_SEARCH_FETCH_CAP/)
     assert.match(source, /foldGreekSearch/)
-    assert.match(source, /select\('id, title, slug, is_free, content, preview_url, page_count, file_bytes'/)
+    assert.match(source, /select\('id, title, slug, is_free, content, tags, preview_url, page_count, file_bytes'/)
     assert.doesNotMatch(source, /count:\s*['"]exact['"]/)
     assert.doesNotMatch(source, /\.ilike\(/)
   })
 })
 
 describe('search page lesson rows', () => {
-  it('forwards preview and bookmark fields into CatalogLessonList', () => {
+  it('forwards preview, tags, and bookmark fields into CatalogLessonList', () => {
     const source = readFileSync(new URL('../app/pages/search.vue', import.meta.url), 'utf8')
     assert.match(source, /preview_url:\s*lesson\.preview_url/)
     assert.match(source, /page_count:\s*lesson\.page_count/)
     assert.match(source, /file_bytes:\s*lesson\.file_bytes/)
+    assert.match(source, /tags:\s*lesson\.tags/)
     assert.match(source, /bookmarked:\s*Boolean\(lesson\.bookmarked\)/)
     assert.match(source, /credentials:\s*['"]include['"]/)
+  })
+})
+
+describe('lesson tags schema', () => {
+  it('adds tags and tags_folded in migration and schema', () => {
+    const migration = readFileSync(
+      new URL('../supabase/migrations/20261015220000_lesson_tags.sql', import.meta.url),
+      'utf8',
+    )
+    const schema = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
+    assert.match(migration, /alter table public\.lessons[\s\S]*tags text\[]/)
+    assert.match(migration, /tags_folded[\s\S]*fold_article_tags\(tags\)/)
+    assert.match(migration, /lessons_tags_folded_idx/)
+    assert.match(schema, /create table if not exists public\.lessons[\s\S]*tags text\[]/)
+    assert.match(schema, /lessons[\s\S]*tags_folded[\s\S]*fold_article_tags\(tags\)/)
+    assert.match(schema, /lessons_tags_folded_idx/)
   })
 })

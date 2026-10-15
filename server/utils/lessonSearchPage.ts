@@ -9,6 +9,7 @@ export type LessonSearchItem = {
   title: string
   url: string
   excerpt: string
+  tags: string[]
   is_free: boolean
   preview_url: string | null
   page_count: number | null
@@ -38,6 +39,7 @@ export function mapLessonSearchRows(
     title: string
     is_free: boolean
     content?: string | null
+    tags?: string[] | null
     preview_url?: string | null
     page_count?: number | null
     file_bytes?: number | null
@@ -53,6 +55,7 @@ export function mapLessonSearchRows(
       title: row.title,
       url,
       excerpt: lessonExcerpt(typeof row.content === 'string' ? row.content : ''),
+      tags: Array.isArray(row.tags) ? row.tags : [],
       is_free: row.is_free,
       preview_url: row.preview_url ?? null,
       page_count: row.page_count ?? null,

@@ -13,6 +13,7 @@ type LessonRow = {
   id: string
   title: string
   content?: string | null
+  tags?: string[] | null
   is_free: boolean
   price: number
   preview_url?: string | null
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
   const { data, error, count } = await supabase
     .from('lesson_bookmarks')
     .select(
-      'lesson_id, created_at, lessons(id, title, content, is_free, price, preview_url, page_count, file_bytes)',
+      'lesson_id, created_at, lessons(id, title, content, tags, is_free, price, preview_url, page_count, file_bytes)',
       { count: 'exact' },
     )
     .eq('user_id', userId)
@@ -52,6 +53,7 @@ export default defineEventHandler(async (event) => {
   const items = lessons.map((lesson) => ({
     id: lesson.id,
     title: lesson.title,
+    tags: Array.isArray(lesson.tags) ? lesson.tags : [],
     is_free: lesson.is_free,
     price: lesson.price,
     preview_url: lesson.preview_url ?? null,

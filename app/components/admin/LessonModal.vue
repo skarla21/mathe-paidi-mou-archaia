@@ -19,10 +19,12 @@ import UiDialogTitle from "~/components/ui/dialog/DialogTitle.vue";
 import UiDialogDescription from "~/components/ui/dialog/DialogDescription.vue";
 import UiButton from "~/components/ui/Button.vue";
 import UiInput from "~/components/ui/Input.vue";
+import UiBadge from "~/components/ui/Badge.vue";
 import UiLabel from "~/components/ui/Label.vue";
 import UiTextarea from "~/components/ui/Textarea.vue";
 import UiProgress from "~/components/ui/Progress.vue";
 import { Checkbox } from "~/components/ui/checkbox";
+import type { Lesson } from "~/types/database";
 import {
   Select,
   SelectContent,
@@ -30,6 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { foldGreekSearch } from "#shared/utils/foldGreekSearch.mjs";
+
+const MAX_TAGS = 30;
+const MAX_TAG_LEN = 64;
 
 interface PlacementRow {
   key: number;
@@ -42,30 +48,8 @@ interface PlacementRow {
 
 const props = defineProps<{
   open: boolean;
-  lesson: {
-    id: string;
-    title: string;
-    content: string | null;
-    is_free: boolean;
-    content_url: string | null;
-    preview_url?: string | null;
-    page_count?: number | null;
-    file_bytes?: number | null;
-    price: number;
-    placements?: Array<{
-      id: string;
-      subject_id: string | null;
-      chapter_id: string | null;
-      category_id: string | null;
-      subjects?: { name: string; grade_id?: string } | null;
-      chapters?: {
-        title: string;
-        grade_id?: string;
-        subject_id?: string;
-      } | null;
-      categories?: { name: string } | null;
-    }>;
-  } | null;
+  lesson: Lesson | null;
+  lessons: Lesson[];
 }>();
 const emit = defineEmits<{ close: []; saved: [] }>();
 const adminFetch = useAdminFetch();
@@ -79,6 +63,9 @@ const {
 
 const title = ref("");
 const content = ref("");
+const tags = ref<string[]>([]);
+const tagDraft = ref("");
+const tagFieldFocused = ref(false);
 const isFree = ref(true);
 const price = ref(0);
 const contentUrl = ref("");
@@ -251,6 +238,8 @@ watch(
 
     title.value = props.lesson?.title ?? "";
     content.value = props.lesson?.content ?? "";
+    tags.value = [...(props.lesson?.tags ?? [])];
+    tagDraft.value = "";
     isFree.value = props.lesson?.is_free ?? true;
     price.value = props.lesson?.price ?? 0;
     uploadGeneration += 1;
@@ -568,6 +557,65 @@ function clearContent() {
   clearPreviewFields();
 }
 
+function addTag(raw: string) {
+  const tag = raw.trim().slice(0, MAX_TAG_LEN);
+  const key = foldGreekSearch(tag);
+  if (
+    !tag
+    || !key
+    || tags.value.some((existing) => foldGreekSearch(existing) === key)
+    || tags.value.length >= MAX_TAGS
+  ) {
+    return;
+  }
+  tags.value = [...tags.value, tag];
+}
+
+function commitDraft(raw: string) {
+  for (const part of raw.split(",")) addTag(part);
+  tagDraft.value = "";
+}
+
+function onTagKeydown(event: KeyboardEvent) {
+  if (event.key === "Enter" || event.key === ",") {
+    event.preventDefault();
+    commitDraft(tagDraft.value);
+    return;
+  }
+  if (event.key === "Backspace" && tagDraft.value === "") {
+    tags.value = tags.value.slice(0, -1);
+  }
+}
+
+function onTagPaste(event: ClipboardEvent) {
+  const text = event.clipboardData?.getData("text") ?? "";
+  if (!text.includes(",")) return;
+  event.preventDefault();
+  commitDraft(tagDraft.value + text);
+}
+
+function onTagBlur() {
+  tagFieldFocused.value = false;
+  if (tagDraft.value.trim()) commitDraft(tagDraft.value);
+}
+
+const tagSuggestions = computed(() => {
+  const draftKey = foldGreekSearch(tagDraft.value.trim());
+  const selected = new Set(tags.value.map((tag) => foldGreekSearch(tag)));
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const lesson of props.lessons) {
+    for (const tag of lesson.tags ?? []) {
+      const key = foldGreekSearch(tag);
+      if (seen.has(key) || selected.has(key)) continue;
+      if (draftKey && !key.includes(draftKey)) continue;
+      seen.add(key);
+      out.push(tag);
+    }
+  }
+  return out;
+});
+
 async function onSubmit() {
   if (uploading.value || uploadBusy.value) return;
   attempted.value = true;
@@ -587,11 +635,13 @@ async function onSubmit() {
     return;
   }
 
+  if (tagDraft.value.trim()) commitDraft(tagDraft.value);
   loading.value = true;
   try {
     const body = {
       title: title.value,
       content: content.value || null,
+      tags: tags.value,
       is_free: isFree.value,
       price: isFree.value ? 0 : price.value,
       content_url: contentUrl.value || null,
@@ -662,6 +712,63 @@ async function onSubmit() {
             <div class="space-y-1.5">
               <UiLabel>Περιγραφή (προαιρετικό)</UiLabel>
               <UiTextarea v-model="content" :rows="3" />
+            </div>
+            <div class="space-y-1.5">
+              <UiLabel>Ετικέτες</UiLabel>
+              <div
+                class="rounded-md border border-input bg-background px-2 py-1.5 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background"
+              >
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <UiBadge
+                    v-for="(tag, index) in tags"
+                    :key="`${tag}-${index}`"
+                    variant="secondary"
+                    class="gap-1 font-normal"
+                  >
+                    {{ tag }}
+                    <button
+                      type="button"
+                      class="rounded-sm hover:text-foreground"
+                      aria-label="Αφαίρεση ετικέτας"
+                      @mousedown.prevent
+                      @click="tags = tags.filter((_, i) => i !== index)"
+                    >
+                      <VIcon name="bi-x" class="size-3.5" />
+                    </button>
+                  </UiBadge>
+                  <input
+                    v-model="tagDraft"
+                    type="text"
+                    class="min-w-32 flex-1 bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
+                    :placeholder="
+                      tags.length
+                        ? ''
+                        : 'Βάλε τις ετικέτες του υλικού χωρισμένες με κόμμα'
+                    "
+                    @focus="tagFieldFocused = true"
+                    @keydown="onTagKeydown"
+                    @paste="onTagPaste"
+                    @blur="onTagBlur"
+                  />
+                </div>
+              </div>
+              <ul
+                v-if="tagFieldFocused && tagSuggestions.length"
+                class="mt-1 max-h-40 overflow-y-auto rounded-md border border-input bg-background py-1"
+              >
+                <li v-for="suggestion in tagSuggestions" :key="suggestion">
+                  <button
+                    type="button"
+                    class="w-full px-3 py-1.5 text-left text-sm hover:bg-muted"
+                    @mousedown.prevent="
+                      addTag(suggestion);
+                      tagDraft = '';
+                    "
+                  >
+                    {{ suggestion }}
+                  </button>
+                </li>
+              </ul>
             </div>
             <div class="space-y-1.5">
               <UiLabel>Αρχείο</UiLabel>

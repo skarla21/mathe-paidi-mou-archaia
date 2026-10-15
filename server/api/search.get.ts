@@ -2,6 +2,12 @@ import { foldGreekSearch, searchLikePattern } from '#shared/utils/foldGreekSearc
 import { serverSupabaseAnon } from '../utils/supabaseServer'
 import { canonicalLessonPaths, publicSearchResults, SEARCH_CANDIDATE_LIMIT } from '../utils/contentPath'
 
+/** PostgREST `or` value: always double-quote (searchLikePattern may already quote). */
+function orLikeValue(pattern: string): string {
+  if (pattern.startsWith('"') && pattern.endsWith('"')) return pattern
+  return `"${pattern.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+}
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const q = (query.q as string)?.trim()
@@ -10,6 +16,7 @@ export default defineEventHandler(async (event) => {
   }
   const supabase = serverSupabaseAnon()
   const pattern = searchLikePattern(q)
+  const lessonLike = orLikeValue(pattern)
   const [chaptersRes, lessonsRes] = await Promise.all([
     supabase
       .from('chapters')
@@ -20,7 +27,7 @@ export default defineEventHandler(async (event) => {
     supabase
       .from('lessons')
       .select('id, title')
-      .like('title_folded', pattern)
+      .or(`title_folded.like.${lessonLike},tags_folded.like.${lessonLike}`)
       .order('title')
       .limit(SEARCH_CANDIDATE_LIMIT),
   ])

@@ -122,6 +122,8 @@ try {
       <NuxtLink
         v-if="shownArticles.length"
         to="/articles"
+        active-class=""
+        exact-active-class=""
         class="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border-2 border-border bg-card px-4 py-2 font-ui text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary/40 hover:bg-secondary"
       >
         Όλα τα άρθρα

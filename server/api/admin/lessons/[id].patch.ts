@@ -1,5 +1,6 @@
 import { serverSupabaseService } from '../../../utils/supabaseServer'
 import { requireAdmin } from '../../../utils/requireAdmin'
+import { normalizeContentTags } from '../../../utils/contentTags'
 import { placementRowsForUpdate } from '../../../utils/placementOrder'
 import { removeUnusedLessonContent, removeUnusedLessonPreview } from '../../../utils/lessonStorage'
 import { stableLessonSlug } from '../../../utils/contentSlug'
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     title?: string
     content?: string
+    tags?: unknown
     is_free?: boolean
     price?: number
     content_url?: string | null
@@ -50,6 +52,7 @@ export default defineEventHandler(async (event) => {
   const updates: Record<string, unknown> = {}
   if (body.title !== undefined) updates.title = body.title.trim()
   if (body.content !== undefined) updates.content = body.content || null
+  if (body.tags !== undefined) updates.tags = normalizeContentTags(body.tags)
   if (body.is_free !== undefined) updates.is_free = body.is_free
   if (body.price !== undefined) updates.price = body.is_free ? 0 : body.price
 

@@ -97,6 +97,7 @@ create table if not exists public.lessons (
   title text not null,
   slug text,
   content text,
+  tags text[] not null default '{}',
   is_free boolean not null default true,
   price int not null default 0,
   content_url text,
@@ -1062,6 +1063,12 @@ $$;
 
 revoke all on function public.fold_article_tags(text[]) from public, anon, authenticated;
 grant execute on function public.fold_article_tags(text[]) to service_role;
+
+alter table public.lessons
+  add column if not exists tags_folded text
+  generated always as (public.fold_article_tags(tags)) stored;
+
+create index if not exists lessons_tags_folded_idx on public.lessons (tags_folded);
 
 alter table public.articles
   add column if not exists title_folded text
