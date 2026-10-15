@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { lessonContentPathFromUrl, LESSON_CONTENT_REAP_AGE_MS, reapOrphanLessonContent, removeUnusedLessonContent } from '../server/utils/lessonStorage.ts'
+import {
+  lessonContentPathFromUrl,
+  lessonPreviewPathFromUrl,
+  LESSON_CONTENT_REAP_AGE_MS,
+  reapOrphanLessonContent,
+  removeUnusedLessonContent,
+} from '../server/utils/lessonStorage.ts'
 
 const SUPABASE_URL = 'https://proj.supabase.co'
 const FILE_URL = `${SUPABASE_URL}/storage/v1/object/public/uploads/lesson-content/1-notes.pdf`
@@ -56,6 +62,16 @@ describe('lessonContentPathFromUrl', () => {
     assert.equal(
       lessonContentPathFromUrl(SAME_FILE_WITH_QUERY, SUPABASE_URL),
       'lesson-content/1-notes.pdf',
+    )
+  })
+
+  it('reads a lesson-previews key', () => {
+    assert.equal(
+      lessonPreviewPathFromUrl(
+        `${SUPABASE_URL}/storage/v1/object/public/uploads/lesson-previews/1-preview.png`,
+        SUPABASE_URL,
+      ),
+      'lesson-previews/1-preview.png',
     )
   })
 

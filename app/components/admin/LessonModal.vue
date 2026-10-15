@@ -48,6 +48,9 @@ const props = defineProps<{
     content: string | null;
     is_free: boolean;
     content_url: string | null;
+    preview_url?: string | null;
+    page_count?: number | null;
+    file_bytes?: number | null;
     price: number;
     placements?: Array<{
       id: string;
@@ -81,9 +84,14 @@ const price = ref(0);
 const contentUrl = ref("");
 const fileName = ref("");
 const savedContentUrl = ref("");
+const previewUrl = ref("");
+const savedPreviewUrl = ref("");
+const pageCount = ref<number | null>(null);
+const fileBytes = ref<number | null>(null);
 const pendingName = ref("");
 const uploadBusy = ref(false);
 const sessionUrls = new Set<string>();
+const sessionPreviewUrls = new Set<string>();
 let uploadGeneration = 0;
 
 let placementKey = 0;
@@ -249,9 +257,14 @@ watch(
     pendingName.value = "";
     uploadBusy.value = false;
     sessionUrls.clear();
+    sessionPreviewUrls.clear();
     savedContentUrl.value = props.lesson?.content_url ?? "";
     contentUrl.value = savedContentUrl.value;
     fileName.value = contentUrl.value ? fileLabelFromUrl(contentUrl.value) : "";
+    savedPreviewUrl.value = props.lesson?.preview_url ?? "";
+    previewUrl.value = savedPreviewUrl.value;
+    pageCount.value = props.lesson?.page_count ?? null;
+    fileBytes.value = props.lesson?.file_bytes ?? null;
     placements.value = [];
 
     try {
@@ -332,10 +345,56 @@ async function discardUrl(url: string) {
   }
 }
 
+async function discardPreviewUrl(url: string) {
+  if (!url || url === savedPreviewUrl.value) return;
+  try {
+    await adminFetch("/api/admin/lesson-preview/discard", {
+      method: "POST",
+      body: { url },
+    });
+  } catch {
+    // The next admin lessons load reaps this file once it is older than 15 minutes.
+  }
+}
+
 async function discardSessionUrls() {
   const urls = [...sessionUrls];
+  const previews = [...sessionPreviewUrls];
   sessionUrls.clear();
-  await Promise.all(urls.map((url) => discardUrl(url)));
+  sessionPreviewUrls.clear();
+  await Promise.all([
+    ...urls.map((url) => discardUrl(url)),
+    ...previews.map((url) => discardPreviewUrl(url)),
+  ]);
+}
+
+function clearPreviewFields() {
+  const previous = previewUrl.value;
+  previewUrl.value = "";
+  pageCount.value = null;
+  fileBytes.value = null;
+  if (previous && previous !== savedPreviewUrl.value) {
+    sessionPreviewUrls.delete(previous);
+    void discardPreviewUrl(previous);
+  }
+}
+
+async function uploadLessonPreview(file: File) {
+  const { lessonPreviewFromFile, previewFileFromRaster } = await import(
+    "~/lib/lessonPreviewRaster"
+  );
+  const raster = await lessonPreviewFromFile(file);
+  const previewFile = previewFileFromRaster(raster, "lesson-preview");
+  const uploaded = await uploadAdminFile(previewFile, {
+    kind: "preview",
+    announce: false,
+  });
+  if (!uploaded?.url) throw new Error("Preview upload failed");
+  return {
+    url: uploaded.url,
+    pageCount: raster.pageCount,
+    fileBytes: raster.fileBytes > 0 ? raster.fileBytes : null,
+  };
 }
 
 async function beginUpload(file: File) {
@@ -348,6 +407,7 @@ async function beginUpload(file: File) {
     return;
   const generation = ++uploadGeneration;
   const previousUrl = contentUrl.value;
+  const previousPreview = previewUrl.value;
   uploadBusy.value = true;
   pendingName.value = file.name;
   try {
@@ -361,8 +421,36 @@ async function beginUpload(file: File) {
       await discardUrl(res.url);
       return;
     }
+
+    let preview: {
+      url: string;
+      pageCount: number | null;
+      fileBytes: number | null;
+    } | null = null;
+    try {
+      preview = await uploadLessonPreview(file);
+    } catch (error) {
+      console.error("Lesson preview error", error);
+      await discardUrl(res.url);
+      toast.error("Η προεπισκόπηση δεν δημιουργήθηκε");
+      return;
+    }
+    if (generation !== uploadGeneration) {
+      await discardUrl(res.url);
+      if (preview.url) await discardPreviewUrl(preview.url);
+      return;
+    }
+    if (!props.open || loading.value) {
+      await discardUrl(res.url);
+      if (preview.url) await discardPreviewUrl(preview.url);
+      return;
+    }
+
     contentUrl.value = res.url;
     fileName.value = file.name;
+    previewUrl.value = preview.url;
+    pageCount.value = preview.pageCount;
+    fileBytes.value = preview.fileBytes;
     if (
       previousUrl &&
       previousUrl !== savedContentUrl.value &&
@@ -371,7 +459,17 @@ async function beginUpload(file: File) {
       sessionUrls.delete(previousUrl);
       void discardUrl(previousUrl);
     }
+    if (
+      previousPreview &&
+      previousPreview !== savedPreviewUrl.value &&
+      previousPreview !== preview.url
+    ) {
+      sessionPreviewUrls.delete(previousPreview);
+      void discardPreviewUrl(previousPreview);
+    }
     if (res.url !== savedContentUrl.value) sessionUrls.add(res.url);
+    if (preview.url !== savedPreviewUrl.value)
+      sessionPreviewUrls.add(preview.url);
   } finally {
     if (generation === uploadGeneration) {
       uploadBusy.value = false;
@@ -467,6 +565,7 @@ function clearContent() {
     sessionUrls.delete(current);
     void discardUrl(current);
   }
+  clearPreviewFields();
 }
 
 async function onSubmit() {
@@ -496,6 +595,9 @@ async function onSubmit() {
       is_free: isFree.value,
       price: isFree.value ? 0 : price.value,
       content_url: contentUrl.value || null,
+      preview_url: contentUrl.value ? previewUrl.value || null : null,
+      page_count: contentUrl.value ? pageCount.value : null,
+      file_bytes: contentUrl.value ? fileBytes.value : null,
       placements: placementPayload,
     };
     if (props.lesson) {
@@ -507,6 +609,7 @@ async function onSubmit() {
       await adminFetch("/api/admin/lessons", { method: "POST", body });
     }
     sessionUrls.clear();
+    sessionPreviewUrls.clear();
     emit("saved");
     emit("close");
   } catch (e: unknown) {

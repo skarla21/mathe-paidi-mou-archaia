@@ -7,7 +7,7 @@ import {
   uploadPercent,
 } from '#shared/utils/uploadProgress.mjs'
 
-type UploadKind = 'lesson' | 'image'
+type UploadKind = 'lesson' | 'image' | 'preview'
 type ImageEntity = 'category' | 'chapter' | 'subject' | 'article'
 
 interface SignResponse {
@@ -19,11 +19,11 @@ interface SignResponse {
 }
 
 function rejectionMessage(file: File, kind: UploadKind): string | null {
-  const allowed = kind === 'image' ? IMAGE_MIMES : LESSON_MIMES
+  const allowed = kind === 'lesson' ? LESSON_MIMES : IMAGE_MIMES
   if (!allowed.includes(file.type)) {
-    return kind === 'image'
-      ? 'Επιτρέπονται μόνο εικόνες JPEG και PNG'
-      : 'Επιτρέπονται μόνο αρχεία PDF, JPG και PNG'
+    return kind === 'lesson'
+      ? 'Επιτρέπονται μόνο αρχεία PDF, JPG και PNG'
+      : 'Επιτρέπονται μόνο εικόνες JPEG και PNG'
   }
   if (file.size > maxBytesForMime(file.type)) {
     return file.type === 'application/pdf'
@@ -149,7 +149,11 @@ export function useAdminFileUpload() {
           filename: file.name,
           mimeType: file.type,
           size: file.size,
-          target: options.kind === 'image' ? 'image' : 'lesson',
+          target: options.kind === 'image'
+            ? 'image'
+            : options.kind === 'preview'
+              ? 'preview'
+              : 'lesson',
           entity: options.entity,
         },
       })

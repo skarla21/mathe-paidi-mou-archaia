@@ -3,8 +3,17 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 const BUCKET = 'uploads'
 const PUBLIC_PREFIX = `/storage/v1/object/public/${BUCKET}/`
 const LESSON_PREFIX = 'lesson-content/'
+const PREVIEW_PREFIX = 'lesson-previews/'
 
 export function lessonContentPathFromUrl(url: string, supabaseUrl: string): string | null {
+  return storagePathFromUrl(url, supabaseUrl, LESSON_PREFIX)
+}
+
+export function lessonPreviewPathFromUrl(url: string, supabaseUrl: string): string | null {
+  return storagePathFromUrl(url, supabaseUrl, PREVIEW_PREFIX)
+}
+
+function storagePathFromUrl(url: string, supabaseUrl: string, prefix: string): string | null {
   if (!url || !supabaseUrl) return null
   let parsed: URL
   let base: URL
@@ -23,7 +32,7 @@ export function lessonContentPathFromUrl(url: string, supabaseUrl: string): stri
   } catch {
     return null
   }
-  if (!path.startsWith(LESSON_PREFIX) || path.includes('\\')) return null
+  if (!path.startsWith(prefix) || path.includes('\\')) return null
   const parts = path.split('/')
   if (parts.some((part) => part === '' || part === '.' || part === '..')) return null
   return path
@@ -31,9 +40,11 @@ export function lessonContentPathFromUrl(url: string, supabaseUrl: string): stri
 
 const PAGE_SIZE = 1000
 const LESSON_FOLDER = 'lesson-content'
+const PREVIEW_FOLDER = 'lesson-previews'
 export const LESSON_CONTENT_REAP_AGE_MS = 15 * 60 * 1000
 
 type LessonContentRow = { content_url?: string | null }
+type LessonPreviewRow = { preview_url?: string | null }
 type StoredObject = {
   name?: string | null
   id?: string | null
@@ -73,9 +84,42 @@ async function referencedLessonContentPaths(
   return paths
 }
 
-function lessonObjectPath(name: string | null | undefined): string | null {
+async function referencedLessonPreviewPaths(
+  supabase: SupabaseClient,
+  supabaseUrl: string,
+): Promise<Set<string> | null> {
+  const paths = new Set<string>()
+  let from = 0
+  for (;;) {
+    const { data, error } = await supabase
+      .from('lessons')
+      .select('preview_url')
+      .not('preview_url', 'is', null)
+      .order('id')
+      .range(from, from + PAGE_SIZE - 1)
+    if (error) {
+      console.error('[lessonStorage] list preview_url', error.message)
+      return null
+    }
+    const rows = (data ?? []) as LessonPreviewRow[]
+    for (const row of rows) {
+      if (!row.preview_url) continue
+      const path = lessonPreviewPathFromUrl(row.preview_url, supabaseUrl)
+      if (!path) {
+        console.error('[lessonStorage] unrecognized preview url')
+        return null
+      }
+      paths.add(path)
+    }
+    if (rows.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
+  return paths
+}
+
+function folderObjectPath(folderPrefix: string, name: string | null | undefined): string | null {
   if (!name || name.includes('/') || name.includes('\\') || name === '.' || name === '..') return null
-  return `${LESSON_PREFIX}${name}`
+  return `${folderPrefix}${name}`
 }
 
 function isStaleObject(createdAt: string | null | undefined, now: number): boolean {
@@ -100,6 +144,21 @@ export async function removeUnusedLessonContent(
   await removeUnusedLessonPath(supabase, path, supabaseUrl)
 }
 
+export async function removeUnusedLessonPreview(
+  supabase: SupabaseClient,
+  previewUrl: string | null | undefined,
+  supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || ''),
+): Promise<void> {
+  if (!previewUrl) return
+  const path = lessonPreviewPathFromUrl(previewUrl, supabaseUrl)
+  if (!path) {
+    console.warn('[lessonStorage] skip unrecognized preview url')
+    return
+  }
+
+  await removeUnusedLessonPreviewPath(supabase, path, supabaseUrl)
+}
+
 export async function removeUnusedLessonPath(
   supabase: SupabaseClient,
   path: string,
@@ -113,29 +172,41 @@ export async function removeUnusedLessonPath(
   if (error) console.error('[lessonStorage] remove', error.message)
 }
 
-export async function reapOrphanLessonContent(
+export async function removeUnusedLessonPreviewPath(
   supabase: SupabaseClient,
+  path: string,
   supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || ''),
-  now = Date.now(),
 ): Promise<void> {
-  const referenced = await referencedLessonContentPaths(supabase, supabaseUrl)
-  if (!referenced) return
+  if (!path.startsWith(PREVIEW_PREFIX)) return
+  const referenced = await referencedLessonPreviewPaths(supabase, supabaseUrl)
+  if (!referenced || referenced.has(path)) return
 
+  const { error } = await supabase.storage.from(BUCKET).remove([path])
+  if (error) console.error('[lessonStorage] remove preview', error.message)
+}
+
+async function reapFolder(
+  supabase: SupabaseClient,
+  folder: string,
+  folderPrefix: string,
+  referenced: Set<string>,
+  now: number,
+): Promise<void> {
   const stale: string[] = []
   let offset = 0
   for (;;) {
-    const { data, error } = await supabase.storage.from(BUCKET).list(LESSON_FOLDER, {
+    const { data, error } = await supabase.storage.from(BUCKET).list(folder, {
       limit: PAGE_SIZE,
       offset,
       sortBy: { column: 'name', order: 'asc' },
     })
     if (error) {
-      console.error('[lessonStorage] list lesson-content', error.message)
+      console.error(`[lessonStorage] list ${folder}`, error.message)
       return
     }
     const objects = (data ?? []) as StoredObject[]
     for (const object of objects) {
-      const path = lessonObjectPath(object.name)
+      const path = folderObjectPath(folderPrefix, object.name)
       if (!path || !object.id || referenced.has(path) || !isStaleObject(object.created_at, now)) continue
       stale.push(path)
     }
@@ -146,6 +217,26 @@ export async function reapOrphanLessonContent(
   for (let index = 0; index < stale.length; index += 100) {
     const batch = stale.slice(index, index + 100)
     const { error } = await supabase.storage.from(BUCKET).remove(batch)
-    if (error) console.error('[lessonStorage] reap', error.message)
+    if (error) console.error(`[lessonStorage] reap ${folder}`, error.message)
   }
+}
+
+export async function reapOrphanLessonContent(
+  supabase: SupabaseClient,
+  supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || ''),
+  now = Date.now(),
+): Promise<void> {
+  const referenced = await referencedLessonContentPaths(supabase, supabaseUrl)
+  if (!referenced) return
+  await reapFolder(supabase, LESSON_FOLDER, LESSON_PREFIX, referenced, now)
+}
+
+export async function reapOrphanLessonPreviews(
+  supabase: SupabaseClient,
+  supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || ''),
+  now = Date.now(),
+): Promise<void> {
+  const referenced = await referencedLessonPreviewPaths(supabase, supabaseUrl)
+  if (!referenced) return
+  await reapFolder(supabase, PREVIEW_FOLDER, PREVIEW_PREFIX, referenced, now)
 }

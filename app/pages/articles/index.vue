@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { toast } from 'vue-sonner'
-import UiCard from '~/components/ui/Card.vue'
-import UiCardContent from '~/components/ui/CardContent.vue'
+import ContentCard from '~/components/content/ContentCard.vue'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
-import { NuxtLink } from '#components'
 
 definePageMeta({ layout: 'default' })
 useHead(() => ({ title: 'Άρθρα' }))
@@ -15,14 +13,16 @@ type Row = {
   reading_time_minutes: number
   image_url?: string | null
   created_at: string
+  excerpt?: string
 }
 
 const list = ref<Row[] | null>(null)
-const storedImageSrc = useStoredImageSrc()
 
 onMounted(async () => {
   try {
-    list.value = await $fetch<Row[]>('/api/articles', { credentials: 'include' })
+    list.value = await $fetch<Row[]>('/api/articles', {
+      credentials: 'include',
+    })
   } catch {
     list.value = []
     toast.error('Κάτι πήγε στραβά')
@@ -31,49 +31,43 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-3xl px-4 py-12">
-    <LayoutPageIntro title="Άρθρα" />
-
-    <div v-if="list === null" class="space-y-4">
-      <UiCard v-for="i in 4" :key="i" class="rounded-3xl border-border/80 shadow-sm">
-        <UiCardContent class="p-6">
-          <UiSkeleton class="h-6 w-2/3 rounded-lg" />
-          <UiSkeleton class="mt-2 h-4 w-36 rounded-lg" />
-        </UiCardContent>
-      </UiCard>
+  <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
+    <div class="max-w-3xl">
+      <LayoutPageIntro title="Άρθρα" />
     </div>
 
-    <p v-else-if="!list.length" class="text-muted-foreground">Δεν υπάρχουν άρθρα ακόμα.</p>
+    <div v-if="list === null" class="mt-2 space-y-4">
+      <div
+        v-for="i in 4"
+        :key="i"
+        class="flex gap-4 rounded-3xl border border-border bg-card p-4"
+      >
+        <UiSkeleton class="aspect-[4/3] w-44 shrink-0 rounded-2xl" />
+        <div class="min-w-0 flex-1 space-y-3">
+          <UiSkeleton class="h-6 w-3/4 rounded-lg" />
+          <UiSkeleton class="h-4 w-full rounded-lg" />
+          <UiSkeleton class="h-4 w-32 rounded-lg" />
+        </div>
+      </div>
+    </div>
 
-    <ul v-else class="space-y-4">
-      <li v-for="a in list" :key="a.id">
-        <UiCard class="overflow-hidden rounded-3xl border-border/80 shadow-sm transition-shadow hover:shadow-md">
-          <NuxtLink :to="`/articles/${a.id}`" class="group block">
-            <img
-              v-if="storedImageSrc(a.image_url)"
-              :src="storedImageSrc(a.image_url)"
-              alt=""
-              class="h-40 w-full object-cover"
-            >
-            <UiCardContent class="p-6">
-              <h2 class="text-xl font-heading font-semibold group-hover:text-primary transition-colors">
-                {{ a.title }}
-              </h2>
-              <p class="text-sm text-muted-foreground mt-2">
-                {{ `${a.reading_time_minutes} λεπτά ανάγνωσης` }}
-              </p>
-              <div v-if="a.tags?.length" class="flex flex-wrap gap-2 mt-3">
-                <span
-                  v-for="tag in a.tags"
-                  :key="tag"
-                  class="text-xs rounded-md bg-muted px-2 py-0.5 text-muted-foreground"
-                >
-                  {{ tag }}
-                </span>
-              </div>
-            </UiCardContent>
-          </NuxtLink>
-        </UiCard>
+    <p v-else-if="!list.length" class="mt-2 text-muted-foreground">
+      Δεν υπάρχουν άρθρα ακόμα.
+    </p>
+
+    <ul v-else class="mt-2 flex w-full flex-col gap-3">
+      <li v-for="a in list" :key="a.id" class="w-full">
+        <ContentCard
+          :to="`/articles/${a.id}`"
+          :title="a.title"
+          :description="a.excerpt"
+          :chips="a.tags ?? []"
+          :preview-url="a.image_url"
+          thumb-layout="landscape"
+          preview-mode="cover"
+          placeholder-icon="bi-newspaper"
+          :reading-minutes="a.reading_time_minutes"
+        />
       </li>
     </ul>
   </div>

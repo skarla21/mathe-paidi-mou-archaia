@@ -66,10 +66,15 @@ describe('upload paths', () => {
       uploadObjectPath('lesson', 'cover.png', 'application/pdf', 'chapter', 'abcd1234'),
       'lesson-content/cover-abcd1234.pdf',
     )
+    assert.equal(
+      uploadObjectPath('preview', 'preview.png', 'image/png', 'lesson', 'abcd1234'),
+      'lesson-previews/preview-abcd1234.png',
+    )
   })
 
   it('rejects traversal and folders outside the upload prefixes', () => {
     assert.equal(isUploadPath('lesson-content/notes-abcd1234.pdf'), true)
+    assert.equal(isUploadPath('lesson-previews/preview-abcd1234.png'), true)
     assert.equal(isUploadPath('entity-images/category-cover-abcd1234.png'), true)
     assert.equal(isUploadPath('lesson-content/../secret.pdf'), false)
     assert.equal(isUploadPath('avatars/photo.png'), false)
@@ -97,6 +102,8 @@ describe('upload file checks', () => {
     assert.equal(mimeAllowedForPath('lesson-content/notes-abcd1234.pdf', 'application/pdf'), true)
     assert.equal(mimeAllowedForPath('entity-images/category-cover-abcd1234.png', 'application/pdf'), false)
     assert.equal(mimeAllowedForPath('entity-images/category-cover-abcd1234.png', 'image/png'), true)
+    assert.equal(mimeAllowedForPath('lesson-previews/preview-abcd1234.png', 'image/png'), true)
+    assert.equal(mimeAllowedForPath('lesson-previews/preview-abcd1234.png', 'application/pdf'), false)
   })
 
   it('accepts bytes only when they match the signed mime', () => {

@@ -15,6 +15,11 @@ interface Lesson {
   title: string
   is_free: boolean
   excerpt?: string | null
+  preview_url?: string | null
+  page_count?: number | null
+  file_bytes?: number | null
+  bookmarked?: boolean
+  tags?: string[]
 }
 
 const route = useRoute()
@@ -37,6 +42,11 @@ const lessonRows = computed(() => lessons.value.map((lesson) => ({
   to: `/category/${categorySlug}/${lesson.slug}`,
   excerpt: lesson.excerpt,
   is_free: lesson.is_free,
+  preview_url: lesson.preview_url,
+  page_count: lesson.page_count,
+  file_bytes: lesson.file_bytes,
+  bookmarked: lesson.bookmarked,
+  tags: lesson.tags,
 })))
 
 useHead(() => ({ title: category.value?.name ?? 'Κατηγορία' }))

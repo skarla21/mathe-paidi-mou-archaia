@@ -16,18 +16,30 @@ import { contentLengthFromHeaders, lessonFileSizeLabel, lessonImagePreviewUrl, l
 
 const THUMB_BITMAP_WIDTH = 280
 
-const props = defineProps<{ src: string; lessonId?: string; title: string }>()
+const props = withDefaults(defineProps<{
+  src: string
+  lessonId?: string
+  title: string
+  previewUrl?: string | null
+  pageCount?: number | null
+  fileBytes?: number | null
+}>(), {
+  previewUrl: null,
+  pageCount: null,
+  fileBytes: null,
+})
 
 const open = ref(false)
 const downloading = ref(false)
 const thumbLoading = ref(true)
 const thumbFailed = ref(false)
-const pageCount = ref(0)
-const fileSizeLabel = ref('')
+const loadedPageCount = ref(0)
+const loadedFileSizeLabel = ref('')
 const bookPage = ref<HTMLElement | null>(null)
 let bookTween: { kill: () => void } | null = null
 const thumbCanvas = ref<HTMLCanvasElement | null>(null)
 const imagePreviewFailed = ref(false)
+const storedThumbFailed = ref(false)
 const zoomPercent = ref(100)
 const viewerPage = ref(1)
 const viewerTotal = ref(0)
@@ -36,17 +48,29 @@ const pathPart = computed(() => (props.src || '').split('?')[0] ?? '')
 const isPdf = computed(() => /\.pdf$/i.test(pathPart.value))
 const isImage = computed(() => /\.(jpg|jpeg|png)$/i.test(pathPart.value))
 const zoom = computed(() => zoomPercent.value / 100)
+const hasStoredPreview = computed(() => Boolean(props.previewUrl) && !storedThumbFailed.value)
+const pageCount = computed(() => {
+  if (props.pageCount != null && props.pageCount > 0) return props.pageCount
+  return loadedPageCount.value
+})
+const fileSizeLabel = computed(() => {
+  const stored = lessonFileSizeLabel(props.fileBytes ?? 0)
+  if (stored) return stored
+  return loadedFileSizeLabel.value
+})
 const imageSrc = computed(() => (
   imagePreviewFailed.value ? props.src : String(lessonImagePreviewUrl(props.src))
 ))
+const needsClientThumb = computed(() => isPdf.value && !hasStoredPreview.value)
+const needsClientSize = computed(() => !lessonFileSizeLabel(props.fileBytes ?? 0))
 
 let thumbToken = 0
 let sizeToken = 0
 
 async function loadFileSize() {
-  if (!import.meta.client || !props.src) return
+  if (!import.meta.client || !props.src || !needsClientSize.value) return
   const token = ++sizeToken
-  fileSizeLabel.value = ''
+  loadedFileSizeLabel.value = ''
   try {
     let bytes = 0
     try {
@@ -66,9 +90,9 @@ async function loadFileSize() {
       )
     }
     if (token !== sizeToken) return
-    fileSizeLabel.value = String(lessonFileSizeLabel(bytes))
+    loadedFileSizeLabel.value = String(lessonFileSizeLabel(bytes))
   } catch {
-    if (token === sizeToken) fileSizeLabel.value = ''
+    if (token === sizeToken) loadedFileSizeLabel.value = ''
   }
 }
 
@@ -76,12 +100,17 @@ function onImageError() {
   if (!imagePreviewFailed.value) imagePreviewFailed.value = true
 }
 
+function onStoredThumbError() {
+  storedThumbFailed.value = true
+  if (isPdf.value) void loadThumb()
+}
+
 async function loadThumb() {
-  if (!import.meta.client || !isPdf.value) return
+  if (!import.meta.client || !needsClientThumb.value) return
   const token = ++thumbToken
   thumbLoading.value = true
   thumbFailed.value = false
-  pageCount.value = 0
+  loadedPageCount.value = 0
   let pdf: import('pdfjs-dist').PDFDocumentProxy | null = null
   try {
     const pdfjs = await loadPdfjs()
@@ -95,7 +124,7 @@ async function loadThumb() {
     })
     pdf = await task.promise
     if (token !== thumbToken) return
-    pageCount.value = pdf.numPages
+    loadedPageCount.value = pdf.numPages
     const page = await pdf.getPage(1)
     await nextTick()
     const canvas = thumbCanvas.value
@@ -186,15 +215,27 @@ async function download() {
   }
 }
 
-watch(() => props.src, () => {
+function refreshThumbAndSize() {
   imagePreviewFailed.value = false
-  void loadThumb()
-  void loadFileSize()
-})
+  storedThumbFailed.value = false
+  if (needsClientThumb.value) void loadThumb()
+  else {
+    thumbLoading.value = false
+    thumbFailed.value = false
+  }
+  if (needsClientSize.value) void loadFileSize()
+  else loadedFileSizeLabel.value = ''
+}
+
+watch(
+  () => [props.src, props.previewUrl, props.pageCount, props.fileBytes] as const,
+  () => {
+    refreshThumbAndSize()
+  },
+)
 
 onMounted(() => {
-  void loadThumb()
-  void loadFileSize()
+  refreshThumbAndSize()
 })
 
 onUnmounted(() => {
@@ -220,24 +261,33 @@ onUnmounted(() => {
           ref="bookPage"
           class="relative block origin-left overflow-hidden rounded-sm bg-white"
         >
-          <span
-            v-if="isPdf && thumbLoading"
-            class="block aspect-[1/1.414] animate-pulse bg-muted"
-          />
-          <canvas
-            v-show="isPdf && !thumbFailed"
-            ref="thumbCanvas"
-            class="block h-auto w-full"
-            :class="thumbLoading ? 'invisible absolute inset-x-0 top-0' : ''"
-          />
-          <span
-            v-if="isPdf && thumbFailed"
-            class="flex aspect-[1/1.414] items-center justify-center text-muted-foreground"
-          >
-            <VIcon name="bi-journal-text" class="size-8" aria-hidden="true" />
-          </span>
           <img
-            v-if="isImage"
+            v-if="hasStoredPreview"
+            :src="previewUrl!"
+            alt=""
+            class="block h-auto w-full object-contain object-top"
+            @error="onStoredThumbError"
+          >
+          <template v-else-if="isPdf">
+            <span
+              v-if="thumbLoading"
+              class="block aspect-[1/1.414] animate-pulse bg-muted"
+            />
+            <canvas
+              v-show="!thumbFailed"
+              ref="thumbCanvas"
+              class="block h-auto w-full"
+              :class="thumbLoading ? 'invisible absolute inset-x-0 top-0' : ''"
+            />
+            <span
+              v-if="thumbFailed"
+              class="flex aspect-[1/1.414] items-center justify-center text-muted-foreground"
+            >
+              <VIcon name="bi-journal-text" class="size-8" aria-hidden="true" />
+            </span>
+          </template>
+          <img
+            v-else-if="isImage"
             :src="imageSrc"
             alt=""
             class="block max-h-72 w-full object-cover object-top"

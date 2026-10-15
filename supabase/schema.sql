@@ -100,7 +100,12 @@ create table if not exists public.lessons (
   is_free boolean not null default true,
   price int not null default 0,
   content_url text,
-  created_at timestamptz not null default now()
+  preview_url text,
+  page_count int,
+  file_bytes bigint,
+  created_at timestamptz not null default now(),
+  constraint lessons_page_count_check check (page_count is null or page_count > 0),
+  constraint lessons_file_bytes_check check (file_bytes is null or file_bytes > 0)
 );
 create index if not exists lessons_title_idx on public.lessons(title);
 
@@ -141,6 +146,22 @@ create table if not exists public.purchases (
 create index if not exists purchases_user_id_idx on public.purchases(user_id);
 create index if not exists purchases_lesson_id_idx on public.purchases(lesson_id);
 create index if not exists purchases_stripe_session_id_idx on public.purchases(stripe_session_id);
+
+-- Saved lessons. A purchase inserts a row here; removing the bookmark does not remove the purchase.
+create table if not exists public.lesson_bookmarks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  lesson_id uuid not null references public.lessons(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique(user_id, lesson_id)
+);
+create index if not exists lesson_bookmarks_user_id_idx on public.lesson_bookmarks(user_id);
+create index if not exists lesson_bookmarks_lesson_id_idx on public.lesson_bookmarks(lesson_id);
+
+insert into public.lesson_bookmarks (user_id, lesson_id)
+select distinct user_id, lesson_id
+from public.purchases
+on conflict (user_id, lesson_id) do nothing;
 
 -- Downloads (renamed from lesson_downloads — tracks which lessons a user has downloaded)
 create table if not exists public.downloads (
@@ -259,6 +280,7 @@ alter table public.chapters enable row level security;
 alter table public.lessons enable row level security;
 alter table public.lesson_placements enable row level security;
 alter table public.purchases enable row level security;
+alter table public.lesson_bookmarks enable row level security;
 alter table public.downloads enable row level security;
 alter table public.lesson_ratings enable row level security;
 alter table public.lesson_comments enable row level security;

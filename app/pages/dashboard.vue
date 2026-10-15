@@ -1,25 +1,38 @@
 <script setup lang="ts">
-import UiCard from '~/components/ui/Card.vue'
-import UiCardHeader from '~/components/ui/CardHeader.vue'
-import UiCardTitle from '~/components/ui/CardTitle.vue'
-import UiCardContent from '~/components/ui/CardContent.vue'
+import ContentCard from '~/components/content/ContentCard.vue'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
-import { purchaseCardState } from '~/utils/purchaseCard'
 
 definePageMeta({ middleware: 'auth' })
 
 useHead(() => ({ title: 'Πίνακας' }))
 
-const { data: purchasesData, pending } = await useFetch<
-  { id: string; title: string; is_free: boolean; price: number; url: string | null }[]
->('/api/user/purchases')
+type BookmarkRow = {
+  id: string
+  title: string
+  is_free: boolean
+  price: number
+  preview_url: string | null
+  page_count: number | null
+  file_bytes: number | null
+  excerpt: string
+  url: string | null
+  bookmarked: boolean
+  tags?: string[]
+}
+
+const { data: bookmarksData, pending, refresh } = await useFetch<BookmarkRow[]>(
+  '/api/user/bookmarks',
+)
 
 const lessons = computed(() =>
-  (purchasesData.value ?? []).map((lesson) => ({
-    ...lesson,
-    card: purchaseCardState(lesson.url),
-  })),
+  (bookmarksData.value ?? []).filter((lesson) => Boolean(lesson.url)),
 )
+
+function onBookmarked(id: string, saved: boolean) {
+  if (saved || !bookmarksData.value) return
+  bookmarksData.value = bookmarksData.value.filter((lesson) => lesson.id !== id)
+  void refresh()
+}
 
 onMounted(() => {
   if (import.meta.client) {
@@ -32,28 +45,27 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-5xl px-4 py-12">
-    <div id="dashboard-title">
-      <LayoutPageIntro title="Πίνακας" lead="Το αγορασμένο υλικό σου και η πρόοδός σου." />
+  <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
+    <div id="dashboard-title" class="max-w-3xl">
+      <LayoutPageIntro title="Πίνακας" lead="Τα αποθηκευμένα μαθήματά σου." />
     </div>
 
-    <!-- My Courses section -->
     <section>
-      <h2 class="font-heading text-xl font-semibold mb-4">Το Υλικό Μου</h2>
+      <h2 class="mb-4 font-heading text-xl font-semibold">Το Υλικό Μου</h2>
 
-      <!-- Skeleton loading -->
-      <div v-if="pending" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <UiSkeleton v-for="i in 3" :key="i" class="h-28 rounded-xl" />
+      <div v-if="pending" class="space-y-3">
+        <UiSkeleton v-for="i in 3" :key="i" class="h-36 rounded-3xl" />
       </div>
 
-      <!-- Empty state -->
       <div
         v-else-if="lessons.length === 0"
         class="max-w-md rounded-3xl border border-dashed border-border bg-card p-10 text-center shadow-sm"
       >
-        <VIcon name="bi-cart" class="size-10 mx-auto text-muted-foreground/70" aria-hidden="true" />
-        <p class="mt-3 font-heading font-medium">Δεν έχεις αγοράσει υλικό ακόμα.</p>
-        <p class="mt-1 text-sm text-muted-foreground">Αγόρασε υλικό για να ξεκλειδώσεις το PDF.</p>
+        <VIcon name="bi-bookmark" class="mx-auto size-10 text-muted-foreground/70" aria-hidden="true" />
+        <p class="mt-3 font-heading font-medium">Δεν έχεις αποθηκευμένο υλικό ακόμα.</p>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Αποθήκευσε μαθήματα από τον κατάλογο για να τα βρίσκεις εδώ.
+        </p>
         <NuxtLink
           to="/"
           class="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
@@ -62,39 +74,24 @@ onMounted(() => {
         </NuxtLink>
       </div>
 
-      <!-- Content grid -->
-      <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <component
-          :is="c.card.to ? 'NuxtLink' : 'div'"
-          v-for="c in lessons"
-          :key="c.id"
-          v-bind="c.card.to ? { to: c.card.to } : {}"
-          class="block"
-          :class="c.card.to ? 'group' : undefined"
-        >
-          <UiCard
-            class="rounded-3xl border-border/80 shadow-sm"
-            :class="c.card.to ? 'bobble-card transition-shadow hover:shadow-md' : 'border-dashed shadow-none'"
-          >
-            <UiCardHeader class="flex flex-row items-center gap-3 pb-2">
-              <span
-                class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-                aria-hidden="true"
-              >
-                <VIcon name="bi-journal-bookmark" class="size-4" />
-              </span>
-              <UiCardTitle class="font-heading text-base leading-snug">{{ c.title }}</UiCardTitle>
-            </UiCardHeader>
-            <UiCardContent class="pt-0 pb-4">
-              <span class="text-xs text-muted-foreground">
-                {{ c.is_free ? 'Δωρεάν' : `€${(c.price / 100).toFixed(2)}` }}
-              </span>
-              <p v-if="c.card.note" class="mt-2 text-xs text-muted-foreground">
-                {{ c.card.note }}
-              </p>
-            </UiCardContent>
-          </UiCard>
-        </component>
+      <div v-else class="flex w-full flex-col gap-3">
+        <ContentCard
+          v-for="lesson in lessons"
+          :key="lesson.id"
+          :to="lesson.url!"
+          :title="lesson.title"
+          :description="lesson.excerpt"
+          :chips="lesson.tags ?? []"
+          :preview-url="lesson.preview_url"
+          thumb-layout="portrait"
+          preview-mode="contain"
+          :page-count="lesson.page_count"
+          :file-bytes="lesson.file_bytes"
+          :lesson-id="lesson.id"
+          :bookmarked="true"
+          :is-free="lesson.is_free"
+          @update:bookmarked="(saved) => onBookmarked(lesson.id, saved)"
+        />
       </div>
     </section>
   </div>

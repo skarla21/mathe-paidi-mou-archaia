@@ -14,13 +14,16 @@ export async function canAccessLesson(
     is_free: boolean
     price: number
     content_url?: string | null
+    preview_url?: string | null
+    page_count?: number | null
+    file_bytes?: number | null
   }
   content_url?: string | null
 }> {
   const supabase = serverSupabaseService()
   const { data: lesson, error: lessonError } = await supabase
     .from('lessons')
-    .select('id, title, content, is_free, price, content_url')
+    .select('id, title, content, is_free, price, content_url, preview_url, page_count, file_bytes')
     .eq('id', lessonId)
     .single()
   if (lessonError || !lesson) return { allowed: false, canAccessContent: false }

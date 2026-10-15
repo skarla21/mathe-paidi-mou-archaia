@@ -18,10 +18,10 @@ describe('purchaseCardState', () => {
     })
   })
 
-  it('keeps the hover treatment on linked cards only', () => {
+  it('dashboard shows saved lessons from bookmarks', () => {
     const source = readFileSync(new URL('../app/pages/dashboard.vue', import.meta.url), 'utf8')
-    assert.match(source, /purchaseCardState/)
-    assert.match(source, /c\.card\.note/)
-    assert.match(source, /c\.card\.to \? 'bobble-card/)
+    assert.match(source, /\/api\/user\/bookmarks/)
+    assert.match(source, /ContentCard/)
+    assert.match(source, /preview_url/)
   })
 })

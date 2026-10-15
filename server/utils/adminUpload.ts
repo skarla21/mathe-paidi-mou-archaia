@@ -10,10 +10,10 @@ import { storedFileName } from './safeStorageName.ts'
 
 export const UPLOAD_BUCKET = 'uploads'
 const TICKET_TTL_MS = 2 * 60 * 60 * 1000
-const FOLDERS = new Set(['lesson-content', 'entity-images'])
+const FOLDERS = new Set(['lesson-content', 'lesson-previews', 'entity-images'])
 const IMAGE_ENTITIES = new Set(['category', 'chapter', 'subject', 'article'])
 
-export type UploadTarget = 'lesson' | 'image'
+export type UploadTarget = 'lesson' | 'image' | 'preview'
 export type UploadMime = 'application/pdf' | 'image/jpeg' | 'image/png'
 
 export interface UploadTicket {
@@ -28,7 +28,7 @@ export function isImageEntity(value: string): boolean {
 }
 
 export function isAllowedUploadMime(target: UploadTarget, mime: string): mime is UploadMime {
-  const allowed = target === 'image' ? IMAGE_MIMES : LESSON_MIMES
+  const allowed = target === 'lesson' ? LESSON_MIMES : IMAGE_MIMES
   return (allowed as readonly string[]).includes(mime)
 }
 
@@ -43,7 +43,11 @@ export function uploadObjectPath(
   entity: string,
   suffix: string,
 ): string {
-  const folder = target === 'image' ? 'entity-images' : 'lesson-content'
+  const folder = target === 'image'
+    ? 'entity-images'
+    : target === 'preview'
+      ? 'lesson-previews'
+      : 'lesson-content'
   const entityPrefix = entity.replace(/[\\/]/g, '').replace(/[^A-Za-z0-9-]/g, '') || 'item'
   const named = target === 'image' ? `${entityPrefix}-${filename}` : filename
   return `${folder}/${storedFileName(named, mimeType, suffix)}`
@@ -61,8 +65,8 @@ export function isUploadPath(path: string): boolean {
 
 export function mimeAllowedForPath(path: string, mime: string): boolean {
   if (!isUploadPath(path)) return false
-  if (path.startsWith('entity-images/')) return (IMAGE_MIMES as readonly string[]).includes(mime)
-  return (LESSON_MIMES as readonly string[]).includes(mime)
+  if (path.startsWith('lesson-content/')) return (LESSON_MIMES as readonly string[]).includes(mime)
+  return (IMAGE_MIMES as readonly string[]).includes(mime)
 }
 
 export function mimeFromMagic(bytes: Uint8Array): UploadMime | null {

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ContentCard from '~/components/content/ContentCard.vue'
+
 defineProps<{
   lessons: {
     id: string
@@ -6,35 +8,34 @@ defineProps<{
     to: string
     excerpt?: string | null
     is_free?: boolean
+    preview_url?: string | null
+    page_count?: number | null
+    file_bytes?: number | null
+    bookmarked?: boolean
+    /** Same string[] tags pattern as articles; assigned later from admin. */
+    tags?: string[]
   }[]
 }>()
 </script>
 
 <template>
-  <div class="flex flex-col gap-3">
-    <NuxtLink
+  <div class="flex w-full flex-col gap-3">
+    <ContentCard
       v-for="lesson in lessons"
       :key="lesson.id"
       :to="lesson.to"
-      class="group flex items-center gap-4 rounded-3xl border border-border bg-card px-5 py-4 shadow-sm transition-colors hover:bg-secondary"
-    >
-      <span class="min-w-0 flex-1">
-        <span class="block font-heading text-base font-semibold text-foreground">{{ lesson.title }}</span>
-        <span v-if="lesson.excerpt" class="mt-1 block line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-          {{ lesson.excerpt }}
-        </span>
-      </span>
-      <VIcon
-        v-if="lesson.is_free === false"
-        name="bi-gem"
-        class="size-4 shrink-0 text-muted-foreground"
-        aria-hidden="true"
-      />
-      <VIcon
-        name="bi-chevron-right"
-        class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-        aria-hidden="true"
-      />
-    </NuxtLink>
+      :title="lesson.title"
+      :description="lesson.excerpt"
+      :chips="lesson.tags ?? []"
+      :preview-url="lesson.preview_url"
+      thumb-layout="portrait"
+      preview-mode="contain"
+      placeholder-icon="bi-file-earmark-text"
+      :page-count="lesson.page_count"
+      :file-bytes="lesson.file_bytes"
+      :lesson-id="lesson.id"
+      :bookmarked="Boolean(lesson.bookmarked)"
+      :is-free="lesson.is_free"
+    />
   </div>
 </template>

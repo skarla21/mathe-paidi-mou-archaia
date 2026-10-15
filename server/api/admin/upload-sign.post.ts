@@ -27,7 +27,11 @@ export default defineEventHandler(async (event) => {
   const filename = typeof body?.filename === 'string' ? body.filename.trim() : ''
   const mimeType = typeof body?.mimeType === 'string' ? body.mimeType : ''
   const size = typeof body?.size === 'number' ? body.size : NaN
-  const target: UploadTarget = body?.target === 'image' ? 'image' : 'lesson'
+  const target: UploadTarget = body?.target === 'image'
+    ? 'image'
+    : body?.target === 'preview'
+      ? 'preview'
+      : 'lesson'
   const entity = typeof body?.entity === 'string' ? body.entity : ''
 
   if (!filename || filename.length > 240 || filename.includes('\0')) {
@@ -36,7 +40,7 @@ export default defineEventHandler(async (event) => {
   if (!isAllowedUploadMime(target, mimeType)) {
     throw createError({
       statusCode: 400,
-      message: target === 'image' ? 'Images: only JPG and PNG allowed' : 'Only PDF, JPG, and PNG allowed',
+      message: target === 'lesson' ? 'Only PDF, JPG, and PNG allowed' : 'Images: only JPG and PNG allowed',
     })
   }
   if (target === 'image' && !isImageEntity(entity)) {

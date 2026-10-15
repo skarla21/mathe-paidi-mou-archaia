@@ -31,8 +31,10 @@ export default defineEventHandler(async (event) => {
   }
   const { serverSupabaseService } = await import('../../utils/supabaseServer')
   const supabase = serverSupabaseService()
+  const { ensureLessonBookmarkQuiet } = await import('../../utils/lessonBookmarks')
   const { data: existing } = await supabase.from('purchases').select('id').eq('stripe_session_id', session.id).maybeSingle()
   if (existing) {
+    await ensureLessonBookmarkQuiet(supabase, userId, lessonId)
     return { received: true }
   }
 
@@ -59,5 +61,6 @@ export default defineEventHandler(async (event) => {
     const { notifyPurchaseCreated } = await import('../../utils/adminNotifications')
     await notifyPurchaseCreated(supabase, purchaseRow.id)
   }
+  await ensureLessonBookmarkQuiet(supabase, userId, lessonId)
   return { received: true }
 })

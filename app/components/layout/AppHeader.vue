@@ -269,7 +269,6 @@ async function confirmLogout() {
                 </span>
               </UiDropdownMenuItem>
               <UiDropdownMenuItem
-                v-if="!isAdmin"
                 :class="accountMenuItemClass"
               >
                 <NuxtLink to="/dashboard" class="w-full">
@@ -547,7 +546,6 @@ async function confirmLogout() {
                 </span>
               </button>
               <NuxtLink
-                v-if="!isAdmin"
                 to="/dashboard"
                 class="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-secondary"
                 @click="onMobileNavLink"

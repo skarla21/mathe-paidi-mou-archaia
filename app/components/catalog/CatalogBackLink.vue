@@ -8,7 +8,7 @@ defineProps<{
 <template>
   <NuxtLink
     :to="to"
-    class="inline-flex max-w-full items-center gap-2 rounded-full border-2 border-border bg-card px-4 py-2 font-ui text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary/40 hover:bg-secondary"
+    class="inline-flex max-w-full items-center gap-2 rounded-full bg-muted px-4 py-2 font-ui text-sm font-semibold text-primary ring-offset-background transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
   >
     <VIcon name="bi-arrow-left" class="size-4 shrink-0" aria-hidden="true" />
     <span class="truncate">{{ name }}</span>

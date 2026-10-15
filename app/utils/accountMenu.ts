@@ -4,7 +4,7 @@ export const accountMenuItemClass =
 export const accountMenuDestructiveClass =
   'my-0.5 rounded-xl px-2 py-2 text-destructive hover:bg-destructive/10 focus:bg-destructive/10 data-[highlighted]:bg-destructive/10'
 
-export const studentMaterialSubtitle = 'Μαθήματα & πρόοδος'
+export const studentMaterialSubtitle = 'Αποθηκευμένα μαθήματα'
 
 export const adminPanelSubtitle = 'Υλικό & ρυθμίσεις'
 

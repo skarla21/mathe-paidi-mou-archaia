@@ -13,6 +13,9 @@ describe('publicLessonList', () => {
           title: 'Πρώτο',
           content: '<p>Περιγραφή μαθήματος</p>',
           content_url: 'https://secret.example/file.pdf',
+          preview_url: 'https://cdn.example/preview.png',
+          page_count: 3,
+          file_bytes: 1400000,
           is_free: false,
           price: 500,
           created_at: '2026-01-01',
@@ -23,6 +26,9 @@ describe('publicLessonList', () => {
     assert.equal(lesson.order, 2)
     assert.equal(lesson.title, 'Πρώτο')
     assert.equal(lesson.is_free, false)
+    assert.equal(lesson.preview_url, 'https://cdn.example/preview.png')
+    assert.equal(lesson.page_count, 3)
+    assert.equal(lesson.file_bytes, 1400000)
     assert.equal(Object.hasOwn(lesson, 'content'), false)
     assert.equal(Object.hasOwn(lesson, 'content_url'), false)
   })

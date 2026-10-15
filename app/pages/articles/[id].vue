@@ -8,6 +8,7 @@ import TooltipProvider from "~/components/ui/tooltip/TooltipProvider.vue";
 import Tooltip from "~/components/ui/tooltip/Tooltip.vue";
 import TooltipTrigger from "~/components/ui/tooltip/TooltipTrigger.vue";
 import TooltipContent from "~/components/ui/tooltip/TooltipContent.vue";
+import ContentReadingTime from "~/components/content/ReadingTime.vue";
 
 definePageMeta({ layout: "default" });
 const route = useRoute();
@@ -204,8 +205,10 @@ async function removeComment() {
     <CatalogBackLink class="mb-6" to="/articles" name="Όλα τα άρθρα" />
 
     <template v-if="articlePending">
-      <UiSkeleton class="mb-3 h-9 w-3/4 rounded-xl" />
-      <UiSkeleton class="h-4 w-40 rounded-lg" />
+      <UiSkeleton class="mb-3 h-9 w-full rounded-xl" />
+      <div class="flex justify-end">
+        <UiSkeleton class="h-4 w-40 rounded-lg" />
+      </div>
       <div class="mt-4 flex gap-2">
         <UiSkeleton class="h-5 w-16 rounded-md" />
         <UiSkeleton class="h-5 w-20 rounded-md" />
@@ -217,11 +220,14 @@ async function removeComment() {
     </template>
 
     <template v-else>
-      <header class="mb-8">
-        <h1 class="text-3xl font-heading font-bold">{{ article.title }}</h1>
-        <p class="text-sm text-muted-foreground mt-2">
-          {{ `${article.reading_time_minutes} λεπτά ανάγνωσης` }}
-        </p>
+      <header class="mb-8 space-y-2">
+        <h1 class="text-3xl font-heading font-bold">
+          {{ article.title }}
+        </h1>
+        <ContentReadingTime
+          class="text-end"
+          :minutes="article.reading_time_minutes"
+        />
         <div v-if="article.tags?.length" class="flex flex-wrap gap-2 mt-4">
           <span
             v-for="tag in article.tags"
@@ -235,6 +241,7 @@ async function removeComment() {
 
       <CatalogCover
         class="mb-8"
+        show-full
         :image-url="article.image_url"
         :alt="article.title"
       />

@@ -25,6 +25,9 @@ interface Lesson {
   is_free: boolean
   price: number
   content_url?: string | null
+  preview_url?: string | null
+  page_count?: number | null
+  file_bytes?: number | null
 }
 
 type LessonFileBlock = 'sign-in' | 'verify-email' | 'purchase' | null
@@ -149,6 +152,9 @@ onMounted(() => {
       <div v-if="canAccess && canAccessContent && lesson.content_url" class="mt-8">
         <LessonContentViewer
           :src="lesson.content_url"
+          :preview-url="lesson.preview_url"
+          :page-count="lesson.page_count"
+          :file-bytes="lesson.file_bytes"
           :lesson-id="props.lessonId"
           :title="lesson.title"
         />

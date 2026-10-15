@@ -62,6 +62,9 @@ export interface Lesson {
   is_free: boolean
   price: number
   content_url: string | null
+  preview_url?: string | null
+  page_count?: number | null
+  file_bytes?: number | null
   created_at: string
   /** Many-to-many placements — present when fetched with joins */
   placements?: LessonPlacement[]

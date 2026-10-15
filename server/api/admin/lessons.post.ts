@@ -7,15 +7,20 @@ import { isLessonSlugConflict, isUniqueViolation } from '../../utils/uniqueViola
 export default defineEventHandler(async (event) => {
   requireAdmin(event)
   const body = await readBody<{
-    title: string; content?: string; is_free?: boolean; price?: number
+    title: string
+    content?: string
+    is_free?: boolean
+    price?: number
     content_url?: string
+    preview_url?: string | null
+    page_count?: number | null
+    file_bytes?: number | null
     placements?: Array<{ subject_id?: string | null; chapter_id?: string | null; category_id?: string | null }>
   }>(event)
   if (!body.title?.trim()) throw createError({ statusCode: 400, message: 'Ο τίτλος είναι υποχρεωτικός' })
   if (!body.placements?.length) {
     throw createError({ statusCode: 400, message: 'Χρειάζεται τουλάχιστον μία ανάθεση' })
   }
-  // Validate each placement has exactly one parent
   for (const p of body.placements) {
     const count = [p.subject_id, p.chapter_id, p.category_id].filter(Boolean).length
     if (count !== 1) {
@@ -25,6 +30,14 @@ export default defineEventHandler(async (event) => {
   const supabase = serverSupabaseService()
   const title = body.title.trim()
   let placementErr: { code?: string; message?: string } | null = null
+  const contentUrl = body.content_url ?? null
+  const previewUrl = contentUrl ? (body.preview_url ?? null) : null
+  const pageCount = contentUrl && body.page_count != null && body.page_count > 0
+    ? Math.floor(body.page_count)
+    : null
+  const fileBytes = contentUrl && body.file_bytes != null && body.file_bytes > 0
+    ? Math.floor(body.file_bytes)
+    : null
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const slug = await nextLessonSlug(supabase, title, body.placements)
@@ -34,7 +47,10 @@ export default defineEventHandler(async (event) => {
       content: body.content ?? null,
       is_free: body.is_free ?? true,
       price: body.is_free ? 0 : (body.price ?? 0),
-      content_url: body.content_url ?? null,
+      content_url: contentUrl,
+      preview_url: previewUrl,
+      page_count: pageCount,
+      file_bytes: fileBytes,
     }).select().single()
     if (error || !data) {
       if (isUniqueViolation(error) && attempt < 2) continue
