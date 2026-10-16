@@ -44,7 +44,8 @@ export default defineEventHandler(async (event) => {
     supabase,
     rows.map((row) => row.id),
   )
-  const mapped = mapLessonSearchRows(rows, lessonPaths)
+  const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || '')
+  const mapped = mapLessonSearchRows(rows, lessonPaths, supabaseUrl)
   const pageResult = paginateLessonSearchItems(mapped, page, LESSON_SEARCH_PAGE_SIZE)
 
   const userId = event.context.auth?.userId ?? null

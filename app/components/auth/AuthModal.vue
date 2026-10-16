@@ -3,7 +3,7 @@ import { toast } from 'vue-sonner'
 import { EMAIL_REGEX, PASSWORD_MIN_LENGTH } from '~/lib/validation'
 
 const { isOpen, activeTab, loginSubView, pendingRedirect, close, openForgot, backToLogin } = useAuthModal()
-const { fetchSession } = useCurrentUser()
+const { session, fetchSession } = useCurrentUser()
 const { signInWithGoogle } = useGoogleSignIn()
 
 // Login state
@@ -35,6 +35,13 @@ watch(loginSubView, () => {
   forgotError.value = ''
 })
 
+watch(
+  () => session.value.user?.id,
+  (userId) => {
+    if (userId && isOpen.value) close()
+  },
+)
+
 async function onGoogleLogin() {
   await signInWithGoogle(pendingRedirect.value ?? "/")
 }
@@ -65,8 +72,8 @@ async function onLoginSubmit() {
       toast.error(errorMap[errorCode] ?? 'Η σύνδεση δεν ήταν δυνατή')
       return
     }
-    await fetchSession()
     const redirect = pendingRedirect.value
+    await fetchSession()
     close()
     toast.success('Καλώς ήρθατε!')
     if (redirect) await navigateTo(redirect)
@@ -126,8 +133,8 @@ async function onRegisterSubmit() {
       toast.error('Η εγγραφή δεν ήταν δυνατή')
       return
     }
-    await fetchSession()
     const redirect = pendingRedirect.value
+    await fetchSession()
     close()
     toast.success('Καλώς ήρθες! Ο λογαριασμός σου δημιουργήθηκε.')
     if (redirect) await navigateTo(redirect)

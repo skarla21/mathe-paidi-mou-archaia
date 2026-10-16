@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { publicLessonList } from '../shared/utils/publicLessonList.mjs'
 
+const origin = 'https://abc.supabase.co'
+const preview = `${origin}/storage/v1/object/public/uploads/lesson-previews/cover.png`
+
 describe('publicLessonList', () => {
   it('returns an excerpt and leaves the description and file off the list', () => {
     const [lesson] = publicLessonList([
@@ -13,7 +16,7 @@ describe('publicLessonList', () => {
           title: 'Πρώτο',
           content: '<p>Περιγραφή μαθήματος</p>',
           content_url: 'https://secret.example/file.pdf',
-          preview_url: 'https://cdn.example/preview.png',
+          preview_url: preview,
           page_count: 3,
           file_bytes: 1400000,
           is_free: false,
@@ -21,12 +24,16 @@ describe('publicLessonList', () => {
           created_at: '2026-01-01',
         },
       },
-    ])
+    ], origin)
     assert.equal(lesson.excerpt, 'Περιγραφή μαθήματος')
     assert.equal(lesson.order, 2)
     assert.equal(lesson.title, 'Πρώτο')
     assert.equal(lesson.is_free, false)
-    assert.equal(lesson.preview_url, 'https://cdn.example/preview.png')
+    assert.equal(lesson.preview_url, preview)
+    const [foreign] = publicLessonList([
+      { order: 1, lessons: { id: 'x', title: 'Ξ', preview_url: 'https://cdn.example/preview.png' } },
+    ], origin)
+    assert.equal(foreign.preview_url, null)
     assert.equal(lesson.page_count, 3)
     assert.equal(lesson.file_bytes, 1400000)
     assert.equal(Object.hasOwn(lesson, 'content'), false)

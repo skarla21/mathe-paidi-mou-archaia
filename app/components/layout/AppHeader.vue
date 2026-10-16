@@ -29,7 +29,9 @@ const mobileMenuOpen = ref(false);
 
 const homeActive = computed(() => route.path === "/");
 const aboutActive = computed(() => route.path === "/about");
-const articlesActive = computed(() => route.path === "/articles" || route.path.startsWith("/articles/"));
+const articlesActive = computed(
+  () => route.path === "/articles" || route.path.startsWith("/articles/"),
+);
 
 function wiggleIcon(el: HTMLElement | null) {
   if (import.meta.client && el) {
@@ -100,10 +102,10 @@ async function confirmLogout() {
           aria-hidden="true"
         >
           <img
-            src="/imgs/mathe_arxaia_logo.jpg"
+            src="/imgs/mathe_archaia_logo.jpg"
             alt=""
             class="size-full object-cover"
-          >
+          />
         </span>
         <span
           class="font-brand text-base font-bold leading-tight tracking-tight sm:text-lg group-hover/logo:text-primary transition-colors"
@@ -200,7 +202,7 @@ async function confirmLogout() {
                     :src="session.user.avatar_url"
                     :alt="session.user.name ?? ''"
                     class="size-full object-cover"
-                  >
+                  />
                   <VIcon
                     v-else
                     name="bi-person-fill"
@@ -223,7 +225,7 @@ async function confirmLogout() {
                     :src="session.user.avatar_url"
                     :alt="session.user.name ?? ''"
                     class="size-full object-cover"
-                  >
+                  />
                   <VIcon
                     v-else
                     name="bi-person-fill"
@@ -233,7 +235,9 @@ async function confirmLogout() {
                 </div>
                 <div class="min-w-0">
                   <div class="flex min-w-0 items-center gap-2">
-                    <p class="min-w-0 truncate text-sm font-semibold leading-none">
+                    <p
+                      class="min-w-0 truncate text-sm font-semibold leading-none"
+                    >
                       {{ session.user.name ?? "Χρήστης" }}
                     </p>
                     <span
@@ -268,9 +272,7 @@ async function confirmLogout() {
                   </span>
                 </span>
               </UiDropdownMenuItem>
-              <UiDropdownMenuItem
-                :class="accountMenuItemClass"
-              >
+              <UiDropdownMenuItem :class="accountMenuItemClass">
                 <NuxtLink to="/dashboard" class="w-full">
                   <span class="flex w-full items-center gap-3">
                     <UiIconWell>
@@ -293,10 +295,7 @@ async function confirmLogout() {
                   </span>
                 </NuxtLink>
               </UiDropdownMenuItem>
-              <UiDropdownMenuItem
-                v-if="isAdmin"
-                :class="accountMenuItemClass"
-              >
+              <UiDropdownMenuItem v-if="isAdmin" :class="accountMenuItemClass">
                 <NuxtLink to="/admin" class="w-full">
                   <span class="flex w-full items-center gap-3">
                     <UiIconWell>
@@ -410,10 +409,10 @@ async function confirmLogout() {
           >
             <span class="size-9 shrink-0 overflow-hidden rounded-full">
               <img
-                src="/imgs/mathe_arxaia_logo.jpg"
+                src="/imgs/mathe_archaia_logo.jpg"
                 alt=""
                 class="size-full object-cover"
-              >
+              />
             </span>
             <span class="font-brand text-lg font-bold leading-tight"
               >Μάθε Παιδί Μου Αρχαία!</span
@@ -500,7 +499,7 @@ async function confirmLogout() {
                     :src="session.user.avatar_url"
                     :alt="session.user.name ?? ''"
                     class="size-full object-cover"
-                  >
+                  />
                   <VIcon
                     v-else
                     name="bi-person-fill"
@@ -510,7 +509,9 @@ async function confirmLogout() {
                 </div>
                 <div class="min-w-0">
                   <div class="flex min-w-0 items-center gap-2">
-                    <p class="min-w-0 truncate text-sm font-semibold leading-none">
+                    <p
+                      class="min-w-0 truncate text-sm font-semibold leading-none"
+                    >
                       {{ session.user.name ?? "Χρήστης" }}
                     </p>
                     <span

@@ -34,7 +34,7 @@ onMounted(() => {
         <div class="flex items-center gap-2">
           <span class="size-9 shrink-0 overflow-hidden rounded-full">
             <img
-              src="/imgs/mathe_arxaia_logo.jpg"
+              src="/imgs/mathe_archaia_logo.jpg"
               alt=""
               class="size-full object-cover"
             />

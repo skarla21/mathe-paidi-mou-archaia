@@ -34,7 +34,7 @@ describe('lesson search page helpers', () => {
           is_free: true,
           content: '<p>Πρώτη παράγραφος για απόσπασμα.</p>',
           tags: ['Οδύσσεια'],
-          preview_url: 'previews/a.webp',
+          preview_url: 'https://abc.supabase.co/storage/v1/object/public/uploads/lesson-previews/cover.png',
           page_count: 12,
           file_bytes: 4096,
         },
@@ -45,6 +45,7 @@ describe('lesson search page helpers', () => {
         ['a', '/a-lykeiou/archaia/enotita/agogi'],
         ['c', '/category/extra/pliromeno'],
       ]),
+      'https://abc.supabase.co',
     )
     assert.equal(items.length, 2)
     assert.deepEqual(items[0], {
@@ -54,7 +55,7 @@ describe('lesson search page helpers', () => {
       excerpt: 'Πρώτη παράγραφος για απόσπασμα.',
       tags: ['Οδύσσεια'],
       is_free: true,
-      preview_url: 'previews/a.webp',
+      preview_url: 'https://abc.supabase.co/storage/v1/object/public/uploads/lesson-previews/cover.png',
       page_count: 12,
       file_bytes: 4096,
       bookmarked: false,

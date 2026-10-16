@@ -12,6 +12,7 @@ import {
   uploadObjectPath,
   type UploadTarget,
 } from '../../utils/adminUpload'
+import { LESSON_FILES_BUCKET } from '../../utils/lessonStorage'
 
 interface SignBody {
   filename?: unknown
@@ -63,7 +64,8 @@ export default defineEventHandler(async (event) => {
   let lastMessage = 'Upload failed'
   for (let attempt = 0; attempt < 3; attempt += 1) {
     path = uploadObjectPath(target, filename, mimeType, entity, randomUUID().slice(0, 8))
-    const { data, error } = await supabase.storage.from(UPLOAD_BUCKET).createSignedUploadUrl(path, { upsert: false })
+    const bucket = target === 'lesson' ? LESSON_FILES_BUCKET : UPLOAD_BUCKET
+    const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path, { upsert: false })
     if (!error && data?.signedUrl) {
       signedUrl = data.signedUrl
       break

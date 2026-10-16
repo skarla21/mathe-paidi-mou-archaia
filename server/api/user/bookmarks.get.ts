@@ -1,4 +1,5 @@
 import { lessonExcerpt } from '#shared/utils/lessonExcerpt.mjs'
+import { publicLessonPreviewUrl } from '#shared/utils/lessonPreviewUrl.mjs'
 import {
   publicListPage,
   publicPage,
@@ -52,13 +53,14 @@ export default defineEventHandler(async (event) => {
     .filter((lesson): lesson is LessonRow => Boolean(lesson?.id))
 
   const paths = await canonicalLessonPaths(supabase, lessons.map((lesson) => lesson.id))
+  const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || '')
   const items = lessons.map((lesson) => ({
     id: lesson.id,
     title: lesson.title,
     tags: Array.isArray(lesson.tags) ? lesson.tags : [],
     is_free: lesson.is_free,
     price: lesson.price,
-    preview_url: lesson.preview_url ?? null,
+    preview_url: publicLessonPreviewUrl(lesson.preview_url, supabaseUrl),
     page_count: lesson.page_count ?? null,
     file_bytes: lesson.file_bytes ?? null,
     avg_rating: Number(lesson.avg_rating ?? 0),

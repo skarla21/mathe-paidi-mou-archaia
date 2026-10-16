@@ -95,11 +95,25 @@ const attempted = ref(false);
 const dragActive = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
-function fileLabelFromUrl(url: string): string {
+function fileNameFromLocator(url: string): string {
   try {
-    const segment = decodeURIComponent(
+    return decodeURIComponent(
       new URL(url).pathname.split("/").filter(Boolean).pop() || "",
     );
+  } catch {
+    const bare = url.split("?")[0]?.split("/").filter(Boolean).pop() || "";
+    try {
+      return decodeURIComponent(bare);
+    } catch {
+      return bare;
+    }
+  }
+}
+
+function fileLabelFromUrl(url: string): string {
+  try {
+    const segment = fileNameFromLocator(url);
+    if (!segment) return "";
     const name = segment.replace(/^\d{10,}-/, "") || segment;
     const stem = name.replace(/\.[^.]+$/, "");
     // Older uploads replaced Greek (and any non-ASCII) with underscores.
@@ -369,9 +383,8 @@ function clearPreviewFields() {
 }
 
 async function uploadLessonPreview(file: File) {
-  const { lessonPreviewFromFile, previewFileFromRaster } = await import(
-    "~/lib/lessonPreviewRaster"
-  );
+  const { lessonPreviewFromFile, previewFileFromRaster } =
+    await import("~/lib/lessonPreviewRaster");
   const raster = await lessonPreviewFromFile(file);
   const previewFile = previewFileFromRaster(raster, "lesson-preview");
   const uploaded = await uploadAdminFile(previewFile, {
@@ -561,10 +574,10 @@ function addTag(raw: string) {
   const tag = raw.trim().slice(0, MAX_TAG_LEN);
   const key = foldGreekSearch(tag);
   if (
-    !tag
-    || !key
-    || tags.value.some((existing) => foldGreekSearch(existing) === key)
-    || tags.value.length >= MAX_TAGS
+    !tag ||
+    !key ||
+    tags.value.some((existing) => foldGreekSearch(existing) === key) ||
+    tags.value.length >= MAX_TAGS
   ) {
     return;
   }
@@ -728,7 +741,7 @@ async function onSubmit() {
                     {{ tag }}
                     <button
                       type="button"
-                      class="rounded-sm hover:text-foreground"
+                      class="cursor-pointer rounded-sm hover:text-foreground"
                       aria-label="Αφαίρεση ετικέτας"
                       @mousedown.prevent
                       @click="tags = tags.filter((_, i) => i !== index)"

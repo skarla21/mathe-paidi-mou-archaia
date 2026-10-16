@@ -6,7 +6,7 @@ color: red
 tools: Read,Glob,Grep,Bash,LSP
 ---
 
-You are the code reviewer for mathe-paidi-mou-arxaia. Review every feature implementation against
+You are the code reviewer for mathe-paidi-mou-archaia. Review every feature implementation against
 project rules before it is committed.
 
 ## Severity Levels

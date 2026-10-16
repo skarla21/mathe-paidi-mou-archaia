@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const { openRegister } = useAuthModal();
+const { session } = useCurrentUser();
+const signedIn = computed(() => !!session.value.user?.id);
 const hoveredKey = ref<string | null>(null);
 const finePointer = ref(true);
 
@@ -17,7 +19,7 @@ onMounted(() => {
   ).matches;
 });
 
-const tiers = [
+const tiers = computed(() => [
   {
     key: "guest",
     icon: "bi-unlock",
@@ -41,23 +43,33 @@ const tiers = [
   },
   {
     key: "account",
-    icon: "bi-person-plus",
+    icon: signedIn.value ? "bi-person-badge" : "bi-person-plus",
     accent: "text-primary",
     badge: "bg-flame-fixed text-flame-fixed-foreground",
     back: "bg-gradient-to-br from-[#ea580c] via-[#cc4900] to-[#a33900]",
     ctaClass: "bg-white text-primary",
-    badgeText: "Δωρεάν εγγραφή",
+    badgeText: signedIn.value ? "Ο λογαριασμός σου" : "Δωρεάν εγγραφή",
     title: "Με λογαριασμό",
-    lead: "Επιβεβαιώνεις το email, αποκτάς πρόσβαση	στα δωρεάν αρχεία.",
+    lead: signedIn.value
+      ? "Συνέχισε από το υλικό που έχεις αποθηκεύσει ή αγοράσει."
+      : "Επιβεβαιώνεις το email, αποκτάς πρόσβαση στα δωρεάν αρχεία.",
     bullets: [
       "Πρόσβαση στα δωρεάν αρχεία ανά πάσα στιγμή",
       "Αγορά επί πληρωμή μαθημάτων",
     ],
     backTitle: "Δικός σου χώρος",
     backLead: "Άμεση πρόσβαση στο υλικό που σε ενδιαφέρει.",
-    cta: "Δημιουργία λογαριασμού",
-    note: "Η επιβεβαίωση email ξεκλειδώνει τα αρχεία",
-    action: () => openRegister(),
+    cta: signedIn.value ? "Το υλικό μου" : "Δημιουργία λογαριασμού",
+    note: signedIn.value
+      ? "Τα αποθηκευμένα και οι αγορές σου"
+      : "Η επιβεβαίωση email ξεκλειδώνει τα αρχεία",
+    action: () => {
+      if (signedIn.value) {
+        void navigateTo("/dashboard");
+        return;
+      }
+      openRegister();
+    },
   },
   {
     key: "tutor",
@@ -81,7 +93,7 @@ const tiers = [
     note: "Απάντηση το συντομότερο",
     action: () => scrollTo("communication"),
   },
-];
+]);
 </script>
 
 <template>

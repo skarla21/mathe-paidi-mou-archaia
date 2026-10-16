@@ -1,23 +1,41 @@
 export function useAuthModal() {
+  const { session, fetchSession } = useCurrentUser()
   const isOpen = useState<boolean>('authModal.open', () => false)
   const activeTab = useState<'login' | 'register'>('authModal.tab', () => 'login')
   const loginSubView = useState<'form' | 'forgot'>('authModal.loginSubView', () => 'form')
   const pendingRedirect = useState<string | null>('authModal.redirect', () => null)
 
-  function openLogin(redirectTo?: string) {
+  function signedIn() {
+    return !!session.value.user?.id
+  }
+
+  // The client session can outlive the cookie (logout in another tab). Confirm
+  // with the server before refusing to open, so a stale session cannot trap
+  // the auth middleware's login prompt.
+  async function sessionStillValid() {
+    if (!signedIn()) return false
+    await fetchSession()
+    return signedIn()
+  }
+
+  async function openLogin(redirectTo?: string) {
+    if (await sessionStillValid()) return false
     pendingRedirect.value = redirectTo ?? null
     activeTab.value = 'login'
     loginSubView.value = 'form'
     isOpen.value = true
+    return true
   }
 
-  function openRegister(redirectTo?: string) {
+  async function openRegister(redirectTo?: string) {
+    if (await sessionStillValid()) return
     pendingRedirect.value = redirectTo ?? null
     activeTab.value = 'register'
     isOpen.value = true
   }
 
-  function openForgot() {
+  async function openForgot() {
+    if (await sessionStillValid()) return
     activeTab.value = 'login'
     loginSubView.value = 'forgot'
     isOpen.value = true

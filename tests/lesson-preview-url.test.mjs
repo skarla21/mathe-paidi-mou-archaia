@@ -7,11 +7,43 @@ import {
   lessonFileSizeLabel,
   lessonImagePreviewUrl,
   lessonPageCountLabel,
+  publicLessonPreviewUrl,
   strongestVisiblePage,
 } from '../shared/utils/lessonPreviewUrl.mjs'
 
 const origin = 'https://abc.supabase.co'
 const image = `${origin}/storage/v1/object/public/uploads/lesson-content/dice.png`
+
+describe('publicLessonPreviewUrl', () => {
+  it('keeps a stored lesson preview image', () => {
+    const preview = `${origin}/storage/v1/object/public/uploads/lesson-previews/cover.png`
+    assert.equal(publicLessonPreviewUrl(preview, origin), preview)
+  })
+
+  it('drops a lesson pdf, a content image, a foreign origin, and a preview path that climbs out', () => {
+    assert.equal(
+      publicLessonPreviewUrl(`${origin}/storage/v1/object/public/uploads/lesson-previews/sheet.pdf`, origin),
+      null,
+    )
+    assert.equal(
+      publicLessonPreviewUrl(`${origin}/storage/v1/object/public/uploads/lesson-content/dice.png`, origin),
+      null,
+    )
+    assert.equal(
+      publicLessonPreviewUrl(`${origin}/storage/v1/object/public/uploads/lesson-previews/%2e%2e/lesson-content/secret.pdf`, origin),
+      null,
+    )
+    assert.equal(
+      publicLessonPreviewUrl('https://evil.example/storage/v1/object/public/uploads/lesson-previews/cover.png', origin),
+      null,
+    )
+    assert.equal(publicLessonPreviewUrl('', origin), null)
+    assert.equal(
+      publicLessonPreviewUrl(`${origin}/storage/v1/object/public/uploads/lesson-previews/cover.png`),
+      null,
+    )
+  })
+})
 
 describe('lessonImagePreviewUrl', () => {
   it('asks storage for a small render of a lesson image', () => {

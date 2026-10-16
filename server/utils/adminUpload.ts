@@ -6,6 +6,8 @@ import {
 } from '#shared/utils/uploadProgress.mjs'
 // Node's test runner resolves this module only with the .ts extension.
 // @ts-expect-error TS5097 Nuxt typecheck rejects that extension.
+import { LESSON_FILES_BUCKET } from './lessonStorage.ts'
+// @ts-expect-error TS5097 Nuxt typecheck rejects that extension.
 import { storedFileName } from './safeStorageName.ts'
 
 export const UPLOAD_BUCKET = 'uploads'
@@ -103,7 +105,11 @@ export function uploadByteLength(
   return null
 }
 
-export function storageObjectUrl(supabaseUrl: string, path: string): string | null {
+export function uploadBucketForPath(path: string): string {
+  return path.startsWith('lesson-content/') ? LESSON_FILES_BUCKET : UPLOAD_BUCKET
+}
+
+export function storageObjectUrl(supabaseUrl: string, path: string, bucket = uploadBucketForPath(path)): string | null {
   if (!isUploadPath(path)) return null
   let base: URL
   try {
@@ -112,7 +118,7 @@ export function storageObjectUrl(supabaseUrl: string, path: string): string | nu
     return null
   }
   const encoded = path.split('/').map((part) => encodeURIComponent(part)).join('/')
-  return new URL(`/storage/v1/object/${UPLOAD_BUCKET}/${encoded}`, base).toString()
+  return new URL(`/storage/v1/object/${bucket}/${encoded}`, base).toString()
 }
 
 export function signUploadTicket(path: string, secret: string, mime: string, now = Date.now()): UploadTicket {

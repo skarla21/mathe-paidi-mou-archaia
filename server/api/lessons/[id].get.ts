@@ -1,5 +1,7 @@
 import { lessonFileBlock } from '#shared/utils/lessonFileBlock.mjs'
+import { publicLessonPreviewUrl } from '#shared/utils/lessonPreviewUrl.mjs'
 import { canAccessLesson } from '../../utils/access'
+import { signedLessonContentUrl } from '../../utils/lessonFileAccess'
 import { serverSupabaseService } from '../../utils/supabaseServer'
 
 export default defineEventHandler(async (event) => {
@@ -19,13 +21,25 @@ export default defineEventHandler(async (event) => {
     emailVerified = !!data?.email_verified
   }
 
-  const { allowed, canAccessContent, lesson, content_url } = await canAccessLesson(
+  const { allowed, canAccessContent, lesson } = await canAccessLesson(
     userId,
     id,
     emailVerified,
   )
   if (!lesson) throw createError({ statusCode: 404, message: 'Lesson not found' })
-  const hasContent = Boolean(lesson.content_url)
+  const { content_url: storedContentUrl, ...lessonFields } = lesson
+  const hasContent = Boolean(storedContentUrl)
+
+  let fileUrl: string | null = null
+  if (canAccessContent && storedContentUrl) {
+    try {
+      fileUrl = await signedLessonContentUrl(supabase, storedContentUrl)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'lesson file'
+      console.error('[lessons/[id].get] file', message)
+      throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
+    }
+  }
 
   const [{ count: commentCount }, myRatingRes] = await Promise.all([
     supabase
@@ -42,9 +56,11 @@ export default defineEventHandler(async (event) => {
       : Promise.resolve({ data: null }),
   ])
 
+  const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || '')
   return {
-    ...lesson,
-    content_url: canAccessContent ? content_url : null,
+    ...lessonFields,
+    preview_url: publicLessonPreviewUrl(lesson.preview_url, supabaseUrl),
+    content_url: fileUrl,
     has_content: hasContent,
     can_access: allowed,
     can_access_content: canAccessContent,

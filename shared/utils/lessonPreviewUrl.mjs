@@ -1,4 +1,33 @@
 const PREVIEW_MARKER = '/storage/v1/object/public/uploads/lesson-content/'
+const STORED_PREVIEW_MARKER = '/storage/v1/object/public/uploads/lesson-previews/'
+
+/** Public cover image only. A lesson PDF, or any other file, is not a preview. */
+export function publicLessonPreviewUrl(url, supabaseUrl) {
+  const value = typeof url === 'string' ? url.trim() : ''
+  if (!value || !supabaseUrl) return null
+  let parsed
+  let base
+  try {
+    parsed = new URL(value)
+    base = new URL(supabaseUrl)
+  } catch {
+    return null
+  }
+  if (parsed.origin !== base.origin) return null
+  if (parsed.pathname.indexOf(STORED_PREVIEW_MARKER) !== 0) return null
+  if (!/\.(jpe?g|png)$/i.test(parsed.pathname)) return null
+  let rest
+  try {
+    rest = decodeURIComponent(parsed.pathname.slice(STORED_PREVIEW_MARKER.length))
+  } catch {
+    return null
+  }
+  const parts = rest.split('/')
+  if (!rest || rest.includes('\\') || parts.some((part) => part === '' || part === '.' || part === '..')) {
+    return null
+  }
+  return `${parsed.origin}${parsed.pathname}`
+}
 
 export const LESSON_IMAGE_PREVIEW_WIDTH = 400
 export const LESSON_IMAGE_PREVIEW_QUALITY = 50

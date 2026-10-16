@@ -6,6 +6,7 @@ import {
   mimeFromMagic,
   readPrefixBytes,
   storageObjectUrl,
+  uploadBucketForPath,
   uploadByteLength,
   uploadBytesMatchTicket,
   verifyUploadTicket,
@@ -33,7 +34,8 @@ export default defineEventHandler(async (event) => {
 
   const supabaseUrl = String(config.public.supabaseUrl || '')
   const serviceKey = String(config.supabaseServiceKey || '')
-  const objectUrl = storageObjectUrl(supabaseUrl, path)
+  const bucket = uploadBucketForPath(path)
+  const objectUrl = storageObjectUrl(supabaseUrl, path, bucket)
   if (!objectUrl || !serviceKey) {
     console.error('[admin/upload-finish] storage is not configured')
     throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
@@ -58,9 +60,11 @@ export default defineEventHandler(async (event) => {
   const detected = mimeFromMagic(inspected.bytes)
   const tooLarge = inspected.size == null || inspected.size <= 0 || inspected.size > maxUploadBytes(mime)
   if (!uploadBytesMatchTicket(mime, detected) || tooLarge) {
-    await removeUpload(path)
+    await removeUpload(path, bucket)
     throw createError({ statusCode: 400, message: 'Invalid file format' })
   }
+
+  if (path.startsWith('lesson-content/')) return { path, url: path }
 
   const { data } = serverSupabaseService().storage.from(UPLOAD_BUCKET).getPublicUrl(path)
   return { path, url: data.publicUrl }
@@ -87,9 +91,9 @@ async function readUploadPrefix(url: string, serviceKey: string): Promise<{ stat
   return { status: res.status, bytes: raw.subarray(0, 16), size }
 }
 
-async function removeUpload(path: string): Promise<void> {
+async function removeUpload(path: string, bucket: string): Promise<void> {
   try {
-    const { error } = await serverSupabaseService().storage.from(UPLOAD_BUCKET).remove([path])
+    const { error } = await serverSupabaseService().storage.from(bucket).remove([path])
     if (error) console.error('[admin/upload-finish] remove', error.message)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'remove failed'

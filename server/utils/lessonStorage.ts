@@ -1,12 +1,33 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const BUCKET = 'uploads'
+/** Private bucket. content_url stores the object path inside this bucket. */
+export const LESSON_FILES_BUCKET = 'lesson-files'
 const PUBLIC_PREFIX = `/storage/v1/object/public/${BUCKET}/`
 const LESSON_PREFIX = 'lesson-content/'
 const PREVIEW_PREFIX = 'lesson-previews/'
 
 export function lessonContentPathFromUrl(url: string, supabaseUrl: string): string | null {
-  return storagePathFromUrl(url, supabaseUrl, LESSON_PREFIX)
+  if (!url) return null
+  const value = url.trim()
+  if (!value.includes('://')) return bareLessonContentPath(value)
+  return storagePathFromUrl(value, supabaseUrl, LESSON_PREFIX)
+}
+
+function bareLessonContentPath(path: string): string | null {
+  if (!path.startsWith(LESSON_PREFIX) || path.includes('\\') || path.includes('?') || path.includes('#')) {
+    return null
+  }
+  let decoded = path
+  try {
+    decoded = decodeURIComponent(path)
+  } catch {
+    return null
+  }
+  const parts = decoded.split('/')
+  if (parts.length !== 2 || parts.some((part) => part === '' || part === '.' || part === '..')) return null
+  if (!decoded.startsWith(LESSON_PREFIX)) return null
+  return decoded
 }
 
 export function lessonPreviewPathFromUrl(url: string, supabaseUrl: string): string | null {
@@ -168,7 +189,7 @@ export async function removeUnusedLessonPath(
   const referenced = await referencedLessonContentPaths(supabase, supabaseUrl)
   if (!referenced || referenced.has(path)) return
 
-  const { error } = await supabase.storage.from(BUCKET).remove([path])
+  const { error } = await supabase.storage.from(LESSON_FILES_BUCKET).remove([path])
   if (error) console.error('[lessonStorage] remove', error.message)
 }
 
@@ -187,6 +208,7 @@ export async function removeUnusedLessonPreviewPath(
 
 async function reapFolder(
   supabase: SupabaseClient,
+  bucket: string,
   folder: string,
   folderPrefix: string,
   referenced: Set<string>,
@@ -195,7 +217,7 @@ async function reapFolder(
   const stale: string[] = []
   let offset = 0
   for (;;) {
-    const { data, error } = await supabase.storage.from(BUCKET).list(folder, {
+    const { data, error } = await supabase.storage.from(bucket).list(folder, {
       limit: PAGE_SIZE,
       offset,
       sortBy: { column: 'name', order: 'asc' },
@@ -216,8 +238,8 @@ async function reapFolder(
 
   for (let index = 0; index < stale.length; index += 100) {
     const batch = stale.slice(index, index + 100)
-    const { error } = await supabase.storage.from(BUCKET).remove(batch)
-    if (error) console.error(`[lessonStorage] reap ${folder}`, error.message)
+    const { error } = await supabase.storage.from(bucket).remove(batch)
+    if (error) console.error(`[lessonStorage] reap ${bucket}/${folder}`, error.message)
   }
 }
 
@@ -228,7 +250,7 @@ export async function reapOrphanLessonContent(
 ): Promise<void> {
   const referenced = await referencedLessonContentPaths(supabase, supabaseUrl)
   if (!referenced) return
-  await reapFolder(supabase, LESSON_FOLDER, LESSON_PREFIX, referenced, now)
+  await reapFolder(supabase, LESSON_FILES_BUCKET, LESSON_FOLDER, LESSON_PREFIX, referenced, now)
 }
 
 export async function reapOrphanLessonPreviews(
@@ -238,5 +260,5 @@ export async function reapOrphanLessonPreviews(
 ): Promise<void> {
   const referenced = await referencedLessonPreviewPaths(supabase, supabaseUrl)
   if (!referenced) return
-  await reapFolder(supabase, PREVIEW_FOLDER, PREVIEW_PREFIX, referenced, now)
+  await reapFolder(supabase, BUCKET, PREVIEW_FOLDER, PREVIEW_PREFIX, referenced, now)
 }

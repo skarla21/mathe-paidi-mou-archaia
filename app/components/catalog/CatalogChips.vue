@@ -27,7 +27,7 @@ const chipClass: Record<LessonChipTone, string> = {
       v-for="chip in chips"
       :key="`${chip.tone}-${chip.to}`"
       :to="chip.to"
-      :class="['inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-opacity hover:opacity-80', chipClass[chip.tone]]"
+      :class="['inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors hover:text-primary', chipClass[chip.tone]]"
     >
       {{ chip.name }}
     </NuxtLink>
@@ -37,7 +37,7 @@ const chipClass: Record<LessonChipTone, string> = {
       :href="`/search?q=${encodeURIComponent(tag)}`"
       target="_blank"
       rel="noopener noreferrer"
-      class="inline-flex items-center rounded-full bg-muted px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+      class="inline-flex items-center rounded-full bg-muted px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground transition-colors hover:text-primary"
     >
       {{ tag }}
     </a>

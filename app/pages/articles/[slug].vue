@@ -255,7 +255,7 @@ function scrollToComments() {
             :href="`/articles?q=${encodeURIComponent(tag)}`"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-xs rounded-md bg-muted px-2 py-0.5 text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+            class="text-xs rounded-md bg-muted px-2 py-0.5 text-muted-foreground transition-colors hover:text-primary"
           >
             {{ tag }}
           </a>

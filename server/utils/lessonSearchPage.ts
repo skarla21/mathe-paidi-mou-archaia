@@ -1,4 +1,5 @@
 import { lessonExcerpt } from '#shared/utils/lessonExcerpt.mjs'
+import { publicLessonPreviewUrl } from '#shared/utils/lessonPreviewUrl.mjs'
 
 export const LESSON_SEARCH_PAGE_SIZE = 20
 /** Max title matches fetched before path-filter + in-memory pagination. */
@@ -49,6 +50,7 @@ export function mapLessonSearchRows(
     rating_count?: number | null
   }[],
   lessonPaths: ReadonlyMap<string, string>,
+  supabaseUrl = '',
 ): LessonSearchItem[] {
   const items: LessonSearchItem[] = []
   for (const row of rows) {
@@ -61,7 +63,7 @@ export function mapLessonSearchRows(
       excerpt: lessonExcerpt(typeof row.content === 'string' ? row.content : ''),
       tags: Array.isArray(row.tags) ? row.tags : [],
       is_free: row.is_free,
-      preview_url: row.preview_url ?? null,
+      preview_url: publicLessonPreviewUrl(row.preview_url, supabaseUrl),
       page_count: row.page_count ?? null,
       file_bytes: row.file_bytes ?? null,
       bookmarked: false,

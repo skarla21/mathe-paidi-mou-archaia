@@ -84,7 +84,11 @@ describe('upload paths', () => {
   it('builds an object URL on the configured project', () => {
     assert.equal(
       storageObjectUrl('https://proj.supabase.co', 'lesson-content/notes-abcd1234.pdf'),
-      'https://proj.supabase.co/storage/v1/object/uploads/lesson-content/notes-abcd1234.pdf',
+      'https://proj.supabase.co/storage/v1/object/lesson-files/lesson-content/notes-abcd1234.pdf',
+    )
+    assert.equal(
+      storageObjectUrl('https://proj.supabase.co', 'lesson-previews/preview-abcd1234.png'),
+      'https://proj.supabase.co/storage/v1/object/uploads/lesson-previews/preview-abcd1234.png',
     )
     assert.equal(storageObjectUrl('https://proj.supabase.co', '../secret.pdf'), null)
   })

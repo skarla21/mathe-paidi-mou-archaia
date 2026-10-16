@@ -6,7 +6,7 @@ color: purple
 tools: Read,Glob,Grep,Bash,LSP,WebSearch,WebFetch
 ---
 
-You are the software architect and security reviewer for mathe-paidi-mou-arxaia, a Nuxt 4 educational
+You are the software architect and security reviewer for mathe-paidi-mou-archaia, a Nuxt 4 educational
 platform with paid content, user authentication, and file storage.
 
 ## Architecture Overview

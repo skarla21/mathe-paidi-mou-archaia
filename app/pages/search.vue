@@ -46,7 +46,7 @@ watch(queryText, (value) => {
   if (value !== searchInput.value) searchInput.value = value
 })
 
-const { data, error, status } = await useFetch<LessonSearchPage>('/api/search/lessons', {
+const { data, status } = await useFetch<LessonSearchPage>('/api/search/lessons', {
   query: computed(() => ({
     q: queryText.value,
     page: page.value,
@@ -57,11 +57,20 @@ const { data, error, status } = await useFetch<LessonSearchPage>('/api/search/le
   default: () => ({ items: [], total: 0, page: 1, pageSize: 20 }),
 })
 
+const settledQuery = ref(status.value === 'success' ? queryText.value : '')
+watch(status, (value) => {
+  if (value === 'success') settledQuery.value = queryText.value
+}, { flush: 'sync' })
+
+const queryMatchesResults = computed(() => settledQuery.value === queryText.value)
+
 const listState = computed(() => {
   if (!queryReady.value) return 'short' as const
-  if (status.value === 'pending' && !data.value?.items.length) return 'loading' as const
-  if (error.value) return 'error' as const
-  return catalogListState(Boolean(error.value), data.value?.items.length ?? 0)
+  if (status.value === 'error') return 'error' as const
+  if (!queryMatchesResults.value || (status.value === 'pending' && !data.value?.items.length)) {
+    return 'loading' as const
+  }
+  return catalogListState(false, data.value?.items.length ?? 0)
 })
 
 const lessonRows = computed(() => (data.value?.items ?? []).map((lesson) => ({
@@ -83,8 +92,17 @@ const total = computed(() => data.value?.total ?? 0)
 const pageSize = computed(() => data.value?.pageSize ?? 20)
 
 const resultsLabel = computed(() => {
-  if (total.value === 1) return '1 αποτέλεσμα'
-  return `${total.value} αποτελέσματα`
+  if (!queryReady.value) {
+    return 'Πληκτρολόγησε τουλάχιστον 2 χαρακτήρες για να δεις αποτελέσματα.'
+  }
+  const quoted = `για «${queryText.value}»`
+  if (listState.value === 'loading') return `Γίνεται αναζήτηση ${quoted}`
+  if (listState.value === 'error') {
+    return `Η αναζήτηση ${quoted} δεν ολοκληρώθηκε. Δοκίμασε ξανά σε λίγο.`
+  }
+  if (listState.value === 'empty') return `Κανένα αποτέλεσμα ${quoted}`
+  if (total.value === 1) return `1 αποτέλεσμα ${quoted}`
+  return `${total.value} αποτελέσματα ${quoted}`
 })
 
 useHead(() => ({
@@ -115,56 +133,29 @@ onMounted(() => {
   <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
     <header id="search-title" class="max-w-3xl">
       <CatalogBackLink to="/" name="Αρχική" />
-      <h1 class="mt-5 font-heading text-4xl font-extrabold leading-tight tracking-tight text-balance text-foreground sm:text-5xl">
-        Αποτελέσματα αναζήτησης
-      </h1>
-      <p
-        v-if="queryText"
-        class="mt-3 text-lg leading-relaxed text-muted-foreground"
-      >
-        Αποτελέσματα για «{{ queryText }}»
-      </p>
-      <p
-        v-if="queryReady && listState === 'ready'"
-        class="mt-2 text-sm font-medium text-muted-foreground"
-      >
-        {{ resultsLabel }}
-      </p>
-
       <SearchGlobalSearch
         v-model="searchInput"
         size="lg"
         submit-button
-        class="mt-6 max-w-xl"
+        class="mt-5 max-w-xl"
       />
+      <h1 class="mt-6 text-lg font-normal leading-relaxed text-muted-foreground">
+        {{ resultsLabel }}
+      </h1>
     </header>
 
-    <section id="search-results" class="mt-10">
-      <p v-if="listState === 'short'" class="text-muted-foreground">
-        Πληκτρολόγησε τουλάχιστον 2 χαρακτήρες για να δεις αποτελέσματα.
-      </p>
-      <p v-else-if="listState === 'loading'" class="text-muted-foreground">
-        Γίνεται αναζήτηση...
-      </p>
-      <p v-else-if="listState === 'error'" class="text-muted-foreground">
-        Η αναζήτηση δεν ολοκληρώθηκε. Δοκίμασε ξανά σε λίγο.
-      </p>
-      <p v-else-if="listState === 'empty'" class="text-muted-foreground">
-        Δεν βρέθηκαν αποτελέσματα για «{{ queryText }}».
-      </p>
-      <template v-else>
-        <h2 class="mb-4 font-heading text-xl font-semibold">
-          Υλικό
-        </h2>
-        <CatalogLessonList :lessons="lessonRows" />
-        <CatalogPager
-          :page="page"
-          :total="total"
-          :page-size="pageSize"
-          :disabled="status === 'pending'"
-          @update:page="onPageChange"
-        />
-      </template>
+    <section v-if="listState === 'ready'" id="search-results" class="mt-10">
+      <h2 class="mb-4 font-heading text-xl font-semibold">
+        Υλικό
+      </h2>
+      <CatalogLessonList :lessons="lessonRows" />
+      <CatalogPager
+        :page="page"
+        :total="total"
+        :page-size="pageSize"
+        :disabled="status === 'pending'"
+        @update:page="onPageChange"
+      />
     </section>
   </div>
 </template>

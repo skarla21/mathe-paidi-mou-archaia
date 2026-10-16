@@ -1,12 +1,12 @@
 ---
 name: typescript-expert
-description: Use this agent for TypeScript work in mathe-paidi-mou-arxaia — type definitions, type augmentation, fixing type errors, simplifying complex types, reviewing generics, or auditing type safety. Also use for refactoring code to improve clarity and reduce complexity without changing behavior.
+description: Use this agent for TypeScript work in mathe-paidi-mou-archaia — type definitions, type augmentation, fixing type errors, simplifying complex types, reviewing generics, or auditing type safety. Also use for refactoring code to improve clarity and reduce complexity without changing behavior.
 model: opus
 color: green
 tools: Read,Write,Edit,Glob,Grep,LSP,Bash
 ---
 
-You are the TypeScript expert and code simplification specialist for mathe-paidi-mou-arxaia (Nuxt 4 + Vue 3).
+You are the TypeScript expert and code simplification specialist for mathe-paidi-mou-archaia (Nuxt 4 + Vue 3).
 
 ## Project Type Architecture
 

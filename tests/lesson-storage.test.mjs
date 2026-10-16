@@ -65,6 +65,15 @@ describe('lessonContentPathFromUrl', () => {
     )
   })
 
+  it('reads a stored object path and rejects traversal', () => {
+    assert.equal(
+      lessonContentPathFromUrl('lesson-content/1-notes.pdf', SUPABASE_URL),
+      'lesson-content/1-notes.pdf',
+    )
+    assert.equal(lessonContentPathFromUrl('lesson-content/../secret.pdf', SUPABASE_URL), null)
+    assert.equal(lessonContentPathFromUrl('lesson-content/%2e%2e/secret.pdf', SUPABASE_URL), null)
+  })
+
   it('reads a lesson-previews key', () => {
     assert.equal(
       lessonPreviewPathFromUrl(

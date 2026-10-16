@@ -62,7 +62,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const lessons = publicLessonList(data ?? []) as Array<Record<string, unknown> & { id: string }>
+  const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || '')
+  const lessons = publicLessonList(data ?? [], supabaseUrl) as Array<Record<string, unknown> & { id: string }>
   const userId = event.context.auth?.userId ?? null
   if (!userId || !lessons.length) {
     return publicListPage(lessons, count ?? 0, page, pageSize)

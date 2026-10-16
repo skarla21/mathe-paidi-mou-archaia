@@ -94,9 +94,9 @@ function scrollTo(id: string) {
           id="hero-lead"
           class="max-w-xl text-lg leading-relaxed text-muted-foreground"
         >
-          Οργανωμένος χώρος για σημειώσεις, κεφάλαια και έξτρα υλικό. Η θεωρία,
-          τα κείμενα και τα άρθρα μένουν τακτοποιημένα, ώστε κάθε μαθητής να
-          βρίσκει αυτό που χρειάζεται.
+          Ολοκληρωμένος χώρος για σημειώσεις, κεφάλαια και επιπλέον περιεχόμενο.
+          Το υλικό μένει οργανωμένο, ώστε κάθε μαθητής να βρίσκει αυτό που
+          χρειάζεται.
         </p>
         <SearchGlobalSearch size="lg" submit-button class="max-w-xl" />
         <div id="hero-cta" class="flex flex-wrap items-center gap-4 pt-1">
@@ -129,7 +129,7 @@ function scrollTo(id: string) {
         >
           <div class="relative -mt-14 mb-4 flex justify-center">
             <img
-              src="/imgs/mathe_arxaia_logo.jpg"
+              src="/imgs/mathe_archaia_logo.jpg"
               alt=""
               class="size-24 rounded-full object-cover shadow-lg ring-4 ring-card"
             />

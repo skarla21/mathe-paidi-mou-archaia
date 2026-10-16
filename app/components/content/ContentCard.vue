@@ -187,7 +187,7 @@ async function toggleBookmark() {
             :href="`${chipSearchPath}?q=${encodeURIComponent(chip)}`"
             target="_blank"
             rel="noopener noreferrer"
-            class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+            class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-primary"
             @click.stop
           >
             {{ chip }}
@@ -227,7 +227,10 @@ async function toggleBookmark() {
         {{ description }}
       </p>
 
-      <div class="mt-3">
+      <div
+        v-if="readingMinutes != null || pageCountLabel || showAvgRating || showLikeCount"
+        class="mt-3 flex items-center gap-3"
+      >
         <ContentReadingTime
           v-if="readingMinutes != null"
           class="text-start"
@@ -237,59 +240,56 @@ async function toggleBookmark() {
           {{ pageCountLabel }}
           <span v-if="fileSizeLabel" class="sr-only"> · {{ fileSizeLabel }}</span>
         </p>
-        <span v-else-if="fileSizeLabel" class="sr-only">{{ fileSizeLabel }}</span>
-      </div>
-    </div>
-
-    <div
-      class="flex shrink-0 flex-col items-stretch gap-2 sm:justify-center sm:self-center"
-    >
-      <div class="flex items-center gap-2 sm:justify-end lg:flex-row">
-        <UiButton
-          v-if="showBookmark"
-          type="button"
-          variant="outline"
-          size="icon"
-          class="rounded-full"
-          :disabled="bookmarkBusy"
-          :aria-pressed="saved"
-          :aria-label="bookmarkLabel"
-          :title="bookmarkLabel"
-          @click="toggleBookmark"
+        <p
+          v-if="showAvgRating"
+          class="ml-auto flex items-center gap-1 text-sm tabular-nums text-muted-foreground"
+          :aria-label="`Μέση βαθμολογία ${avgRatingLabel} (${ratingCount})`"
         >
           <VIcon
-            :name="saved ? 'bi-bookmark-fill' : 'bi-bookmark'"
-            class="size-4"
+            name="bi-star-fill"
+            class="size-3.5 text-amber-500"
+            aria-hidden="true"
           />
-        </UiButton>
-        <NuxtLink
-          :to="to"
-          class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          <span>{{ avgRatingLabel }}</span>
+          <span class="text-muted-foreground/80">({{ ratingCount }})</span>
+        </p>
+        <p
+          v-else-if="showLikeCount"
+          class="ml-auto flex items-center gap-1 text-sm tabular-nums text-muted-foreground"
+          :aria-label="likeCount === 1 ? '1 επισήμανση' : `${likeCount} επισημάνσεις`"
         >
-          <VIcon name="bi-eye" class="size-4" aria-hidden="true" />
-          Άνοιγμα
-        </NuxtLink>
+          <span>{{ likeCount }}</span>
+          <VIcon name="bi-heart" class="size-3.5" aria-hidden="true" />
+        </p>
       </div>
-      <p
-        v-if="showAvgRating"
-        class="flex items-center justify-end gap-1 text-sm tabular-nums text-muted-foreground"
-        :aria-label="`Μέση βαθμολογία ${avgRatingLabel}`"
+      <span v-if="fileSizeLabel && !pageCountLabel" class="sr-only">{{ fileSizeLabel }}</span>
+    </div>
+
+    <div class="flex shrink-0 items-center justify-end gap-2 sm:self-center">
+      <UiButton
+        v-if="showBookmark"
+        type="button"
+        variant="outline"
+        size="icon"
+        class="rounded-full"
+        :disabled="bookmarkBusy"
+        :aria-pressed="saved"
+        :aria-label="bookmarkLabel"
+        :title="bookmarkLabel"
+        @click="toggleBookmark"
       >
         <VIcon
-          name="bi-star-fill"
-          class="size-3.5 text-amber-500"
-          aria-hidden="true"
+          :name="saved ? 'bi-bookmark-fill' : 'bi-bookmark'"
+          class="size-4"
         />
-        <span>{{ avgRatingLabel }}</span>
-      </p>
-      <p
-        v-else-if="showLikeCount"
-        class="flex items-center justify-end gap-1 text-sm tabular-nums text-muted-foreground"
-        :aria-label="`${likeCount} επισημάνσεις`"
+      </UiButton>
+      <NuxtLink
+        :to="to"
+        class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
       >
-        <VIcon name="bi-heart" class="size-3.5" aria-hidden="true" />
-        <span>{{ likeCount }}</span>
-      </p>
+        <VIcon name="bi-eye" class="size-4" aria-hidden="true" />
+        Άνοιγμα
+      </NuxtLink>
     </div>
   </article>
 </template>

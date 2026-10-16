@@ -1,6 +1,6 @@
 # MASTER DEVELOPMENT PLAN
 
-Modern Educational Platform — Mathe Paidi Mou Arxaia
+Modern Educational Platform — Mathe Paidi Mou Archaia
 
 Educational platform for Greek students.
 

@@ -312,7 +312,7 @@ create policy "categories_select_all" on public.categories for select using (tru
 -- Chapters: public read
 create policy "chapters_select_all" on public.chapters for select using (true);
 
--- Lessons: public read (content access / paid-content gate enforced in app layer)
+-- Lessons: public read of catalog fields. content_url is revoked below.
 create policy "lessons_select_all" on public.lessons for select using (true);
 
 -- Lesson placements: public read
@@ -335,13 +335,21 @@ create policy "lesson_ratings_select_all" on public.lesson_ratings for select us
 -- Lesson comments: public read
 create policy "lesson_comments_select_all" on public.lesson_comments for select using (true);
 
--- Articles & engagement: public read (draft filtering in app layer)
-create policy "articles_select_all" on public.articles for select using (true);
+-- Articles: published rows only. Drafts stay on the service role.
+drop policy if exists "articles_select_all" on public.articles;
+create policy "articles_select_published" on public.articles for select using (published = true);
 create policy "article_likes_select_all" on public.article_likes for select using (true);
 create policy "article_comments_select_all" on public.article_comments for select using (true);
 
 -- Note: all admin/server writes use the service role key (supabaseServiceKey),
 -- which bypasses RLS entirely. No insert/update/delete policies are needed for anon.
+
+-- Lesson files live in a private bucket. The public uploads bucket cannot hide one folder.
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('lesson-files', 'lesson-files', false, 52428800)
+on conflict (id) do update
+  set public = false,
+      file_size_limit = excluded.file_size_limit;
 
 -- ─── Functions (admin stats) ─────────────────────────────────────────────────
 
@@ -357,6 +365,9 @@ as $$
   order by count(*) desc
   limit lim;
 $$;
+
+revoke all on function public.get_top_downloaded_lessons(int) from public, anon, authenticated;
+grant execute on function public.get_top_downloaded_lessons(int) to service_role;
 
 -- Admin dashboard aggregates (service_role only — no full-table pulls in Node).
 create or replace function public.admin_purchase_revenue(
@@ -1228,6 +1239,24 @@ alter table public.users
   ) stored;
 
 create index if not exists users_name_sort_idx on public.users (name_sort);
+
+-- Column grants run after title_folded, tags_folded, and name_sort exist.
+-- A table-level SELECT covers every column, so replace it before hiding content_url and password_hash.
+revoke select on table public.lessons from anon, authenticated;
+grant select (
+  id, title, content, is_free, price, created_at, slug, title_folded,
+  preview_url, page_count, file_bytes, tags, tags_folded, avg_rating, rating_count
+) on table public.lessons to anon, authenticated;
+
+revoke select on table public.users from anon, authenticated;
+grant select (
+  id, email, name, avatar_url, "isAdmin", provider, created_at, email_verified, name_sort
+) on table public.users to anon, authenticated;
+
+-- Stored lesson files are object paths. Older rows kept the public uploads URL.
+update public.lessons
+set content_url = substring(content_url from '/(lesson-content/[^/?#]+)')
+where content_url ~ '/storage/v1/object/public/uploads/lesson-content/';
 
 drop view if exists public.admin_user_stats;
 

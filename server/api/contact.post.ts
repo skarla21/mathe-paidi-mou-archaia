@@ -4,37 +4,41 @@ import { checkRateLimit } from "../utils/rateLimit";
 import { serverSupabaseService } from "../utils/supabaseServer";
 import { EMAIL_REGEX } from "../utils/validation";
 
-const MESSAGE_MAX = 4000
+const MESSAGE_MAX = 4000;
 
 export default defineEventHandler(async (event) => {
   checkRateLimit(event, {
-    name: 'contact',
+    name: "contact",
     maxRequests: 3,
     windowMs: 60 * 1000,
-    message: 'Πάρα πολλές αιτήσεις. Παρακαλώ δοκίμασε ξανά αργότερα.',
-  })
+    message: "Πάρα πολλές αιτήσεις. Παρακαλώ δοκίμασε ξανά αργότερα.",
+  });
 
   const body = await readBody<{
-    email?: unknown
-    message?: unknown
-    name?: unknown
-    phone?: unknown
-    gradeId?: unknown
-    honey?: unknown
+    email?: unknown;
+    message?: unknown;
+    name?: unknown;
+    phone?: unknown;
+    gradeId?: unknown;
+    honey?: unknown;
   }>(event);
 
-  if (typeof body?.honey === 'string' && body.honey.trim()) {
-    return { success: true }
+  if (typeof body?.honey === "string" && body.honey.trim()) {
+    return { success: true };
   }
 
-  if (!body || typeof body.email !== 'string' || typeof body.message !== 'string') {
+  if (
+    !body ||
+    typeof body.email !== "string" ||
+    typeof body.message !== "string"
+  ) {
     throw createError({
       statusCode: 400,
       message: "Το email και το μήνυμα είναι υποχρεωτικά",
     });
   }
 
-  const message = body.message.trim()
+  const message = body.message.trim();
   if (!body.email.trim() || !message) {
     throw createError({
       statusCode: 400,
@@ -43,32 +47,40 @@ export default defineEventHandler(async (event) => {
   }
 
   if (message.length > MESSAGE_MAX) {
-    throw createError({ statusCode: 400, message: "Το μήνυμα είναι πολύ μεγάλο" });
+    throw createError({
+      statusCode: 400,
+      message: "Το μήνυμα είναι πολύ μεγάλο",
+    });
   }
 
   if (!EMAIL_REGEX.test(body.email)) {
     throw createError({ statusCode: 400, message: "Μη έγκυρο email" });
   }
 
-  const sanitizedEmail = body.email.replace(/[\r\n]/g, '')
-  const name = cleanLine(body.name, 120)
-  const phone = cleanLine(body.phone, 40)
-  const gradeId = cleanLine(body.gradeId, 80)
-  let gradeName = ''
+  const sanitizedEmail = body.email.replace(/[\r\n]/g, "");
+  const name = cleanLine(body.name, 120);
+  const phone = cleanLine(body.phone, 40);
+  const gradeId = cleanLine(body.gradeId, 80);
+  let gradeName = "";
   if (gradeId) {
-    const supabase = serverSupabaseService()
-    const { data } = await supabase.from('grades').select('name').eq('id', gradeId).maybeSingle()
-    gradeName = typeof data?.name === 'string' ? data.name : ''
+    const supabase = serverSupabaseService();
+    const { data } = await supabase
+      .from("grades")
+      .select("name")
+      .eq("id", gradeId)
+      .maybeSingle();
+    gradeName = typeof data?.name === "string" ? data.name : "";
   }
   const config = useRuntimeConfig();
-  const contactEmail = (config.contactEmail as string) || "antwnis_skarlatos@yahoo.com";
-  const subject = "Μήνυμα από το mathe-paidi-mou-arxaia.com!";
+  const contactEmail =
+    (config.contactEmail as string) || "antwnis_skarlatos@yahoo.com";
+  const subject = "Μήνυμα από το mathe-paidi-mou-archaia.com!";
 
   const html = `
     <p><strong>Από:</strong> ${escapeHtml(sanitizedEmail)}</p>
-    ${name ? `<p><strong>Όνομα:</strong> ${escapeHtml(name)}</p>` : ''}
-    ${phone ? `<p><strong>Τηλέφωνο:</strong> ${escapeHtml(phone)}</p>` : ''}
-    ${gradeName ? `<p><strong>Τάξη:</strong> ${escapeHtml(gradeName)}</p>` : ''}
+    ${name ? `<p><strong>Όνομα:</strong> ${escapeHtml(name)}</p>` : ""}
+    ${phone ? `<p><strong>Τηλέφωνο:</strong> ${escapeHtml(phone)}</p>` : ""}
+    ${gradeName ? `<p><strong>Τάξη:</strong> ${escapeHtml(gradeName)}</p>` : ""}
     <p><strong>Μήνυμα:</strong></p>
     <p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>
   `;
@@ -82,7 +94,10 @@ export default defineEventHandler(async (event) => {
     });
   } catch (e) {
     console.error("[contact] Resend error:", e);
-    throw createError({ statusCode: 502, message: "Αποτυχία αποστολής μηνύματος" });
+    throw createError({
+      statusCode: 502,
+      message: "Αποτυχία αποστολής μηνύματος",
+    });
   }
 
   try {
@@ -102,8 +117,11 @@ export default defineEventHandler(async (event) => {
 });
 
 function cleanLine(value: unknown, max: number): string {
-  if (typeof value !== 'string') return ''
-  return value.replace(/[\r\n]/g, '').trim().slice(0, max)
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/[\r\n]/g, "")
+    .trim()
+    .slice(0, max);
 }
 
 function escapeHtml(text: string): string {

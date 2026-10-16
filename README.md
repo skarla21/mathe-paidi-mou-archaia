@@ -1,4 +1,4 @@
-# Mathe-Paidi-Mou-Arxaia
+# Mathe-Paidi-Mou-Archaia
 
 Modern educational platform (Nuxt 3, Vue 3, Tailwind, Supabase, Stripe, PDF.js).
 

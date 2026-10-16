@@ -14,6 +14,10 @@ import TooltipTrigger from '~/components/ui/tooltip/TooltipTrigger.vue'
 import TooltipContent from '~/components/ui/tooltip/TooltipContent.vue'
 import type { LessonChip, LessonParent } from '~/lib/lessonContext'
 import {
+  lessonFileSizeLabel,
+  lessonPageCountLabel,
+} from '#shared/utils/lessonPreviewUrl.mjs'
+import {
   LESSON_ENGAGE_GUEST_ID,
   isLessonEngagePromptDismissed,
   setLessonEngagePromptDismissed,
@@ -206,6 +210,27 @@ watch(
 )
 
 const safeContent = ref('')
+const previewFailed = ref(false)
+
+const lockedPreviewSrc = computed(() => {
+  if (previewFailed.value) return ''
+  return lesson.value?.preview_url || ''
+})
+
+const lockedPageLabel = computed(() => {
+  const count = lesson.value?.page_count
+  if (count == null || count <= 0) return ''
+  return lessonPageCountLabel(count)
+})
+
+const lockedSizeLabel = computed(() => lessonFileSizeLabel(lesson.value?.file_bytes ?? 0))
+
+watch(
+  () => lesson.value?.preview_url,
+  () => {
+    previewFailed.value = false
+  },
+)
 
 watch(
   () => lesson.value?.content,
@@ -450,8 +475,36 @@ onMounted(async () => {
         />
       </div>
       <div
-        v-else-if="fileBlock === 'sign-in' || fileBlock === 'verify-email'"
-        class="mx-auto mt-8 flex max-w-md flex-col items-center gap-4 rounded-3xl border border-amber/30 bg-amber/10 p-8 text-center"
+        v-else-if="fileBlock"
+        class="mx-auto mt-8 flex max-w-md flex-col items-center gap-4"
+      >
+        <div class="w-56 rounded-3xl border border-border bg-card p-3">
+          <img
+            v-if="lockedPreviewSrc"
+            :src="lockedPreviewSrc"
+            alt=""
+            class="block h-auto w-full rounded-sm object-contain object-top"
+            @error="previewFailed = true"
+          >
+          <span
+            v-else
+            class="flex aspect-[1/1.414] items-center justify-center rounded-sm bg-muted text-muted-foreground"
+          >
+            <VIcon name="bi-journal-text" class="size-8" aria-hidden="true" />
+          </span>
+          <span
+            v-if="lockedPageLabel || lockedSizeLabel"
+            class="mt-3 flex items-center justify-between gap-2"
+          >
+            <span class="text-sm font-semibold text-foreground">{{ lockedPageLabel }}</span>
+            <span v-if="lockedSizeLabel" class="text-xs font-semibold text-muted-foreground tabular-nums">
+              {{ lockedSizeLabel }}
+            </span>
+          </span>
+        </div>
+      <div
+        v-if="fileBlock === 'sign-in' || fileBlock === 'verify-email'"
+        class="flex w-full flex-col items-center gap-4 rounded-3xl border border-amber/30 bg-amber/10 p-8 text-center"
       >
         <span
           class="flex size-14 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-500"
@@ -478,8 +531,8 @@ onMounted(async () => {
         </UiButton>
       </div>
       <div
-        v-else-if="fileBlock === 'purchase'"
-        class="mt-8 flex max-w-md flex-col items-center gap-4 rounded-3xl border border-primary/30 bg-flame-fixed/40 p-8 text-center"
+        v-else
+        class="flex w-full flex-col items-center gap-4 rounded-3xl border border-primary/30 bg-flame-fixed/40 p-8 text-center"
       >
         <span
           class="flex size-14 items-center justify-center rounded-2xl bg-accent/20 text-accent"
@@ -497,6 +550,7 @@ onMounted(async () => {
         <UiButton :disabled="purchasing" @click="buyLesson">
           {{ purchasing ? 'Ανακατεύθυνση...' : 'Αγόρασε αυτό το υλικό' }}
         </UiButton>
+      </div>
       </div>
 
       <LessonEngagePrompt

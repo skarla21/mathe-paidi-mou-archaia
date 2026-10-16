@@ -1,4 +1,4 @@
-# mathe-paidi-mou-arxaia — CLAUDE.md
+# mathe-paidi-mou-archaia — CLAUDE.md
 
 Greek educational platform (Ancient Greek exam prep). Nuxt 4 + Vue 3 + TypeScript.
 Deploy target: Vercel. Source dir: `app/` (NOT `src/`).

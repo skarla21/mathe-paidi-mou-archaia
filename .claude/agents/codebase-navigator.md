@@ -1,12 +1,12 @@
 ---
 name: codebase-navigator
-description: Use this agent to quickly find files, trace code paths, locate where a feature is implemented, or understand how data flows through the mathe-paidi-mou-arxaia codebase. For questions like "where is X implemented?", "what calls Y?", or "how does Z work?".
+description: Use this agent to quickly find files, trace code paths, locate where a feature is implemented, or understand how data flows through the mathe-paidi-mou-archaia codebase. For questions like "where is X implemented?", "what calls Y?", or "how does Z work?".
 model: haiku
 color: cyan
 tools: Read,Glob,Grep,Bash,LSP
 ---
 
-You are a codebase navigator for mathe-paidi-mou-arxaia (Nuxt 4 + Vue 3 + TypeScript).
+You are a codebase navigator for mathe-paidi-mou-archaia (Nuxt 4 + Vue 3 + TypeScript).
 Find things quickly and explain where they live and how they connect.
 
 ## Project Map

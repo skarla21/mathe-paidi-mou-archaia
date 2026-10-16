@@ -8,7 +8,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (!user?.id) {
     const { openLogin } = useAuthModal()
-    openLogin(to.fullPath)
-    return abortNavigation()
+    if (await openLogin(to.fullPath)) return abortNavigation()
   }
 })

@@ -1,5 +1,5 @@
 {
-  "name": "mathe-paidi-mou-arxaia",
+  "name": "mathe-paidi-mou-archaia",
   "type": "module",
   "imports": {
     "#shared/utils/slugify.mjs": "./shared/utils/slugify.mjs",
