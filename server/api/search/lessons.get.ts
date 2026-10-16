@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   const like = orLikeValue(searchLikePattern(q))
   const { data, error } = await supabase
     .from('lessons')
-    .select('id, title, slug, is_free, content, tags, preview_url, page_count, file_bytes')
+    .select('id, title, slug, is_free, content, tags, preview_url, page_count, file_bytes, avg_rating, rating_count')
     .or(`title_folded.like.${like},tags_folded.like.${like}`)
     .order('title')
     .limit(LESSON_SEARCH_FETCH_CAP)

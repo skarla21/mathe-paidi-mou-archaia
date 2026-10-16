@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const supabase = serverSupabaseAnon()
   const select = wantAll
     ? 'order, lessons(id, title)'
-    : 'order, lessons(id, slug, title, content, tags, is_free, price, created_at, preview_url, page_count, file_bytes)'
+    : 'order, lessons(id, slug, title, content, tags, is_free, price, created_at, preview_url, page_count, file_bytes, avg_rating, rating_count)'
 
   let q = supabase.from('lesson_placements').select(select, { count: 'exact' })
   if (subjectId) q = q.eq('subject_id', subjectId)

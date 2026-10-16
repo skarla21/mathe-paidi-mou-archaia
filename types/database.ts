@@ -66,6 +66,8 @@ export interface Lesson {
   preview_url?: string | null
   page_count?: number | null
   file_bytes?: number | null
+  avg_rating?: number
+  rating_count?: number
   created_at: string
   /** Many-to-many placements — present when fetched with joins */
   placements?: LessonPlacement[]
@@ -103,6 +105,7 @@ export interface Article {
   reading_time_minutes: number
   published: boolean
   image_url?: string | null
+  like_count?: number
   created_at: string
   updated_at: string
   likeCount?: number
@@ -166,6 +169,7 @@ export interface LessonComment {
   id: string
   user_id: string
   lesson_id: string
+  parent_id: string | null
   body: string
   created_at: string
   updated_at: string

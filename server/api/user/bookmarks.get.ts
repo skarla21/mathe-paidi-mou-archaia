@@ -19,6 +19,8 @@ type LessonRow = {
   preview_url?: string | null
   page_count?: number | null
   file_bytes?: number | null
+  avg_rating?: number | null
+  rating_count?: number | null
 }
 
 export default defineEventHandler(async (event) => {
@@ -32,7 +34,7 @@ export default defineEventHandler(async (event) => {
   const { data, error, count } = await supabase
     .from('lesson_bookmarks')
     .select(
-      'lesson_id, created_at, lessons(id, title, content, tags, is_free, price, preview_url, page_count, file_bytes)',
+      'lesson_id, created_at, lessons(id, title, content, tags, is_free, price, preview_url, page_count, file_bytes, avg_rating, rating_count)',
       { count: 'exact' },
     )
     .eq('user_id', userId)
@@ -59,6 +61,8 @@ export default defineEventHandler(async (event) => {
     preview_url: lesson.preview_url ?? null,
     page_count: lesson.page_count ?? null,
     file_bytes: lesson.file_bytes ?? null,
+    avg_rating: Number(lesson.avg_rating ?? 0),
+    rating_count: Number(lesson.rating_count ?? 0),
     excerpt: lessonExcerpt(typeof lesson.content === 'string' ? lesson.content : ''),
     url: paths.get(lesson.id) ?? null,
     bookmarked: true,

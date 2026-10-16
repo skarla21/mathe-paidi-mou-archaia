@@ -12,6 +12,8 @@ defineProps<{
     page_count?: number | null
     file_bytes?: number | null
     bookmarked?: boolean
+    avg_rating?: number | null
+    rating_count?: number | null
     /** Same string[] tags pattern as articles; assigned later from admin. */
     tags?: string[]
   }[]
@@ -37,6 +39,8 @@ defineProps<{
       :lesson-id="lesson.id"
       :bookmarked="Boolean(lesson.bookmarked)"
       :is-free="lesson.is_free"
+      :avg-rating="lesson.avg_rating"
+      :rating-count="lesson.rating_count"
     />
   </div>
 </template>

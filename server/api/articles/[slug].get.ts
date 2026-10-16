@@ -36,27 +36,25 @@ export default defineEventHandler(async (event) => {
   if (!article) throw createError({ statusCode: 404, message: 'Δεν βρέθηκε' })
 
   const articleId = article.id as string
-  const [{ count: likeCount }, { count: commentCount }] = await Promise.all([
-    supabase.from('article_likes').select('*', { count: 'exact', head: true }).eq('article_id', articleId),
+  const [{ count: commentCount }, likedRes] = await Promise.all([
     supabase.from('article_comments').select('*', { count: 'exact', head: true }).eq('article_id', articleId),
+    (async () => {
+      const userId = event.context.auth?.userId ?? null
+      if (!userId) return false
+      const { data: likeRow } = await supabase
+        .from('article_likes')
+        .select('id')
+        .eq('article_id', articleId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      return Boolean(likeRow)
+    })(),
   ])
-
-  const userId = event.context.auth?.userId ?? null
-  let likedByMe = false
-  if (userId) {
-    const { data: likeRow } = await supabase
-      .from('article_likes')
-      .select('id')
-      .eq('article_id', articleId)
-      .eq('user_id', userId)
-      .maybeSingle()
-    likedByMe = Boolean(likeRow)
-  }
 
   return {
     ...article,
-    likeCount: likeCount ?? 0,
+    likeCount: Number(article.like_count ?? 0),
     commentCount: commentCount ?? 0,
-    likedByMe,
+    likedByMe: likedRes,
   }
 })

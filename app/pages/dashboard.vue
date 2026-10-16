@@ -19,6 +19,8 @@ type BookmarkRow = {
   url: string | null
   bookmarked: boolean
   tags?: string[]
+  avg_rating?: number
+  rating_count?: number
 }
 
 type BookmarksPage = {
@@ -127,6 +129,8 @@ onMounted(() => {
           :lesson-id="lesson.id"
           :bookmarked="true"
           :is-free="lesson.is_free"
+          :avg-rating="lesson.avg_rating"
+          :rating-count="lesson.rating_count"
           @update:bookmarked="(saved) => onBookmarked(lesson.id, saved)"
         />
         <CatalogPager

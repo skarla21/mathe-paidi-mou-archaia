@@ -15,6 +15,8 @@ export type LessonSearchItem = {
   page_count: number | null
   file_bytes: number | null
   bookmarked: boolean
+  avg_rating: number
+  rating_count: number
 }
 
 export type LessonSearchPage = {
@@ -43,6 +45,8 @@ export function mapLessonSearchRows(
     preview_url?: string | null
     page_count?: number | null
     file_bytes?: number | null
+    avg_rating?: number | null
+    rating_count?: number | null
   }[],
   lessonPaths: ReadonlyMap<string, string>,
 ): LessonSearchItem[] {
@@ -61,6 +65,8 @@ export function mapLessonSearchRows(
       page_count: row.page_count ?? null,
       file_bytes: row.file_bytes ?? null,
       bookmarked: false,
+      avg_rating: Number(row.avg_rating ?? 0),
+      rating_count: Number(row.rating_count ?? 0),
     })
   }
   return items

@@ -14,6 +14,8 @@ interface SubjectLesson {
   page_count?: number | null
   file_bytes?: number | null
   bookmarked?: boolean
+  avg_rating?: number | null
+  rating_count?: number | null
 }
 
 type LessonsPage = {
@@ -88,6 +90,8 @@ const lessonRows = computed(() => subjectLessons.value.map((lesson) => ({
   page_count: lesson.page_count,
   file_bytes: lesson.file_bytes,
   bookmarked: lesson.bookmarked,
+  avg_rating: lesson.avg_rating,
+  rating_count: lesson.rating_count,
 })))
 
 async function onPageChange(next: number) {

@@ -127,6 +127,7 @@ export interface LessonComment {
   id: string
   user_id: string
   lesson_id: string
+  parent_id: string | null
   body: string
   created_at: string
   updated_at: string

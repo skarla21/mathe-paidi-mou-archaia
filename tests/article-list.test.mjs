@@ -21,6 +21,7 @@ describe('publicArticleList', () => {
     assert.equal(article.slug, 'titlos')
     assert.deepEqual(article.tags, ['εκπαίδευση'])
     assert.equal(article.reading_time_minutes, 2)
+    assert.equal(article.likeCount, 0)
     assert.equal(Object.hasOwn(article, 'body'), false)
   })
 })

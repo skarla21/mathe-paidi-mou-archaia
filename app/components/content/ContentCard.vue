@@ -28,6 +28,9 @@ const props = withDefaults(
     lessonId?: string | null;
     bookmarked?: boolean;
     isFree?: boolean | null;
+    avgRating?: number | null;
+    ratingCount?: number | null;
+    likeCount?: number | null;
   }>(),
   {
     description: null,
@@ -44,6 +47,9 @@ const props = withDefaults(
     lessonId: null,
     bookmarked: false,
     isFree: null,
+    avgRating: null,
+    ratingCount: null,
+    likeCount: null,
   },
 );
 
@@ -88,6 +94,19 @@ const showBookmark = computed(() => Boolean(props.lessonId));
 const showPaid = computed(() => props.isFree === false);
 const bookmarkLabel = computed(() =>
   saved.value ? "Αφαίρεση από το υλικό μου" : "Αποθήκευση στο υλικό μου",
+);
+
+const showAvgRating = computed(
+  () =>
+    props.ratingCount != null &&
+    props.ratingCount > 0 &&
+    props.avgRating != null,
+);
+const avgRatingLabel = computed(() =>
+  showAvgRating.value ? Number(props.avgRating).toFixed(1) : "",
+);
+const showLikeCount = computed(
+  () => props.likeCount != null && props.likeCount > 0,
 );
 
 async function toggleBookmark() {
@@ -223,32 +242,54 @@ async function toggleBookmark() {
     </div>
 
     <div
-      class="flex shrink-0 items-center gap-2 sm:flex-col sm:justify-center sm:self-center lg:flex-row"
+      class="flex shrink-0 flex-col items-stretch gap-2 sm:justify-center sm:self-center"
     >
-      <UiButton
-        v-if="showBookmark"
-        type="button"
-        variant="outline"
-        size="icon"
-        class="rounded-full"
-        :disabled="bookmarkBusy"
-        :aria-pressed="saved"
-        :aria-label="bookmarkLabel"
-        :title="bookmarkLabel"
-        @click="toggleBookmark"
+      <div class="flex items-center gap-2 sm:justify-end lg:flex-row">
+        <UiButton
+          v-if="showBookmark"
+          type="button"
+          variant="outline"
+          size="icon"
+          class="rounded-full"
+          :disabled="bookmarkBusy"
+          :aria-pressed="saved"
+          :aria-label="bookmarkLabel"
+          :title="bookmarkLabel"
+          @click="toggleBookmark"
+        >
+          <VIcon
+            :name="saved ? 'bi-bookmark-fill' : 'bi-bookmark'"
+            class="size-4"
+          />
+        </UiButton>
+        <NuxtLink
+          :to="to"
+          class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <VIcon name="bi-eye" class="size-4" aria-hidden="true" />
+          Άνοιγμα
+        </NuxtLink>
+      </div>
+      <p
+        v-if="showAvgRating"
+        class="flex items-center justify-end gap-1 text-sm tabular-nums text-muted-foreground"
+        :aria-label="`Μέση βαθμολογία ${avgRatingLabel}`"
       >
         <VIcon
-          :name="saved ? 'bi-bookmark-fill' : 'bi-bookmark'"
-          class="size-4"
+          name="bi-star-fill"
+          class="size-3.5 text-amber-500"
+          aria-hidden="true"
         />
-      </UiButton>
-      <NuxtLink
-        :to="to"
-        class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        <span>{{ avgRatingLabel }}</span>
+      </p>
+      <p
+        v-else-if="showLikeCount"
+        class="flex items-center justify-end gap-1 text-sm tabular-nums text-muted-foreground"
+        :aria-label="`${likeCount} επισημάνσεις`"
       >
-        <VIcon name="bi-eye" class="size-4" aria-hidden="true" />
-        Άνοιγμα
-      </NuxtLink>
+        <VIcon name="bi-heart" class="size-3.5" aria-hidden="true" />
+        <span>{{ likeCount }}</span>
+      </p>
     </div>
   </article>
 </template>

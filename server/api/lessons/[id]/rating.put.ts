@@ -1,19 +1,41 @@
 import { notifyRatingCreated } from '../../../utils/adminNotifications'
-import { requireAuth } from '../../../utils/requireAuth'
+import { requireVerifiedEmail } from '../../../utils/requireVerifiedEmail'
 import { canAccessLesson } from '../../../utils/access'
 import { serverSupabaseService } from '../../../utils/supabaseServer'
 
-export default defineEventHandler(async (event) => {
-  const userId = requireAuth(event)
-  const lessonId = getRouterParam(event, 'id')
-  if (!lessonId) throw createError({ statusCode: 400, message: 'Missing lesson id' })
+async function lessonRatingStats(
+  supabase: ReturnType<typeof serverSupabaseService>,
+  lessonId: string,
+) {
+  const { data } = await supabase
+    .from('lessons')
+    .select('avg_rating, rating_count')
+    .eq('id', lessonId)
+    .maybeSingle()
+  return {
+    avgRating: Number(data?.avg_rating ?? 0),
+    ratingCount: Number(data?.rating_count ?? 0),
+  }
+}
 
-  const { allowed } = await canAccessLesson(userId, lessonId)
-  if (!allowed) throw createError({ statusCode: 403, message: 'Access denied' })
+export default defineEventHandler(async (event) => {
+  const userId = await requireVerifiedEmail(event)
+  const lessonId = getRouterParam(event, 'id')
+  if (!lessonId) {
+    throw createError({ statusCode: 400, message: 'Λείπει το id μαθήματος' })
+  }
+
+  const { allowed } = await canAccessLesson(userId, lessonId, true)
+  if (!allowed) {
+    throw createError({ statusCode: 403, message: 'Απαγορεύεται' })
+  }
 
   const body = await readBody<{ rating: number }>(event)
   if (!body?.rating || !Number.isInteger(body.rating) || body.rating < 1 || body.rating > 5) {
-    throw createError({ statusCode: 400, message: 'Rating must be an integer between 1 and 5' })
+    throw createError({
+      statusCode: 400,
+      message: 'Η βαθμολογία πρέπει να είναι ακέραιος από 1 έως 5',
+    })
   }
 
   const supabase = serverSupabaseService()
@@ -35,7 +57,7 @@ export default defineEventHandler(async (event) => {
 
   if (error) {
     console.error('[lessons/[id]/rating.put]', error.message)
-    throw createError({ statusCode: 500, message: 'Database operation failed' })
+    throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
   }
 
   if (!existing && data?.id) {
@@ -46,5 +68,9 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return data
+  const stats = await lessonRatingStats(supabase, lessonId)
+  return {
+    rating: data.rating as number,
+    ...stats,
+  }
 })

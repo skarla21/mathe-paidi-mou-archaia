@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   let qBuilder = supabase
     .from('articles')
     .select(
-      'id, title, slug, body, tags, reading_time_minutes, image_url, created_at',
+      'id, title, slug, body, tags, reading_time_minutes, image_url, created_at, like_count',
       { count: 'exact' },
     )
     .eq('published', true)

@@ -104,9 +104,12 @@ create table if not exists public.lessons (
   preview_url text,
   page_count int,
   file_bytes bigint,
+  avg_rating numeric(3, 2) not null default 0,
+  rating_count int not null default 0,
   created_at timestamptz not null default now(),
   constraint lessons_page_count_check check (page_count is null or page_count > 0),
-  constraint lessons_file_bytes_check check (file_bytes is null or file_bytes > 0)
+  constraint lessons_file_bytes_check check (file_bytes is null or file_bytes > 0),
+  constraint lessons_rating_count_check check (rating_count >= 0)
 );
 create index if not exists lessons_title_idx on public.lessons(title);
 
@@ -189,18 +192,20 @@ create table if not exists public.lesson_ratings (
 create index if not exists lesson_ratings_user_id_idx   on public.lesson_ratings(user_id);
 create index if not exists lesson_ratings_lesson_id_idx on public.lesson_ratings(lesson_id);
 
--- Lesson comments (independent text comments per user per lesson)
+-- Lesson comments (threaded, article-parity)
 create table if not exists public.lesson_comments (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references public.users(id) on delete cascade,
   lesson_id   uuid not null references public.lessons(id) on delete cascade,
+  parent_id   uuid references public.lesson_comments(id) on delete cascade,
   body        text not null check (char_length(body) >= 1 and char_length(body) <= 2000),
   created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
-  unique(user_id, lesson_id)
+  updated_at  timestamptz not null default now()
 );
 create index if not exists lesson_comments_user_id_idx   on public.lesson_comments(user_id);
 create index if not exists lesson_comments_lesson_id_idx on public.lesson_comments(lesson_id);
+create index if not exists lesson_comments_parent_id_idx on public.lesson_comments(parent_id);
+create index if not exists lesson_comments_lesson_created_idx on public.lesson_comments(lesson_id, created_at);
 
 -- Articles (blog-style content)
 create table if not exists public.articles (
@@ -212,8 +217,10 @@ create table if not exists public.articles (
   reading_time_minutes smallint not null,
   published boolean not null default false,
   image_url text,
+  like_count int not null default 0,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint articles_like_count_check check (like_count >= 0)
 );
 create index if not exists articles_published_idx on public.articles(published);
 create index if not exists articles_created_at_idx on public.articles(created_at desc);
@@ -756,6 +763,60 @@ create trigger lesson_ratings_set_updated_at
   before update on public.lesson_ratings
   for each row execute function public.set_updated_at();
 
+create or replace function public.lesson_ratings_refresh_lesson_avg()
+returns trigger
+language plpgsql
+as $$
+declare
+  target_lesson uuid;
+  other_lesson uuid;
+begin
+  target_lesson := coalesce(new.lesson_id, old.lesson_id);
+  perform 1 from public.lessons where id = target_lesson for update;
+
+  update public.lessons
+  set
+    rating_count = sub.cnt,
+    avg_rating = sub.avg_r
+  from (
+    select
+      count(*)::int as cnt,
+      coalesce(round(avg(rating)::numeric, 2), 0) as avg_r
+    from public.lesson_ratings
+    where lesson_id = target_lesson
+  ) as sub
+  where id = target_lesson;
+
+  if tg_op = 'UPDATE'
+     and old.lesson_id is distinct from new.lesson_id then
+    other_lesson := old.lesson_id;
+    if other_lesson is not null and other_lesson is distinct from target_lesson then
+      perform 1 from public.lessons where id = other_lesson for update;
+      update public.lessons
+      set
+        rating_count = sub.cnt,
+        avg_rating = sub.avg_r
+      from (
+        select
+          count(*)::int as cnt,
+          coalesce(round(avg(rating)::numeric, 2), 0) as avg_r
+        from public.lesson_ratings
+        where lesson_id = other_lesson
+      ) as sub
+      where id = other_lesson;
+    end if;
+  end if;
+
+  return coalesce(new, old);
+end;
+$$;
+
+drop trigger if exists lesson_ratings_refresh_lesson_avg on public.lesson_ratings;
+create trigger lesson_ratings_refresh_lesson_avg
+  after insert or update of rating, lesson_id or delete
+  on public.lesson_ratings
+  for each row execute function public.lesson_ratings_refresh_lesson_avg();
+
 create trigger lesson_comments_set_updated_at
   before update on public.lesson_comments
   for each row execute function public.set_updated_at();
@@ -892,6 +953,69 @@ create trigger article_comments_validate_parent
   before insert or update of parent_id, article_id
   on public.article_comments
   for each row execute function public.article_comments_validate_parent();
+
+create or replace function public.lesson_comments_validate_parent()
+returns trigger
+language plpgsql
+as $$
+declare
+  parent_lesson uuid;
+  parent_parent uuid;
+begin
+  if new.parent_id is null then
+    return new;
+  end if;
+
+  select lesson_id, parent_id
+    into parent_lesson, parent_parent
+  from public.lesson_comments
+  where id = new.parent_id;
+
+  if parent_lesson is null then
+    raise exception 'invalid parent comment' using errcode = '23514';
+  end if;
+
+  if parent_lesson <> new.lesson_id then
+    raise exception 'parent comment lesson mismatch' using errcode = '23514';
+  end if;
+
+  if parent_parent is not null then
+    raise exception 'cannot reply to a reply' using errcode = '23514';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists lesson_comments_validate_parent on public.lesson_comments;
+create trigger lesson_comments_validate_parent
+  before insert or update of parent_id, lesson_id
+  on public.lesson_comments
+  for each row execute function public.lesson_comments_validate_parent();
+
+create or replace function public.article_likes_refresh_like_count()
+returns trigger
+language plpgsql
+as $$
+declare
+  target_article uuid;
+begin
+  target_article := coalesce(new.article_id, old.article_id);
+  perform 1 from public.articles where id = target_article for update;
+  update public.articles
+  set like_count = (
+    select count(*)::int from public.article_likes where article_id = target_article
+  )
+  where id = target_article;
+  return coalesce(new, old);
+end;
+$$;
+
+drop trigger if exists article_likes_refresh_like_count on public.article_likes;
+create trigger article_likes_refresh_like_count
+  after insert or delete
+  on public.article_likes
+  for each row execute function public.article_likes_refresh_like_count();
 
 -- Grade pages live at /:slug, so a grade cannot use a top-level route name.
 -- Keep this list aligned with RESERVED_GRADE_SLUGS in shared/utils/slugify.mjs.

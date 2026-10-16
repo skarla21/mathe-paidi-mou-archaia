@@ -20,6 +20,8 @@ interface Lesson {
   file_bytes?: number | null
   bookmarked?: boolean
   tags?: string[]
+  avg_rating?: number | null
+  rating_count?: number | null
 }
 
 type LessonsPage = {
@@ -69,6 +71,8 @@ const lessonRows = computed(() => lessons.value.map((lesson) => ({
   file_bytes: lesson.file_bytes,
   bookmarked: lesson.bookmarked,
   tags: lesson.tags,
+  avg_rating: lesson.avg_rating,
+  rating_count: lesson.rating_count,
 })))
 
 async function onPageChange(next: number) {

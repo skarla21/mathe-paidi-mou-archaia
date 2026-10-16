@@ -16,6 +16,7 @@ type Row = {
   image_url?: string | null
   created_at: string
   excerpt?: string
+  likeCount?: number
 }
 
 type ArticlesPage = {
@@ -167,6 +168,7 @@ onBeforeUnmount(() => {
             preview-mode="cover"
             placeholder-icon="bi-newspaper"
             :reading-minutes="a.reading_time_minutes"
+            :like-count="a.likeCount"
           />
         </li>
       </ul>

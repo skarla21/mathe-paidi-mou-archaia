@@ -58,6 +58,8 @@ describe('lesson search page helpers', () => {
       page_count: 12,
       file_bytes: 4096,
       bookmarked: false,
+      avg_rating: 0,
+      rating_count: 0,
     })
     assert.equal(items[1].id, 'c')
     assert.equal(items[1].excerpt, '')
@@ -67,6 +69,8 @@ describe('lesson search page helpers', () => {
     assert.equal(items[1].page_count, null)
     assert.equal(items[1].file_bytes, null)
     assert.equal(items[1].bookmarked, false)
+    assert.equal(items[1].avg_rating, 0)
+    assert.equal(items[1].rating_count, 0)
     assert.equal(items.some((row) => row.id === 'b'), false)
   })
 
@@ -139,7 +143,7 @@ describe('GET /api/search/lessons', () => {
     assert.match(source, /lesson_bookmarks/)
     assert.match(source, /LESSON_SEARCH_FETCH_CAP/)
     assert.match(source, /foldGreekSearch/)
-    assert.match(source, /select\('id, title, slug, is_free, content, tags, preview_url, page_count, file_bytes'/)
+    assert.match(source, /select\('id, title, slug, is_free, content, tags, preview_url, page_count, file_bytes, avg_rating, rating_count'/)
     assert.doesNotMatch(source, /count:\s*['"]exact['"]/)
     assert.doesNotMatch(source, /\.ilike\(/)
   })

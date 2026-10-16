@@ -9,6 +9,7 @@ export type ArticleListRow = {
   image_url?: string | null
   created_at: string
   body?: string | null
+  like_count?: number | null
 }
 
 export type PublicArticleListItem = {
@@ -20,6 +21,7 @@ export type PublicArticleListItem = {
   image_url: string | null
   created_at: string
   excerpt: string
+  likeCount: number
 }
 
 export function publicArticleList(rows: ArticleListRow[] | null | undefined): PublicArticleListItem[] {
@@ -34,6 +36,7 @@ export function publicArticleList(rows: ArticleListRow[] | null | undefined): Pu
       image_url: row.image_url ?? null,
       created_at: row.created_at,
       excerpt,
+      likeCount: Number(row.like_count ?? 0),
     }
   })
 }
