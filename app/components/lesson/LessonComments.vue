@@ -5,6 +5,7 @@ import UiTextarea from "~/components/ui/Textarea.vue";
 import LessonCommentItem, {
   type LessonCommentRow,
 } from "~/components/lesson/LessonCommentItem.vue";
+import type { LessonCommentRefresh } from "~/lib/lessonEngageStorage";
 
 const props = defineProps<{
   lessonId: string;
@@ -15,7 +16,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  refresh: [];
+  refresh: [source: LessonCommentRefresh];
   loadMore: [];
 }>();
 
@@ -100,7 +101,7 @@ async function submitComposer() {
     });
     composerText.value = "";
     toast.success("Το σχόλιο δημοσιεύτηκε");
-    emit("refresh");
+    emit("refresh", "post");
   } catch (e: unknown) {
     handleWriteError(e);
   } finally {
@@ -136,7 +137,7 @@ async function submitReply(parentId: string) {
     replyToId.value = null;
     replyText.value = "";
     toast.success("Η απάντηση δημοσιεύτηκε");
-    emit("refresh");
+    emit("refresh", "reply");
   } catch (e: unknown) {
     handleWriteError(e);
   } finally {
@@ -145,7 +146,7 @@ async function submitReply(parentId: string) {
 }
 
 function onDeleted() {
-  emit("refresh");
+  emit("refresh", "delete");
 }
 </script>
 
@@ -171,7 +172,7 @@ function onDeleted() {
           :lesson-id="lessonId"
           :can-moderate="isAdmin"
           @toggle-reply="toggleReply(thread.master.id)"
-          @updated="emit('refresh')"
+          @updated="emit('refresh', 'edit')"
           @deleted="onDeleted"
         />
         <LessonCommentItem
@@ -182,7 +183,7 @@ function onDeleted() {
           is-reply
           :can-moderate="isAdmin"
           @toggle-reply="toggleReply(thread.master.id)"
-          @updated="emit('refresh')"
+          @updated="emit('refresh', 'edit')"
           @deleted="onDeleted"
         />
         <li

@@ -4,6 +4,7 @@ const props = defineProps<{
   avgRating: number
   ratingCount: number
   disabled?: boolean
+  label?: string
 }>()
 
 const emit = defineEmits<{
@@ -47,7 +48,7 @@ function onClick(star: number) {
     <div
       class="flex items-center gap-0.5"
       role="group"
-      aria-label="Βαθμολογία"
+      :aria-label="label || 'Βαθμολογία'"
       @mouseleave="onLeave"
     >
       <button

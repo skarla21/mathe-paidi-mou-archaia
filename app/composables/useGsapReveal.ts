@@ -43,6 +43,27 @@ export function useGsapReveal() {
     )
   }
 
+  async function revealNow(
+    el: HTMLElement | string,
+    opts?: { y?: number; duration?: number; ease?: string },
+  ) {
+    if (!import.meta.client || prefersReducedMotion()) return
+    const { gsap } = await getGsap()
+    const target: HTMLElement | null =
+      typeof el === 'string' ? document.querySelector<HTMLElement>(el) : el
+    if (!target) return
+    gsap.fromTo(
+      target,
+      { opacity: 0, y: opts?.y ?? 16 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: opts?.duration ?? 0.45,
+        ease: opts?.ease ?? 'power2.out',
+      },
+    )
+  }
+
   async function revealStagger(
     container: HTMLElement | string,
     childSelector: string,
@@ -194,6 +215,7 @@ export function useGsapReveal() {
 
   return {
     revealSection,
+    revealNow,
     revealStagger,
     animateHero,
     iconWiggle,

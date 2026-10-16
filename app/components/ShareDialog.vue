@@ -14,6 +14,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
+  shared: []
 }>()
 
 const url = ref('')
@@ -28,6 +29,11 @@ watch(() => props.open, (open) => {
 
 function close() {
   emit('update:open', false)
+}
+
+function shareViaNetwork() {
+  emit('shared')
+  close()
 }
 
 const networks = computed(() => {
@@ -70,6 +76,7 @@ async function copyLink() {
       copied.value = false
     }, 1600)
     toast.success('Ο σύνδεσμος αντιγράφηκε στο πρόχειρο.')
+    emit('shared')
   } catch {
     toast.error('Κάτι πήγε στραβά')
   }
@@ -113,7 +120,7 @@ onBeforeUnmount(() => {
             :target="network.href.startsWith('mailto:') ? undefined : '_blank'"
             rel="noopener noreferrer"
             class="flex min-w-0 cursor-pointer flex-col items-center gap-2 text-center"
-            @click="close"
+            @click="shareViaNetwork"
           >
             <span
               class="flex size-12 items-center justify-center rounded-full"

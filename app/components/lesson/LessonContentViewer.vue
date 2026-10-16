@@ -11,6 +11,13 @@ import UiDialogOverlay from '~/components/ui/dialog/DialogOverlay.vue'
 import UiDialogPortal from '~/components/ui/dialog/DialogPortal.vue'
 import UiDialogTitle from '~/components/ui/dialog/DialogTitle.vue'
 import { downloadRemoteFile } from '~/lib/downloadFile'
+import {
+  engagementAfterIdentityChange,
+  engageDwellMs,
+  isLessonContentEngaged,
+  pageMarksEngaged,
+  setLessonContentEngaged,
+} from '~/lib/lessonEngageStorage'
 import { loadPdfjs } from '~/lib/pdfjs'
 import { contentLengthFromHeaders, lessonFileSizeLabel, lessonImagePreviewUrl, lessonPageCountLabel } from '#shared/utils/lessonPreviewUrl.mjs'
 
@@ -19,15 +26,21 @@ const THUMB_BITMAP_WIDTH = 280
 const props = withDefaults(defineProps<{
   src: string
   lessonId?: string
+  userId?: string
   title: string
   previewUrl?: string | null
   pageCount?: number | null
   fileBytes?: number | null
 }>(), {
+  userId: '',
   previewUrl: null,
   pageCount: null,
   fileBytes: null,
 })
+
+const emit = defineEmits<{
+  engaged: []
+}>()
 
 const open = ref(false)
 const downloading = ref(false)
@@ -43,6 +56,8 @@ const storedThumbFailed = ref(false)
 const zoomPercent = ref(100)
 const viewerPage = ref(1)
 const viewerTotal = ref(0)
+let engagedEmitted = false
+let dwellTimer: ReturnType<typeof setTimeout> | null = null
 
 const pathPart = computed(() => (props.src || '').split('?')[0] ?? '')
 const isPdf = computed(() => /\.pdf$/i.test(pathPart.value))
@@ -148,10 +163,51 @@ async function loadThumb() {
   }
 }
 
+function clearDwellTimer() {
+  if (dwellTimer) {
+    clearTimeout(dwellTimer)
+    dwellTimer = null
+  }
+}
+
+function markEngaged() {
+  if (engagedEmitted) return
+  engagedEmitted = true
+  clearDwellTimer()
+  if (props.lessonId && props.userId) setLessonContentEngaged(props.lessonId, props.userId)
+  emit('engaged')
+}
+
+function effectivePageTotal() {
+  if (viewerTotal.value > 0) return viewerTotal.value
+  if (props.pageCount != null && props.pageCount > 0) return props.pageCount
+  return loadedPageCount.value
+}
+
+function startDwellTimer() {
+  clearDwellTimer()
+  if (engagedEmitted) return
+  const kind = isPdf.value ? 'pdf' : isImage.value ? 'image' : 'other'
+  const delay = engageDwellMs(kind, effectivePageTotal())
+  if (delay == null) return
+  dwellTimer = setTimeout(() => markEngaged(), delay)
+}
+
+function onViewerReady(total: number) {
+  viewerTotal.value = total
+  if (open.value) startDwellTimer()
+}
+
+function onViewerPage(page: number) {
+  viewerPage.value = page
+  if (pageMarksEngaged(page)) markEngaged()
+}
+
 function showFile() {
   zoomPercent.value = 100
   viewerPage.value = 1
   open.value = true
+  startDwellTimer()
 }
 
 let bookToken = 0
@@ -184,7 +240,10 @@ function onOpenChange(next: boolean) {
   if (next) {
     zoomPercent.value = 100
     viewerPage.value = 1
+    startDwellTimer()
+    return
   }
+  clearDwellTimer()
 }
 
 function zoomOut() {
@@ -199,6 +258,7 @@ async function download() {
   downloading.value = true
   try {
     await downloadRemoteFile(props.src, props.title)
+    markEngaged()
     if (!props.lessonId) return
     try {
       await $fetch(`/api/lessons/${props.lessonId}/record-download`, {
@@ -234,15 +294,37 @@ watch(
   },
 )
 
+function applyStoredEngagement() {
+  clearDwellTimer()
+  const stored = Boolean(
+    props.lessonId
+    && props.userId
+    && isLessonContentEngaged(props.lessonId, props.userId),
+  )
+  const next = engagementAfterIdentityChange(stored)
+  engagedEmitted = next.engagedEmitted
+  if (next.emit) emit('engaged')
+  else if (open.value) startDwellTimer()
+}
+
 onMounted(() => {
   refreshThumbAndSize()
+  applyStoredEngagement()
 })
+
+watch(
+  () => [props.lessonId, props.userId] as const,
+  () => {
+    applyStoredEngagement()
+  },
+)
 
 onUnmounted(() => {
   thumbToken++
   sizeToken++
   bookToken++
   bookTween?.kill()
+  clearDwellTimer()
 })
 </script>
 
@@ -370,8 +452,8 @@ onUnmounted(() => {
             v-if="open && isPdf"
             :src="src"
             :zoom="zoom"
-            @ready="viewerTotal = $event"
-            @page="viewerPage = $event"
+            @ready="onViewerReady"
+            @page="onViewerPage"
           />
           <div v-else-if="isImage" class="min-h-0 flex-1 overflow-auto bg-muted/40 p-4">
             <img :src="src" alt="" class="mx-auto max-w-full rounded-xl bg-white shadow-md">

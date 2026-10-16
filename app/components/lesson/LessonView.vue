@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { toast } from 'vue-sonner'
 import LessonContentViewer from '~/components/lesson/LessonContentViewer.vue'
+import LessonEngagePrompt from '~/components/lesson/LessonEngagePrompt.vue'
 import LessonStarRating from '~/components/lesson/LessonStarRating.vue'
 import LessonComments from '~/components/lesson/LessonComments.vue'
 import type { LessonCommentRow } from '~/components/lesson/LessonCommentItem.vue'
@@ -12,6 +13,15 @@ import Tooltip from '~/components/ui/tooltip/Tooltip.vue'
 import TooltipTrigger from '~/components/ui/tooltip/TooltipTrigger.vue'
 import TooltipContent from '~/components/ui/tooltip/TooltipContent.vue'
 import type { LessonChip, LessonParent } from '~/lib/lessonContext'
+import {
+  LESSON_ENGAGE_GUEST_ID,
+  isLessonEngagePromptDismissed,
+  setLessonEngagePromptDismissed,
+  shouldDismissForCommentRefresh,
+  shouldDismissForShare,
+  showLessonEngagePrompt,
+  type LessonCommentRefresh,
+} from '~/lib/lessonEngageStorage'
 
 const descriptionClass = [
   'mt-5 max-w-3xl font-reading text-lg leading-relaxed text-muted-foreground',
@@ -79,11 +89,67 @@ const fileBlock = ref<LessonFileBlock>(null)
 const purchasing = ref(false)
 const ratingBusy = ref(false)
 const shareOpen = ref(false)
+const shareFromPrompt = ref(false)
+const contentEngaged = ref(false)
+const engagePromptDismissed = ref(false)
+const engageCommentArmed = ref(false)
 
 const myRating = ref<number | null>(null)
 const avgRating = ref(0)
 const ratingCount = ref(0)
 const commentCount = ref(0)
+
+const engageUserId = computed(() => session.value.user?.id ?? LESSON_ENGAGE_GUEST_ID)
+
+const showEngagePrompt = computed(() => showLessonEngagePrompt({
+  contentEngaged: contentEngaged.value,
+  dismissed: engagePromptDismissed.value,
+  canAccess: canAccess.value,
+  canAccessContent: canAccessContent.value,
+  hasRating: myRating.value != null,
+}))
+
+function syncEngagePromptDismissed() {
+  engagePromptDismissed.value = isLessonEngagePromptDismissed(props.lessonId, engageUserId.value)
+}
+
+function dismissEngagePrompt() {
+  setLessonEngagePromptDismissed(props.lessonId, engageUserId.value)
+  engagePromptDismissed.value = true
+  engageCommentArmed.value = false
+  shareFromPrompt.value = false
+}
+
+function resetEngagePrompt() {
+  contentEngaged.value = false
+  engageCommentArmed.value = false
+  shareFromPrompt.value = false
+  syncEngagePromptDismissed()
+}
+
+function onContentEngaged() {
+  contentEngaged.value = true
+}
+
+function openShare(fromPrompt = false) {
+  shareFromPrompt.value = fromPrompt
+  shareOpen.value = true
+}
+
+function onShareOpen(open: boolean) {
+  shareOpen.value = open
+  if (!open) shareFromPrompt.value = false
+}
+
+function onShared() {
+  if (shouldDismissForShare({
+    promptVisible: showEngagePrompt.value,
+    openedFromPrompt: shareFromPrompt.value,
+  })) {
+    dismissEngagePrompt()
+  }
+  shareFromPrompt.value = false
+}
 
 const comments = ref<LessonCommentRow[]>([])
 const commentsPage = ref(1)
@@ -126,12 +192,14 @@ function applyLesson(payload: LessonResponse | null) {
 watch(data, (payload) => applyLesson(payload ?? null), { immediate: true })
 
 watch(() => session.value.user?.id ?? null, () => {
+  resetEngagePrompt()
   void refresh()
 })
 
 watch(
   () => props.lessonId,
   async () => {
+    resetEngagePrompt()
     await refresh()
     await loadComments()
   },
@@ -209,6 +277,7 @@ async function onRate(value: number) {
     myRating.value = result.rating
     avgRating.value = result.avgRating
     ratingCount.value = result.ratingCount
+    dismissEngagePrompt()
     toast.success('Η βαθμολογία αποθηκεύτηκε')
   } catch (e: unknown) {
     handleRateError(e)
@@ -282,9 +351,17 @@ async function syncCommentCount() {
   }
 }
 
-async function onCommentsRefresh() {
+async function onCommentsRefresh(source: LessonCommentRefresh) {
   await loadComments()
   await syncCommentCount()
+  if (shouldDismissForCommentRefresh(source, engageCommentArmed.value)) {
+    dismissEngagePrompt()
+  }
+}
+
+function onEngageComment() {
+  engageCommentArmed.value = true
+  scrollToComments()
 }
 
 async function onLoadMoreComments() {
@@ -319,6 +396,7 @@ useHead(() => ({
 }))
 
 onMounted(async () => {
+  syncEngagePromptDismissed()
   await loadComments()
   if (import.meta.client) {
     const { revealSection } = useGsapReveal()
@@ -348,11 +426,13 @@ onMounted(async () => {
     </header>
     <template v-if="lesson">
       <ClientOnly v-if="lesson.content">
+        <!-- eslint-disable vue/no-v-html -- safeContent is DOMPurify.sanitize() output -->
         <div
           v-if="safeContent"
           :class="descriptionClass"
           v-html="safeContent"
         />
+        <!-- eslint-enable vue/no-v-html -->
         <template #fallback>
           <div class="mt-5 h-24 max-w-3xl animate-pulse rounded-2xl bg-muted" />
         </template>
@@ -364,7 +444,9 @@ onMounted(async () => {
           :page-count="lesson.page_count"
           :file-bytes="lesson.file_bytes"
           :lesson-id="props.lessonId"
+          :user-id="engageUserId"
           :title="lesson.title"
+          @engaged="onContentEngaged"
         />
       </div>
       <div
@@ -417,8 +499,22 @@ onMounted(async () => {
         </UiButton>
       </div>
 
+      <LessonEngagePrompt
+        v-if="showEngagePrompt"
+        :my-rating="myRating"
+        :avg-rating="avgRating"
+        :rating-count="ratingCount"
+        :rating-disabled="ratingBusy"
+        @rate="onRate"
+        @clear="onClearRating"
+        @comment="onEngageComment"
+        @share="openShare(true)"
+        @dismiss="dismissEngagePrompt"
+      />
+
       <div class="mt-10 mb-10 flex max-w-3xl flex-wrap items-center gap-3">
         <LessonStarRating
+          v-if="!showEngagePrompt"
           :my-rating="myRating"
           :avg-rating="avgRating"
           :rating-count="ratingCount"
@@ -449,7 +545,7 @@ onMounted(async () => {
                 variant="outline"
                 size="sm"
                 aria-label="Κοινοποίηση"
-                @click="shareOpen = true"
+                @click="openShare(false)"
               >
                 <VIcon name="bi-share" class="size-4" aria-hidden="true" />
               </UiButton>
@@ -458,7 +554,12 @@ onMounted(async () => {
           </Tooltip>
         </TooltipProvider>
       </div>
-      <ShareDialog v-model:open="shareOpen" :title="lesson.title" />
+      <ShareDialog
+        :open="shareOpen"
+        :title="lesson.title"
+        @update:open="onShareOpen"
+        @shared="onShared"
+      />
 
       <div class="max-w-3xl">
         <LessonComments
