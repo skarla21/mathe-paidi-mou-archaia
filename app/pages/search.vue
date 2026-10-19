@@ -105,9 +105,12 @@ const resultsLabel = computed(() => {
   return `${total.value} αποτελέσματα ${quoted}`
 })
 
-useHead(() => ({
-  title: queryText.value ? `Αναζήτηση: ${queryText.value}` : 'Αναζήτηση',
-}))
+useHead(() => describedHead(
+  queryText.value ? `Αναζήτηση: ${queryText.value}` : 'Αναζήτηση',
+  queryText.value
+    ? `Αναζήτηση για «${queryText.value}».`
+    : 'Αναζήτηση στο διδακτικό υλικό.',
+))
 
 async function onPageChange(next: number) {
   await navigateTo({

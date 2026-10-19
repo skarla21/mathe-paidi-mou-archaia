@@ -1,6 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "node:path";
+import { SITE_DESCRIPTION, SITE_TITLE } from "./shared/utils/siteMeta.mjs";
 
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -9,6 +10,19 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: "el" },
+      title: SITE_TITLE,
+      meta: [
+        { name: "description", content: SITE_DESCRIPTION },
+        { property: "og:type", content: "website" },
+        { property: "og:locale", content: "el_GR" },
+        { property: "og:site_name", content: "Μάθε Παιδί Μου Αρχαία" },
+        { property: "og:image", content: "https://mathearchaia.gr/og.jpg" },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "1200" },
+        { property: "og:image:alt", content: "Μάθε Παιδί Μου Αρχαία" },
+        { name: "twitter:card", content: "summary" },
+        { name: "twitter:image", content: "https://mathearchaia.gr/og.jpg" },
+      ],
     },
   },
   css: [resolve(__dirname, "app/assets/css/main.css")],

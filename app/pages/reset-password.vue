@@ -12,9 +12,10 @@ const route = useRoute();
 const { fetchSession, session } = useCurrentUser();
 const { openLogin } = useAuthModal();
 
-useHead(() => ({
-  title: 'Ορισμός νέου κωδικού',
-}));
+useHead(() => describedHead(
+  'Ορισμός νέου κωδικού',
+  'Όρισε έναν νέο κωδικό πρόσβασης.',
+));
 
 const token = computed(() => (route.query.token as string) || "");
 const newPassword = ref("");

@@ -103,9 +103,10 @@ async function onPageChange(next: number) {
   })
 }
 
-useHead(() => ({
-  title: subject ? `${subject.name} - ${grade?.name}` : 'Μάθημα',
-}))
+useHead(() => describedHead(
+  subject ? `${subject.name} - ${grade?.name}` : 'Μάθημα',
+  subject && grade ? `${subject.name}, ${grade.name}.` : null,
+))
 </script>
 
 <template>

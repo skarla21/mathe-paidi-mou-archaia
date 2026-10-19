@@ -28,9 +28,10 @@ const { data: subjectsData, error: subjectsError } = await useFetch<SubjectWithC
 const subjects = computed(() => subjectsData.value ?? [])
 const subjectsState = computed(() => catalogListState(Boolean(subjectsError.value), subjects.value.length))
 
-useHead(() => ({
-  title: grade ? `${grade.name} - Τάξεις` : 'Τάξη',
-}))
+useHead(() => describedHead(
+  grade ? `${grade.name} - Τάξεις` : 'Τάξη',
+  grade ? `${grade.name}. Μαθήματα και κεφάλαια.` : null,
+))
 
 onMounted(() => {
   if (import.meta.client) {

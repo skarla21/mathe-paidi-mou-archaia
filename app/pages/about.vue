@@ -1,7 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
-useHead({ title: 'Σχετικά' })
+useHead(() => describedHead(
+  'Σχετικά',
+  'Οργανωμένες σημειώσεις και μαθήματα για την προετοιμασία στα Αρχαία.',
+))
 
 const platformPoints = [
   'Οργανωμένες σημειώσεις ανά τάξη και μάθημα',

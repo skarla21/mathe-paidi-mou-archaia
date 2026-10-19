@@ -5,7 +5,7 @@ import UiSkeleton from '~/components/ui/Skeleton.vue'
 import { catalogListState } from '~/utils/catalogLists'
 
 definePageMeta({ layout: 'default' })
-useHead(() => ({ title: 'Άρθρα' }))
+useHead(() => describedHead('Άρθρα', 'Άρθρα και σημειώσεις για όλες τις τάξεις.'))
 
 type Row = {
   id: string

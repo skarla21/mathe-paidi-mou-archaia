@@ -7,6 +7,9 @@ import AdminNotificationsModal from '~/components/admin/AdminNotificationsModal.
 import UiBadge from '~/components/ui/Badge.vue'
 
 const route = useRoute()
+useHead({
+  meta: [{ name: 'description', content: 'Διαχείριση του διδακτικού υλικού.' }],
+})
 const adminFetch = useAdminFetch()
 const mainEl = ref<HTMLElement | null>(null)
 const mobileMenuOpen = ref(false)

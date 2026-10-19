@@ -50,6 +50,17 @@ const canManage = computed(
     (!!session.value.user?.id && session.value.user.id === props.comment.user_id),
 );
 
+const now = useRelativeNow();
+const relativeLabel = computed(() =>
+  formatRelativeTime(props.comment.created_at, now.value),
+);
+const exactLabel = computed(() => formatExactTime(props.comment.created_at));
+const timeLabel = computed(() =>
+  exactLabel.value
+    ? `${relativeLabel.value}, ${exactLabel.value}`
+    : relativeLabel.value,
+);
+
 function startEdit() {
   editText.value = props.comment.body;
   editing.value = true;
@@ -137,8 +148,24 @@ async function confirmDelete() {
         />
       </span>
       <div class="min-w-0 flex-1">
-        <p class="font-heading text-sm font-semibold text-foreground">
-          {{ comment.users?.name ?? "Χρήστης" }}
+        <p class="flex min-w-0 flex-wrap items-baseline gap-x-1.5 font-heading text-sm">
+          <span class="font-semibold text-foreground">
+            {{ comment.users?.name ?? "Χρήστης" }}
+          </span>
+          <span
+            v-if="relativeLabel"
+            class="inline-flex items-baseline gap-x-1.5 whitespace-nowrap"
+          >
+            <span class="text-muted-foreground/70" aria-hidden="true">·</span>
+            <time
+              :datetime="comment.created_at"
+              :title="exactLabel"
+              :aria-label="timeLabel"
+              class="text-xs font-normal text-muted-foreground"
+            >
+              {{ relativeLabel }}
+            </time>
+          </span>
         </p>
 
         <template v-if="editing">
@@ -165,9 +192,6 @@ async function confirmDelete() {
             class="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-foreground"
           >
             {{ comment.body }}
-          </p>
-          <p class="mt-2 text-xs text-muted-foreground">
-            {{ new Date(comment.created_at).toLocaleString("el-GR") }}
           </p>
           <div class="mt-3 flex flex-wrap items-center gap-1">
             <UiButton

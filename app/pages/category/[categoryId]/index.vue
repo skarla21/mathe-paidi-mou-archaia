@@ -84,7 +84,10 @@ async function onPageChange(next: number) {
   })
 }
 
-useHead(() => ({ title: category.value?.name ?? 'Κατηγορία' }))
+useHead(() => describedHead(
+  category.value?.name ?? 'Κατηγορία',
+  category.value?.description,
+))
 
 onMounted(() => {
   if (import.meta.client) {

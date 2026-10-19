@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { EMAIL_REGEX } from "~/lib/validation";
 
 const { grades, ensure } = useCatalogNav();
 const { colorMode } = useTheme();
@@ -32,6 +33,13 @@ const message = ref("");
 const honey = ref("");
 const submitting = ref(false);
 const submitted = ref(false);
+const showErrors = ref(false);
+
+const emailInvalid = computed(() => {
+  const value = email.value.trim();
+  return !value || !EMAIL_REGEX.test(value);
+});
+const messageInvalid = computed(() => !message.value.trim());
 
 await ensure();
 
@@ -48,6 +56,18 @@ async function submitContact() {
     submitted.value = true;
     return;
   }
+  const trimmedEmail = email.value.trim();
+  const trimmedMessage = message.value.trim();
+  if (!trimmedEmail || !trimmedMessage) {
+    showErrors.value = true;
+    toast.error("Συμπλήρωσε τα υποχρεωτικά πεδία.");
+    return;
+  }
+  if (!EMAIL_REGEX.test(trimmedEmail)) {
+    showErrors.value = true;
+    toast.error("Συμπλήρωσε ένα έγκυρο email.");
+    return;
+  }
   if (!siteKey.value || recaptchaUnavailable.value) {
     toast.error("Η επαλήθευση δεν είναι διαθέσιμη. Δοκίμασε ξανά αργότερα.");
     return;
@@ -62,8 +82,8 @@ async function submitContact() {
     await $fetch("/api/contact", {
       method: "POST",
       body: {
-        email: email.value,
-        message: message.value,
+        email: trimmedEmail,
+        message: trimmedMessage,
         name: name.value,
         phone: phone.value,
         gradeId: gradeId.value,
@@ -186,7 +206,12 @@ async function submitContact() {
         >
           Το μήνυμά σου στάλθηκε. Θα σου απαντήσουμε το συντομότερο.
         </p>
-        <form v-else class="space-y-4" @submit.prevent="submitContact">
+        <form
+          v-else
+          class="space-y-4"
+          novalidate
+          @submit.prevent="submitContact"
+        >
           <input
             v-model="honey"
             type="text"
@@ -208,13 +233,33 @@ async function submitContact() {
             </label>
             <label class="space-y-1.5 text-sm font-semibold">
               Email επικοινωνίας
+              <span class="text-destructive" aria-hidden="true">*</span>
               <input
+                id="contact-email"
                 v-model="email"
                 type="email"
-                required
-                class="h-12 w-full rounded-xl border-none bg-secondary px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+                aria-required="true"
+                :aria-invalid="(showErrors && emailInvalid) || undefined"
+                :aria-describedby="showErrors && emailInvalid ? 'contact-email-error' : undefined"
+                class="h-12 w-full rounded-xl border bg-secondary px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+                :class="
+                  showErrors && emailInvalid
+                    ? 'border-destructive'
+                    : 'border-transparent'
+                "
                 placeholder="name@example.com"
               />
+              <p
+                v-if="showErrors && emailInvalid"
+                id="contact-email-error"
+                class="text-xs font-normal text-destructive"
+              >
+                {{
+                  email.trim()
+                    ? "Συμπλήρωσε ένα έγκυρο email."
+                    : "Το email είναι υποχρεωτικό."
+                }}
+              </p>
             </label>
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
@@ -254,14 +299,30 @@ async function submitContact() {
           </div>
           <label class="block space-y-1.5 text-sm font-semibold">
             Το μήνυμά σου
+            <span class="text-destructive" aria-hidden="true">*</span>
             <textarea
+              id="contact-message"
               v-model="message"
-              required
+              aria-required="true"
+              :aria-invalid="(showErrors && messageInvalid) || undefined"
+              :aria-describedby="showErrors && messageInvalid ? 'contact-message-error' : undefined"
               maxlength="4000"
               rows="4"
-              class="w-full rounded-xl border-none bg-secondary p-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+              class="w-full rounded-xl border bg-secondary p-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+              :class="
+                showErrors && messageInvalid
+                  ? 'border-destructive'
+                  : 'border-transparent'
+              "
               placeholder="Πες μας πώς μπορούμε να βοηθήσουμε."
             />
+            <p
+              v-if="showErrors && messageInvalid"
+              id="contact-message-error"
+              class="text-xs font-normal text-destructive"
+            >
+              Το μήνυμα είναι υποχρεωτικό.
+            </p>
           </label>
           <div class="space-y-2">
             <div :key="colorMode" ref="recaptchaBox" />
@@ -277,7 +338,7 @@ async function submitContact() {
           </div>
           <button
             type="submit"
-            class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-linear-to-r from-orange-600 to-amber-500 py-3.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(234,88,12,0.35)] transition-all hover:-translate-y-0.5 disabled:opacity-60"
+            class="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-linear-to-r from-orange-600 to-amber-500 py-3.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(234,88,12,0.35)] transition-colors hover:from-orange-700 hover:to-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="submitting"
           >
             <VIcon name="bi-send" class="size-4" aria-hidden="true" />

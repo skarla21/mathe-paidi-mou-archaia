@@ -9,6 +9,7 @@ import TooltipContent from "~/components/ui/tooltip/TooltipContent.vue";
 import ContentReadingTime from "~/components/content/ReadingTime.vue";
 import ArticleComments from "~/components/article/ArticleComments.vue";
 import type { ArticleCommentRow } from "~/components/article/ArticleCommentItem.vue";
+import { lessonExcerpt } from "#shared/utils/lessonExcerpt.mjs";
 
 definePageMeta({ layout: "default" });
 const route = useRoute();
@@ -52,10 +53,6 @@ const shareOpen = ref(false);
 
 const slug = computed(() => route.params.slug as string);
 
-useHead(() => ({
-  title: article.value?.title ? `${article.value.title} — Άρθρα` : "Άρθρα",
-}));
-
 function ensureLoggedIn(): boolean {
   if (!session.value?.user?.id) {
     toast.error("Συνδεθείτε για να σχολιάσετε ή να κάνετε επισήμανση.");
@@ -96,7 +93,7 @@ async function loadArticle() {
     article.value = payload;
   } catch {
     article.value = null;
-    toast.error("Κάτι πήγε στραβά");
+    if (import.meta.client) toast.error("Κάτι πήγε στραβά");
   } finally {
     articlePending.value = false;
   }
@@ -160,8 +157,17 @@ async function onLoadMoreComments() {
   await loadComments({ append: true });
 }
 
+await loadArticle();
+
+useHead(() =>
+  describedHead(
+    article.value?.title ? `${article.value.title} — Άρθρα` : "Άρθρα",
+    article.value?.body ? lessonExcerpt(article.value.body) : null,
+    article.value ? [{ property: "og:type", content: "article" }] : [],
+  ),
+);
+
 onMounted(async () => {
-  await loadArticle();
   await loadComments();
 });
 

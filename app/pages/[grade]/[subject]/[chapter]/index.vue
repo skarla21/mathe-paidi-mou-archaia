@@ -102,7 +102,10 @@ async function onPageChange(next: number) {
   })
 }
 
-useHead(() => ({ title: chapter.value ? chapter.value.title : 'Κεφάλαιο' }))
+useHead(() => describedHead(
+  chapter.value ? chapter.value.title : 'Κεφάλαιο',
+  chapter.value?.description,
+))
 
 onMounted(() => {
   if (import.meta.client) {

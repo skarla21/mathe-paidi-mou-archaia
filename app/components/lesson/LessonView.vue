@@ -17,6 +17,7 @@ import {
   lessonFileSizeLabel,
   lessonPageCountLabel,
 } from '#shared/utils/lessonPreviewUrl.mjs'
+import { lessonExcerpt } from '#shared/utils/lessonExcerpt.mjs'
 import {
   LESSON_ENGAGE_GUEST_ID,
   isLessonEngagePromptDismissed,
@@ -416,9 +417,10 @@ async function buyLesson() {
   }
 }
 
-useHead(() => ({
-  title: lesson.value ? lesson.value.title : 'Υλικό',
-}))
+useHead(() => describedHead(
+  lesson.value ? lesson.value.title : 'Υλικό',
+  lesson.value?.content ? lessonExcerpt(lesson.value.content) : null,
+))
 
 onMounted(async () => {
   syncEngagePromptDismissed()
