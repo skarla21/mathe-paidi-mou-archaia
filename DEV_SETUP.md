@@ -172,6 +172,10 @@ The contact form and auth emails (verification, password reset) use Resend.
 3. Add to `.env`:
    - `NUXT_RESEND_API_KEY` – your Resend API key
    - `NUXT_CONTACT_EMAIL` – email where contact form messages are sent (optional; defaults to `antwnis_skarlatos@yahoo.com`)
+   - `NUXT_PUBLIC_RECAPTCHA_SITE_KEY` – reCAPTCHA v2 checkbox site key (public; used in the browser)
+   - `NUXT_RECAPTCHA_SECRET_KEY` – reCAPTCHA v2 secret key (server only; never use a `NUXT_PUBLIC_` name)
+
+Create two key pairs at [google.com/recaptcha/admin/create](https://www.google.com/recaptcha/admin/create): type **Challenge (v2)** → **“I’m not a robot” Checkbox**. The production pair allows only `mathe-paidi-mou-archaia.com` and `www.mathe-paidi-mou-archaia.com`. Local development uses a separate key pair that allows `localhost`. Set the production pair in the Vercel project environment for Production. The server accepts `localhost` only when `NODE_ENV` is not `production`. The contact form refuses to send when the secret is missing.
 
 When a user submits the contact form, the message is sent to `NUXT_CONTACT_EMAIL` with `replyTo` set to the submitter's email, so you can reply directly from your inbox.
 

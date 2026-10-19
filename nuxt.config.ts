@@ -72,6 +72,7 @@ export default defineNuxtConfig({
     public: {
       supabaseUrl: "",
       supabaseAnonKey: "",
+      recaptchaSiteKey: "",
     },
     supabaseServiceKey: "",
     stripeSecretKey: "",
@@ -80,6 +81,7 @@ export default defineNuxtConfig({
     googleClientId: "",
     googleClientSecret: "",
     resendApiKey: "",
+    recaptchaSecretKey: "",
     contactEmail: "antwnis_skarlatos@yahoo.com",
   },
 });

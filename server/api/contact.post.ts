@@ -1,10 +1,19 @@
 import { notifyContactMessage } from "../utils/adminNotifications";
 import { sendContactEmail } from "../utils/email";
 import { checkRateLimit } from "../utils/rateLimit";
+import {
+  allowedRecaptchaHostnames,
+  recaptchaErrorStatus,
+  verifyRecaptchaToken,
+} from "../utils/recaptcha";
 import { serverSupabaseService } from "../utils/supabaseServer";
 import { EMAIL_REGEX } from "../utils/validation";
 
 const MESSAGE_MAX = 4000;
+const RECAPTCHA_MESSAGE =
+  "Η επαλήθευση απέτυχε. Συμπλήρωσε ξανά το «Δεν είμαι ρομπότ» και δοκίμασε πάλι.";
+const RECAPTCHA_UNAVAILABLE =
+  "Η επαλήθευση δεν είναι διαθέσιμη. Δοκίμασε ξανά αργότερα.";
 
 export default defineEventHandler(async (event) => {
   checkRateLimit(event, {
@@ -21,6 +30,7 @@ export default defineEventHandler(async (event) => {
     phone?: unknown;
     gradeId?: unknown;
     honey?: unknown;
+    recaptchaToken?: unknown;
   }>(event);
 
   if (typeof body?.honey === "string" && body.honey.trim()) {
@@ -57,6 +67,32 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: "Μη έγκυρο email" });
   }
 
+  const config = useRuntimeConfig();
+  const recaptchaSecret =
+    typeof config.recaptchaSecretKey === "string"
+      ? config.recaptchaSecretKey.trim()
+      : "";
+  if (!recaptchaSecret) {
+    console.error("[contact] missing recaptcha secret");
+    throw createError({
+      statusCode: 503,
+      message: RECAPTCHA_UNAVAILABLE,
+    });
+  }
+
+  const recaptcha = await verifyRecaptchaToken(
+    body.recaptchaToken,
+    recaptchaSecret,
+    allowedRecaptchaHostnames(),
+  );
+  if (!recaptcha.ok) {
+    throw createError({
+      statusCode: recaptchaErrorStatus(recaptcha.errorCodes),
+      message: RECAPTCHA_MESSAGE,
+      data: { recaptcha: true },
+    });
+  }
+
   const sanitizedEmail = body.email.replace(/[\r\n]/g, "");
   const name = cleanLine(body.name, 120);
   const phone = cleanLine(body.phone, 40);
@@ -71,7 +107,6 @@ export default defineEventHandler(async (event) => {
       .maybeSingle();
     gradeName = typeof data?.name === "string" ? data.name : "";
   }
-  const config = useRuntimeConfig();
   const contactEmail =
     (config.contactEmail as string) || "antwnis_skarlatos@yahoo.com";
   const subject = "Μήνυμα από το mathe-paidi-mou-archaia.com!";

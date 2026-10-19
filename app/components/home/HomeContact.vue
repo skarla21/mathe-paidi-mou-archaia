@@ -9,6 +9,14 @@ import {
 } from "~/components/ui/select";
 
 const { grades, ensure } = useCatalogNav();
+const { colorMode } = useTheme();
+const {
+  siteKey,
+  box: recaptchaBox,
+  unavailable: recaptchaUnavailable,
+  getToken,
+  reset: resetRecaptcha,
+} = useRecaptcha(colorMode);
 
 const name = ref("");
 const email = ref("");
@@ -27,9 +35,26 @@ const submitted = ref(false);
 
 await ensure();
 
+function recaptchaRejected(error: unknown): boolean {
+  if (!error || typeof error !== "object" || !("data" in error)) return false;
+  const data = (error as { data?: unknown }).data;
+  if (!data || typeof data !== "object") return false;
+  const body = data as { recaptcha?: boolean; data?: { recaptcha?: boolean } };
+  return body.recaptcha === true || body.data?.recaptcha === true;
+}
+
 async function submitContact() {
   if (honey.value) {
     submitted.value = true;
+    return;
+  }
+  if (!siteKey.value || recaptchaUnavailable.value) {
+    toast.error("Η επαλήθευση δεν είναι διαθέσιμη. Δοκίμασε ξανά αργότερα.");
+    return;
+  }
+  const recaptchaToken = getToken();
+  if (!recaptchaToken) {
+    toast.error("Επιβεβαίωσε ότι δεν είσαι ρομπότ.");
     return;
   }
   submitting.value = true;
@@ -43,12 +68,30 @@ async function submitContact() {
         phone: phone.value,
         gradeId: gradeId.value,
         honey: honey.value,
+        recaptchaToken,
       },
     });
     toast.success("Το μήνυμα στάλθηκε!");
     submitted.value = true;
-  } catch {
-    toast.error("Αποτυχία αποστολής. Παρακαλώ προσπαθήστε ξανά.");
+  } catch (error: unknown) {
+    const status =
+      error && typeof error === "object" && "statusCode" in error
+        ? (error as { statusCode?: number }).statusCode
+        : error && typeof error === "object" && "status" in error
+          ? (error as { status?: number }).status
+          : undefined;
+    if (recaptchaRejected(error) || status === 502) resetRecaptcha();
+    const message =
+      error &&
+      typeof error === "object" &&
+      "data" in error &&
+      error.data &&
+      typeof error.data === "object" &&
+      "message" in error.data &&
+      typeof error.data.message === "string"
+        ? error.data.message
+        : "";
+    toast.error(message || "Αποτυχία αποστολής. Παρακαλώ προσπαθήστε ξανά.");
   } finally {
     submitting.value = false;
   }
@@ -220,6 +263,18 @@ async function submitContact() {
               placeholder="Πες μας πώς μπορούμε να βοηθήσουμε."
             />
           </label>
+          <div class="space-y-2">
+            <div :key="colorMode" ref="recaptchaBox" />
+            <p
+              v-if="!siteKey || recaptchaUnavailable"
+              class="text-xs text-destructive"
+            >
+              Η επαλήθευση δεν είναι διαθέσιμη. Δοκίμασε ξανά αργότερα.
+            </p>
+            <p v-else class="text-xs text-muted-foreground">
+              Η επαλήθευση γίνεται από την Google.
+            </p>
+          </div>
           <button
             type="submit"
             class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-linear-to-r from-orange-600 to-amber-500 py-3.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(234,88,12,0.35)] transition-all hover:-translate-y-0.5 disabled:opacity-60"

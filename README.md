@@ -11,7 +11,7 @@ Modern educational platform (Nuxt 3, Vue 3, Tailwind, Supabase, Stripe, PDF.js).
 - **Auth:** Auth.js (configure when using Nuxt 3; Nuxt 4–compatible module TBD). Session stub at `/api/auth/session`.
 - **Payments:** Stripe Checkout + webhook
 - **PDF:** PDF.js in lesson viewer
-- **Contact:** Resend (contact form emails; set NUXT_CONTACT_EMAIL and NUXT_RESEND_API_KEY)
+- **Contact:** Resend (contact form emails; set NUXT_CONTACT_EMAIL and NUXT_RESEND_API_KEY). reCAPTCHA v2 checkbox (`NUXT_PUBLIC_RECAPTCHA_SITE_KEY`, server-only `NUXT_RECAPTCHA_SECRET_KEY`; set both in Vercel Production too)
 - **Deploy:** Vercel
 
 ## Setup
