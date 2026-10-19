@@ -7,7 +7,7 @@ import {
   verifyRecaptchaToken,
 } from "../server/utils/recaptcha.ts";
 
-const PRODUCTION_HOST = "mathe-paidi-mou-archaia.com";
+const PRODUCTION_HOST = "mathearchaia.gr";
 const SECRET = "super-secret-value";
 
 const originalFetch = globalThis.$fetch;
@@ -38,11 +38,11 @@ describe("verifyRecaptchaToken", () => {
   it("accepts a solved checkbox only for an allowed hostname", async () => {
     globalThis.$fetch = async () => ({
       success: true,
-      hostname: "WWW.Mathe-Paidi-Mou-Archaia.COM",
+      hostname: "WWW.Mathearchaia.GR",
     });
 
     const result = await verifyRecaptchaToken("token", SECRET, [
-      "www.mathe-paidi-mou-archaia.com",
+      "www.mathearchaia.gr",
     ]);
 
     assert.deepEqual(result, { ok: true });
@@ -125,7 +125,7 @@ describe("recaptcha host policy", () => {
   it("allows localhost only outside production", () => {
     assert.deepEqual(allowedRecaptchaHostnames("production"), [
       PRODUCTION_HOST,
-      "www.mathe-paidi-mou-archaia.com",
+      "www.mathearchaia.gr",
     ]);
     assert.equal(
       allowedRecaptchaHostnames("development").includes("localhost"),

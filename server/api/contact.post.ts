@@ -109,7 +109,7 @@ export default defineEventHandler(async (event) => {
   }
   const contactEmail =
     (config.contactEmail as string) || "antwnis_skarlatos@yahoo.com";
-  const subject = "Μήνυμα από το mathe-paidi-mou-archaia.com!";
+  const subject = "Μήνυμα από το mathearchaia.gr!";
 
   const html = `
     <p><strong>Από:</strong> ${escapeHtml(sanitizedEmail)}</p>

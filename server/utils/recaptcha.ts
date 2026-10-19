@@ -2,8 +2,8 @@ const SITEVERIFY_URL = "https://www.google.com/recaptcha/api/siteverify";
 const SITEVERIFY_TIMEOUT_MS = 5000;
 
 const PRODUCTION_HOSTS = [
-  "mathe-paidi-mou-archaia.com",
-  "www.mathe-paidi-mou-archaia.com",
+  "mathearchaia.gr",
+  "www.mathearchaia.gr",
 ] as const;
 
 const DEV_HOSTS = ["localhost", "127.0.0.1"] as const;

@@ -13,6 +13,8 @@ type MatheUser = User & {
 
 export function getAuthOptions(): AuthConfig {
   const config = useRuntimeConfig();
+  const googleClientId = String(config.googleClientId || "");
+  const googleClientSecret = String(config.googleClientSecret || "");
 
   return {
     basePath: "/api/auth",
@@ -59,10 +61,14 @@ export function getAuthOptions(): AuthConfig {
           return user;
         },
       }),
-      GoogleProvider({
-        clientId: config.googleClientId as string,
-        clientSecret: config.googleClientSecret as string,
-      }),
+      ...(googleClientId && googleClientSecret
+        ? [
+            GoogleProvider({
+              clientId: googleClientId,
+              clientSecret: googleClientSecret,
+            }),
+          ]
+        : []),
     ],
     callbacks: {
       async jwt({ token, user, account }) {

@@ -20,7 +20,7 @@ function getResend(): Resend {
 }
 
 const DEFAULT_FROM =
-  "Μάθε Παιδί Μου Αρχαία <onboarding@resend.dev>";
+  "Μάθε Παιδί Μου Αρχαία <noreply@mathearchaia.gr>";
 
 export async function sendVerificationEmail(to: string, link: string): Promise<void> {
   const resend = getResend();
