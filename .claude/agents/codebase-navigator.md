@@ -27,7 +27,7 @@ app/
     useTheme.ts         colorMode, toggle(), apply(), init()
     useGsapReveal.ts    revealSection, revealStagger, animateHero, iconWiggle, …
   layouts/       default.vue (header+footer), admin.vue (admin sidebar)
-  middleware/    auth.ts, admin.ts, guest-only.ts
+  middleware/    auth.ts, admin.ts
   plugins/       oh-vue-icons.ts (registers Bootstrap icons + <VIcon>)
   lib/utils.ts   cn() = clsx + tailwind-merge
   assets/css/    main.css (Tailwind v4 @theme + custom utilities)

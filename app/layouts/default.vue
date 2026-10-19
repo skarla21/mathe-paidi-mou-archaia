@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { authDialogQuery } from '#shared/utils/authDialogQuery.mjs'
 import { acceptEmailVerification, emailVerificationFollowUp } from '#shared/utils/emailVerificationLanding.mjs'
 import 'vue-sonner/style.css'
 import { toast, Toaster } from 'vue-sonner'
@@ -11,7 +12,7 @@ const hideLayoutFooter = computed(() => !!route.meta['hideLayoutFooter'])
 const { ensure, ensureCategories } = useCatalogNav()
 const { session, fetchSession } = useCurrentUser()
 const { open: openEditProfile } = useEditProfileModal()
-const { openLogin } = useAuthModal()
+const { openLogin, openRegister } = useAuthModal()
 
 // Header and footer read this shared state. Load it before they render so
 // the server markup matches the payload the client hydrates.
@@ -38,9 +39,25 @@ async function consumeEmailVerification() {
   else if (followUp.open === 'login') openLogin(route.fullPath)
 }
 
+async function openAuthFromQuery() {
+  const dialog = authDialogQuery(route.query.auth)
+  if (!dialog) return
+
+  const query = { ...route.query }
+  delete query.auth
+  const redirectTo = route.path
+  await navigateTo({ path: route.path, query }, { replace: true })
+
+  if (dialog === 'register') await openRegister(redirectTo)
+  else await openLogin(redirectTo)
+}
+
 onMounted(() => {
   theme.init()
-  void consumeEmailVerification()
+  void (async () => {
+    await consumeEmailVerification()
+    await openAuthFromQuery()
+  })()
 })
 </script>
 

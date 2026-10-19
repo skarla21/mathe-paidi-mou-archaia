@@ -24,7 +24,6 @@ Nuxt 4, Vue 3, TypeScript, Tailwind CSS v4, and shadcn-vue (Radix Vue).
 - `import.meta.client` for client guards — NOT `process.client`
 - `definePageMeta({ middleware: 'auth' })` for protected pages
 - `definePageMeta({ middleware: 'admin' })` for admin pages
-- `definePageMeta({ middleware: 'guest-only' })` for login/register
 - Wrap client-only rendering in `<ClientOnly>` when SSR could produce mismatches
 - Guard DOM / localStorage / GSAP with `import.meta.client`
 

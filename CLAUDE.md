@@ -50,7 +50,7 @@ Skills provide **design principles, workflows, and quality standards**. Agents p
 
 ```
 app/
-  pages/         # index, about, login, register,
+  pages/         # index, about, reset-password,
                  # dashboard, [grade], [grade]/[subject], category/[categoryId],
                  # articles, notes, admin/*
   components/
@@ -60,7 +60,7 @@ app/
     ui/          # shadcn components (Button, Card, Input, …)
   composables/   # useCurrentUser, useTheme, useGsapReveal
   layouts/       # default.vue, admin.vue
-  middleware/    # auth.ts, admin.ts, guest-only.ts
+  middleware/    # auth.ts, admin.ts
   plugins/       # oh-vue-icons.ts
   lib/           # utils.ts (cn = clsx + tailwind-merge)
   assets/css/    # main.css (Tailwind @theme vars + custom utilities)

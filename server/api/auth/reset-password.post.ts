@@ -3,6 +3,7 @@ import { hashToken } from '../../utils/tokenHash'
 import { hashPassword } from '../../utils/password'
 import { checkRateLimit } from '../../utils/rateLimit'
 import { PASSWORD_MIN_LENGTH } from '../../utils/validation'
+import { resetConsumeOutcome } from '../../utils/resetConsumeOutcome'
 
 export default defineEventHandler(async (event) => {
   checkRateLimit(event, {
@@ -56,14 +57,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
   }
 
-  if (consumed === true) {
-    return { ok: true }
+  const outcome = resetConsumeOutcome(consumed)
+  if (outcome.log) console.error('[reset-password]', outcome.log)
+  if (!outcome.ok) {
+    throw createError({ statusCode: outcome.statusCode, message: outcome.message })
   }
 
-  if (consumed === false) {
-    throw createError({ statusCode: 400, message: 'Αυτός ο σύνδεσμος δεν είναι έγκυρος ή έχει λήξει.' })
-  }
-
-  console.error('[reset-password]', 'consume_password_reset returned no boolean')
-  throw createError({ statusCode: 500, message: 'Κάτι πήγε στραβά' })
+  return { ok: true as const, email: outcome.email }
 })

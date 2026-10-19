@@ -15,6 +15,7 @@
     "#shared/utils/catalogOrder.mjs": "./shared/utils/catalogOrder.mjs",
     "#shared/utils/publicLessonList.mjs": "./shared/utils/publicLessonList.mjs",
     "#shared/utils/emailVerificationLanding.mjs": "./shared/utils/emailVerificationLanding.mjs",
+    "#shared/utils/authDialogQuery.mjs": "./shared/utils/authDialogQuery.mjs",
     "#shared/utils/adminDownloads.mjs": "./shared/utils/adminDownloads.mjs",
     "#shared/utils/adminShell.mjs": "./shared/utils/adminShell.mjs"
   },

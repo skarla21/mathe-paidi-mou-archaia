@@ -8,6 +8,7 @@ interface Props {
   modelValue?: string
   placeholder?: string
   autocomplete?: string
+  disabled?: boolean
   class?: HTMLAttributes['class']
 }
 
@@ -16,6 +17,7 @@ const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   placeholder: undefined,
   autocomplete: undefined,
+  disabled: false,
 })
 
 const emit = defineEmits<{
@@ -33,14 +35,16 @@ const showPassword = ref(false)
       :type="showPassword ? 'text' : 'password'"
       :placeholder="placeholder"
       :autocomplete="autocomplete"
+      :disabled="disabled"
       :class="cn(modelValue ? 'pr-10' : '', props.class)"
       @update:model-value="emit('update:modelValue', $event)"
     />
     <button
       v-if="modelValue"
       type="button"
-      class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5 rounded"
+      class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5 rounded disabled:cursor-not-allowed disabled:opacity-50"
       :aria-label="showPassword ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'"
+      :disabled="disabled"
       tabindex="-1"
       @click="showPassword = !showPassword"
     >

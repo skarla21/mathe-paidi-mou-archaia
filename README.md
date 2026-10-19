@@ -41,7 +41,7 @@ Modern educational platform (Nuxt 3, Vue 3, Tailwind, Supabase, Stripe, PDF.js).
 
 ## Routes
 
-- **Public:** `/`, `/grade/[grade]`, `/grade/[grade]/[subject]`, `/chapter/[id]`, `/lesson/[id]`, `/about`, `/login`, `/register`
+- **Public:** `/`, `/grade/[grade]`, `/grade/[grade]/[subject]`, `/chapter/[id]`, `/lesson/[id]`, `/about`
 - **Authenticated:** `/dashboard`
 - **Admin:** `/admin`, `/admin/grades`, `/admin/subjects`, `/admin/chapters`, `/admin/lessons`, `/admin/categories`, `/admin/purchases`
 

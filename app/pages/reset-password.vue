@@ -9,6 +9,8 @@ import UiLabel from "~/components/ui/Label.vue";
 import UiPasswordInput from "~/components/ui/PasswordInput.vue";
 
 const route = useRoute();
+const { fetchSession, session } = useCurrentUser();
+const { openLogin } = useAuthModal();
 
 useHead(() => ({
   title: 'Ορισμός νέου κωδικού',
@@ -18,6 +20,40 @@ const token = computed(() => (route.query.token as string) || "");
 const newPassword = ref("");
 const confirmPassword = ref("");
 const loading = ref(false);
+
+async function signInWithNewPassword(email: string, password: string) {
+  const { csrfToken } = await $fetch<{ csrfToken: string }>("/api/auth/csrf", {
+    credentials: "include",
+  });
+
+  const signInResult = await $fetch<{ url?: string }>(
+    "/api/auth/callback/credentials",
+    {
+      method: "POST",
+      headers: { "X-Auth-Return-Redirect": "1" },
+      body: {
+        email,
+        password,
+        csrfToken,
+        callbackUrl: "/",
+      },
+      credentials: "include",
+    },
+  );
+
+  const redirectUrl = signInResult?.url ?? "";
+  return Boolean(
+    redirectUrl &&
+      !redirectUrl.includes("/error") &&
+      !redirectUrl.includes("error="),
+  );
+}
+
+async function finishWithoutSession() {
+  toast.error("Ο κωδικός ενημερώθηκε, αλλά η σύνδεση δεν ολοκληρώθηκε.");
+  await openLogin("/");
+  await navigateTo("/", { replace: true });
+}
 
 async function onSubmit() {
   if (newPassword.value.length < PASSWORD_MIN_LENGTH) {
@@ -33,17 +69,42 @@ async function onSubmit() {
     return;
   }
 
+  const password = newPassword.value;
   loading.value = true;
   try {
-    await $fetch("/api/auth/reset-password", {
-      method: "POST",
-      body: { token: token.value, newPassword: newPassword.value },
-    });
+    let result: { ok: true; email: string | null };
+    try {
+      result = await $fetch<{ ok: true; email: string | null }>(
+        "/api/auth/reset-password",
+        {
+          method: "POST",
+          body: { token: token.value, newPassword: password },
+        },
+      );
+    } catch (e: unknown) {
+      const err = e as { data?: { message?: string } };
+      toast.error(err.data?.message || 'Κάτι πήγε στραβά');
+      return;
+    }
+
+    try {
+      if (!result.email || !(await signInWithNewPassword(result.email, password))) {
+        await finishWithoutSession();
+        return;
+      }
+
+      await fetchSession();
+      if (!session.value.user?.id) {
+        await finishWithoutSession();
+        return;
+      }
+    } catch {
+      await finishWithoutSession();
+      return;
+    }
+
     toast.success('Ο κωδικός ενημερώθηκε.');
-    await navigateTo("/login");
-  } catch (e: unknown) {
-    const err = e as { data?: { message?: string } };
-    toast.error(err.data?.message || 'Κάτι πήγε στραβά');
+    await navigateTo("/", { replace: true });
   } finally {
     loading.value = false;
   }
@@ -78,6 +139,7 @@ async function onSubmit() {
                 v-model="newPassword"
                 placeholder="Νέος κωδικός"
                 autocomplete="new-password"
+                :disabled="loading"
               />
             </div>
             <div class="space-y-2">
@@ -87,6 +149,7 @@ async function onSubmit() {
                 v-model="confirmPassword"
                 placeholder="Επιβεβαίωση κωδικού"
                 autocomplete="new-password"
+                :disabled="loading"
               />
             </div>
             <UiButton type="submit" class="w-full" :disabled="loading">
@@ -103,14 +166,14 @@ async function onSubmit() {
               Αυτός ο σύνδεσμος δεν είναι έγκυρος ή έχει λήξει.
             </p>
             <NuxtLink
-              to="/login"
+              to="/"
               class="block mt-2 text-sm text-primary hover:underline"
             >
               Πίσω
             </NuxtLink>
           </div>
           <NuxtLink
-            to="/login"
+            to="/"
             class="flex items-center justify-center gap-1 text-sm text-primary hover:underline"
           >
             <VIcon

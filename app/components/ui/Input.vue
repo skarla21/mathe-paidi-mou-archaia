@@ -6,6 +6,7 @@ interface Props {
   class?: HTMLAttributes['class']
   type?: string
   modelValue?: string | number
+  disabled?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {

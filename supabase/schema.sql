@@ -561,17 +561,20 @@ begin
 end;
 $$;
 
-create or replace function public.consume_password_reset(
+drop function if exists public.consume_password_reset(text, text);
+
+create function public.consume_password_reset(
   p_token_hash text,
   p_password_hash text
 )
-returns boolean
+returns text
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
   v_user_id uuid;
+  v_email text;
 begin
   select user_id into v_user_id
   from public.password_reset_tokens
@@ -580,7 +583,7 @@ begin
   limit 1;
 
   if v_user_id is null then
-    return false;
+    return null;
   end if;
 
   perform 1 from public.users where id = v_user_id for update;
@@ -591,7 +594,7 @@ begin
     and expires_at > now();
 
   if not found then
-    return false;
+    return null;
   end if;
 
   update public.users
@@ -602,10 +605,18 @@ begin
     raise exception 'user missing for password reset';
   end if;
 
+  select email into v_email
+  from public.users
+  where id = v_user_id;
+
+  if v_email is null or length(trim(v_email)) = 0 then
+    raise exception 'user email missing for password reset';
+  end if;
+
   delete from public.password_reset_tokens
   where user_id = v_user_id;
 
-  return true;
+  return v_email;
 end;
 $$;
 
