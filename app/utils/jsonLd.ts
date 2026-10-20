@@ -5,7 +5,7 @@ import {
   SITE_NAME,
   SITE_OG_IMAGE,
   SITE_ORIGIN,
-} from "../../shared/utils/siteMeta.mjs"
+} from "#shared/utils/siteMeta.mjs"
 
 export type Crumb = {
   name: string

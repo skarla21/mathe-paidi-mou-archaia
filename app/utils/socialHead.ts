@@ -1,4 +1,4 @@
-import { canonicalHref } from "../../shared/utils/siteMeta.mjs"
+import { canonicalHref } from "#shared/utils/siteMeta.mjs"
 
 const DESCRIPTION_MAX = 160
 
