@@ -1,8 +1,8 @@
 <script setup lang="ts">
-const route = useRoute();
+import { formatDocumentTitle } from "#shared/utils/siteMeta.mjs";
 
-useSeoMeta({
-  ogUrl: () => new URL(route.path, "https://mathearchaia.gr").href,
+useHead({
+  titleTemplate: (title) => formatDocumentTitle(typeof title === "string" ? title : ""),
 });
 </script>
 

@@ -21,7 +21,8 @@ const registerName = ref('')
 const registerEmail = ref('')
 const registerPassword = ref('')
 const registerLoading = ref(false)
-const registerErrors = ref<{ name?: string; email?: string; password?: string }>({})
+const registerAcceptTerms = ref(false)
+const registerErrors = ref<{ name?: string; email?: string; password?: string; terms?: string }>({})
 
 // Clear errors on tab switch (keep field values)
 watch(activeTab, () => {
@@ -108,13 +109,19 @@ async function onRegisterSubmit() {
   if (registerName.value.trim().length < 2) registerErrors.value.name = 'Το όνομα πρέπει να έχει τουλάχιστον 2 χαρακτήρες'
   if (!EMAIL_REGEX.test(registerEmail.value)) registerErrors.value.email = 'Παρακαλώ εισάγετε έγκυρο email'
   if (registerPassword.value.length < PASSWORD_MIN_LENGTH) registerErrors.value.password = 'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες'
+  if (!registerAcceptTerms.value) registerErrors.value.terms = 'Αποδέξου τους όρους χρήσης για να συνεχίσεις'
   if (Object.keys(registerErrors.value).length > 0) return
 
   registerLoading.value = true
   try {
     await $fetch<{ ok: true }>('/api/auth/register', {
       method: 'POST',
-      body: { name: registerName.value.trim(), email: registerEmail.value, password: registerPassword.value },
+      body: {
+        name: registerName.value.trim(),
+        email: registerEmail.value,
+        password: registerPassword.value,
+        acceptTerms: true,
+      },
     })
     const { csrfToken } = await $fetch<{ csrfToken: string }>('/api/auth/csrf', { credentials: 'include' })
     const signInResult = await $fetch<{ url?: string }>('/api/auth/callback/credentials', {
@@ -327,6 +334,29 @@ async function onRegisterSubmit() {
                     autocomplete="new-password"
                   />
                   <p v-if="registerErrors.password" class="text-xs text-destructive mt-1">{{ registerErrors.password }}</p>
+                </div>
+
+                <div>
+                  <div class="flex items-center gap-2">
+                    <UiCheckbox
+                      id="register-terms"
+                      v-model="registerAcceptTerms"
+                      class="size-5 border border-foreground bg-white shadow-sm data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white"
+                      :aria-invalid="registerErrors.terms ? true : undefined"
+                      :aria-describedby="registerErrors.terms ? 'register-terms-error' : undefined"
+                    />
+                    <UiLabel for="register-terms" class="text-xs leading-relaxed font-normal text-muted-foreground">
+                      Έχω διαβάσει και αποδέχομαι τους
+                      <NuxtLink
+                        to="/oroi"
+                        class="font-semibold text-primary underline-offset-4 hover:underline"
+                        @click.stop="close"
+                      >
+                        όρους χρήσης
+                      </NuxtLink>.
+                    </UiLabel>
+                  </div>
+                  <p v-if="registerErrors.terms" id="register-terms-error" class="text-xs text-destructive mt-1">{{ registerErrors.terms }}</p>
                 </div>
 
                 <!-- Submit -->

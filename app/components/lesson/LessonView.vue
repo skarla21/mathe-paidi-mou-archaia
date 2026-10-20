@@ -7,6 +7,7 @@ import LessonComments from '~/components/lesson/LessonComments.vue'
 import type { LessonCommentRow } from '~/components/lesson/LessonCommentItem.vue'
 import ShareDialog from '~/components/ShareDialog.vue'
 import UiButton from '~/components/ui/Button.vue'
+import { Checkbox } from '~/components/ui/checkbox'
 import UiSkeleton from '~/components/ui/Skeleton.vue'
 import TooltipProvider from '~/components/ui/tooltip/TooltipProvider.vue'
 import Tooltip from '~/components/ui/tooltip/Tooltip.vue'
@@ -18,6 +19,7 @@ import {
   lessonPageCountLabel,
 } from '#shared/utils/lessonPreviewUrl.mjs'
 import { lessonExcerpt } from '#shared/utils/lessonExcerpt.mjs'
+import { breadcrumbList, jsonLdGraph, jsonLdScript, learningResourceNode } from '~/utils/jsonLd'
 import {
   LESSON_ENGAGE_GUEST_ID,
   isLessonEngagePromptDismissed,
@@ -67,6 +69,7 @@ interface LessonResponse extends Lesson {
   file_block: LessonFileBlock
   avg_rating?: number
   rating_count?: number
+  canonical_path?: string | null
 }
 
 type CommentsPage = {
@@ -92,6 +95,8 @@ const canAccess = ref(false)
 const canAccessContent = ref(false)
 const fileBlock = ref<LessonFileBlock>(null)
 const purchasing = ref(false)
+const acceptTerms = ref(false)
+const acceptImmediateAccess = ref(false)
 const ratingBusy = ref(false)
 const shareOpen = ref(false)
 const shareFromPrompt = ref(false)
@@ -402,11 +407,19 @@ function scrollToComments() {
 }
 
 async function buyLesson() {
+  if (!acceptTerms.value || !acceptImmediateAccess.value) {
+    toast.error('Αποδέξου τους όρους χρήσης και την άμεση έναρξη της πρόσβασης για να συνεχίσεις.')
+    return
+  }
   purchasing.value = true
   try {
     const { url } = await $fetch<{ url: string }>('/api/stripe/checkout', {
       method: 'POST',
-      body: { lessonId: props.lessonId },
+      body: {
+        lessonId: props.lessonId,
+        acceptTerms: true,
+        acceptImmediateAccess: true,
+      },
     })
     if (url) window.location.href = url
   } catch (e: unknown) {
@@ -417,10 +430,38 @@ async function buyLesson() {
   }
 }
 
-useHead(() => describedHead(
-  lesson.value ? lesson.value.title : 'Υλικό',
-  lesson.value?.content ? lessonExcerpt(lesson.value.content) : null,
+const lessonPlainText = computed(() => (
+  lesson.value?.content ? lessonExcerpt(lesson.value.content, 12000) : ''
 ))
+
+useHead(() => {
+  const path = data.value?.canonical_path || route.path
+  const title = lesson.value?.title ?? 'Υλικό'
+  const description = lesson.value?.content ? lessonExcerpt(lesson.value.content) : null
+  const crumbs = [
+    { name: 'Αρχική', path: '/' },
+    ...props.chips
+      .filter((chip) => chip.to && !chip.to.includes('#'))
+      .map((chip) => ({ name: chip.name, path: chip.to })),
+  ]
+  if (lesson.value) crumbs.push({ name: lesson.value.title, path })
+  const nodes = [
+    breadcrumbList(crumbs),
+    ...(lesson.value
+      ? [learningResourceNode({
+          name: lesson.value.title,
+          description,
+          path,
+          educationalLevel: props.chips.find((chip) => chip.tone === 'grade')?.name ?? null,
+          isAccessibleForFree: Boolean(lesson.value.content?.trim()) || lesson.value.is_free,
+        })]
+      : []),
+  ]
+  return {
+    ...describedHead(title, description, [], path),
+    script: [jsonLdScript(jsonLdGraph(nodes), 'ld-json')],
+  }
+})
 
 onMounted(async () => {
   syncEngagePromptDismissed()
@@ -445,6 +486,9 @@ onMounted(async () => {
       >
         {{ lesson.title }}
       </h1>
+      <p v-if="lesson" class="mt-3 text-sm font-semibold text-muted-foreground">
+        {{ lesson.is_free ? 'Δωρεάν σημειώσεις' : 'Σημειώσεις · το PDF είναι επί πληρωμή' }}
+      </p>
       <CatalogChips
         class="mt-4"
         :chips="chips"
@@ -461,7 +505,9 @@ onMounted(async () => {
         />
         <!-- eslint-enable vue/no-v-html -->
         <template #fallback>
-          <div class="mt-5 h-24 max-w-3xl animate-pulse rounded-2xl bg-muted" />
+          <p class="mt-5 max-w-3xl font-reading text-lg leading-relaxed text-muted-foreground">
+            {{ lessonPlainText }}
+          </p>
         </template>
       </ClientOnly>
       <div v-if="canAccess && canAccessContent && lesson.content_url" class="mt-8">
@@ -549,7 +595,39 @@ onMounted(async () => {
             Αγόρασε αυτό το υλικό για πρόσβαση στο PDF.
           </p>
         </div>
-        <UiButton :disabled="purchasing" @click="buyLesson">
+        <div class="flex w-full flex-col gap-3 text-left">
+          <div class="flex items-start gap-2">
+            <Checkbox
+              id="buy-terms"
+              v-model="acceptTerms"
+              class="mt-0.5"
+            />
+            <label for="buy-terms" class="text-sm leading-relaxed text-muted-foreground">
+              Αποδέχομαι τους
+              <NuxtLink
+                to="/oroi"
+                class="font-semibold text-primary underline-offset-4 hover:underline"
+                @click.stop
+              >
+                όρους χρήσης
+              </NuxtLink>.
+            </label>
+          </div>
+          <div class="flex items-start gap-2">
+            <Checkbox
+              id="buy-immediate"
+              v-model="acceptImmediateAccess"
+              class="mt-0.5"
+            />
+            <label for="buy-immediate" class="text-sm leading-relaxed text-muted-foreground">
+              Ζητώ να ξεκινήσει αμέσως η πρόσβαση στο ψηφιακό υλικό και γνωρίζω ότι χάνω το δικαίωμα υπαναχώρησης των 14 ημερών.
+            </label>
+          </div>
+        </div>
+        <UiButton
+          :disabled="purchasing || !acceptTerms || !acceptImmediateAccess"
+          @click="buyLesson"
+        >
           {{ purchasing ? 'Ανακατεύθυνση...' : 'Αγόρασε αυτό το υλικό' }}
         </UiButton>
       </div>

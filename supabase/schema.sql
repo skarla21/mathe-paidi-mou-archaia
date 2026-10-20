@@ -13,6 +13,7 @@ create table if not exists public.users (
   email_verified boolean not null default false,
   password_hash text,
   provider text not null default 'credentials',
+  terms_accepted_at timestamptz not null,
   created_at timestamptz not null default now()
 );
 
@@ -144,6 +145,8 @@ create table if not exists public.purchases (
   user_id uuid not null references public.users(id) on delete cascade,
   lesson_id uuid not null references public.lessons(id) on delete cascade,
   stripe_session_id text,
+  terms_accepted_at timestamptz,
+  immediate_access_accepted_at timestamptz,
   created_at timestamptz not null default now(),
   unique(stripe_session_id)
 );
@@ -679,7 +682,8 @@ create or replace function public.register_credentials_user(
   p_password_hash text,
   p_name text,
   p_token_hash text,
-  p_expires_at timestamptz
+  p_expires_at timestamptz,
+  p_terms_accepted_at timestamptz
 )
 returns uuid
 language plpgsql
@@ -691,13 +695,17 @@ declare
 begin
   p_email := lower(trim(p_email));
 
+  if p_terms_accepted_at is null then
+    raise exception 'terms acceptance required';
+  end if;
+
   if exists (select 1 from public.users where email = p_email) then
     return null;
   end if;
 
   begin
-    insert into public.users (email, password_hash, name, email_verified)
-    values (p_email, p_password_hash, p_name, false)
+    insert into public.users (email, password_hash, name, email_verified, terms_accepted_at)
+    values (p_email, p_password_hash, p_name, false, p_terms_accepted_at)
     returning id into v_user_id;
   exception
     when unique_violation then
@@ -760,7 +768,7 @@ revoke all on function public.mark_password_reset_sent(text) from public, anon, 
 revoke all on function public.consume_password_reset(text, text) from public, anon, authenticated;
 revoke all on function public.password_reset_token_active(text) from public, anon, authenticated;
 revoke all on function public.issue_verification_token(uuid, text, timestamptz, int) from public, anon, authenticated;
-revoke all on function public.register_credentials_user(text, text, text, text, timestamptz) from public, anon, authenticated;
+revoke all on function public.register_credentials_user(text, text, text, text, timestamptz, timestamptz) from public, anon, authenticated;
 revoke all on function public.consume_verification_token(text) from public, anon, authenticated;
 
 grant execute on function public.issue_password_reset_token(uuid, text, timestamptz, int, int) to service_role;
@@ -768,7 +776,7 @@ grant execute on function public.mark_password_reset_sent(text) to service_role;
 grant execute on function public.consume_password_reset(text, text) to service_role;
 grant execute on function public.password_reset_token_active(text) to service_role;
 grant execute on function public.issue_verification_token(uuid, text, timestamptz, int) to service_role;
-grant execute on function public.register_credentials_user(text, text, text, text, timestamptz) to service_role;
+grant execute on function public.register_credentials_user(text, text, text, text, timestamptz, timestamptz) to service_role;
 grant execute on function public.consume_verification_token(text) to service_role;
 
 -- ─── Triggers (auto-update updated_at) ──────────────────────────────────────
@@ -929,9 +937,33 @@ create trigger lesson_placements_slug_available
   on public.lesson_placements
   for each row execute function public.assert_lesson_slug_available();
 
+create or replace function public.set_article_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.like_count is distinct from old.like_count
+     and new.title is not distinct from old.title
+     and new.slug is not distinct from old.slug
+     and new.body is not distinct from old.body
+     and new.tags is not distinct from old.tags
+     and new.reading_time_minutes is not distinct from old.reading_time_minutes
+     and new.published is not distinct from old.published
+     and new.image_url is not distinct from old.image_url
+     and new.created_at is not distinct from old.created_at
+  then
+    new.updated_at := old.updated_at;
+  else
+    new.updated_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists articles_set_updated_at on public.articles;
 create trigger articles_set_updated_at
   before update on public.articles
-  for each row execute function public.set_updated_at();
+  for each row execute function public.set_article_updated_at();
 
 create trigger article_comments_set_updated_at
   before update on public.article_comments
@@ -1056,6 +1088,7 @@ begin
     'dashboard',
     'login',
     'notes',
+    'oroi',
     'profile',
     'register',
     'reset-password',

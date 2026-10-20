@@ -103,10 +103,25 @@ async function onPageChange(next: number) {
   })
 }
 
-useHead(() => describedHead(
-  subject ? `${subject.name} - ${grade?.name}` : 'Μάθημα',
-  subject && grade ? `${subject.name}, ${grade.name}.` : null,
-))
+useHead(() => ({
+  ...describedHead(
+    subject ? `${subject.name} - ${grade?.name}` : 'Μάθημα',
+    subject && grade
+      ? `${subject.name}, ${grade.name}. Υλικό και κεφάλαια για τα Αρχαία και τα υπόλοιπα μαθήματα της τάξης.`
+      : null,
+    [],
+    route.path,
+  ),
+  script: subject && grade
+    ? [jsonLdScript(jsonLdGraph([
+        breadcrumbList([
+          { name: 'Αρχική', path: '/' },
+          { name: grade.name, path: gradeTo.value },
+          { name: subject.name, path: route.path },
+        ]),
+      ]), 'ld-json')]
+    : [],
+}))
 </script>
 
 <template>

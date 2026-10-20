@@ -84,8 +84,6 @@ export function getAuthOptions(): AuthConfig {
           if (account && account.provider !== "credentials" && user.email) {
             const supabase = serverSupabaseService();
             const email = String(user.email).toLowerCase();
-            const name = (user as { name?: string }).name ?? null;
-            const avatar_url = (user as { image?: string }).image ?? null;
 
             const { data: existing } = await supabase
               .from("users")
@@ -93,39 +91,18 @@ export function getAuthOptions(): AuthConfig {
               .eq("email", email)
               .maybeSingle();
 
-            let dbUser = existing;
+            const dbUser = existing;
 
             if (!dbUser) {
-              const { data: inserted, error: insertError } = await supabase
-                .from("users")
-                .insert({ email, name, avatar_url, email_verified: true, provider: "google" })
-                .select('id, "isAdmin", name, avatar_url')
-                .single();
-
-              if (insertError?.code === "23505") {
-                const { data: raced, error: raceError } = await supabase
-                  .from("users")
-                  .select('id, "isAdmin", name, avatar_url')
-                  .eq("email", email)
-                  .maybeSingle();
-                if (raceError || !raced) {
-                  console.error("[auth] Google user insert raced but row was not found", raceError?.message);
-                  throw new Error("Unable to create Google user");
-                }
-                dbUser = raced;
-              } else if (insertError || !inserted) {
-                console.error("[auth] Google user insert failed", insertError?.message);
-                throw new Error("Unable to create Google user");
-              } else {
-                dbUser = inserted;
-              }
-            } else {
-              // Leave provider unchanged. A credentials row is the only password-reset account for this email.
-              await supabase
-                .from("users")
-                .update({ email_verified: true })
-                .eq("id", dbUser.id);
+              console.error("[auth] Google sign-in refused until terms are accepted");
+              throw new Error("Unable to create Google user");
             }
+
+            // Leave provider unchanged. A credentials row is the only password-reset account for this email.
+            await supabase
+              .from("users")
+              .update({ email_verified: true })
+              .eq("id", dbUser.id);
 
             if (dbUser) {
               token.id = dbUser.id;

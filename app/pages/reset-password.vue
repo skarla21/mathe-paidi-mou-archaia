@@ -15,6 +15,7 @@ const { openLogin } = useAuthModal();
 useHead(() => describedHead(
   'Ορισμός νέου κωδικού',
   'Όρισε έναν νέο κωδικό πρόσβασης.',
+  [ROBOTS_NOINDEX_NOFOLLOW],
 ));
 
 const token = computed(() => (route.query.token as string) || "");

@@ -10,6 +10,12 @@ export default defineEventHandler(async (event) => {
   if (!lessonId) {
     throw createError({ statusCode: 400, message: 'lessonId required' })
   }
+  if (body?.acceptTerms !== true || body?.acceptImmediateAccess !== true) {
+    throw createError({
+      statusCode: 400,
+      message: 'Αποδέξου τους όρους χρήσης και την άμεση έναρξη της πρόσβασης για να συνεχίσεις',
+    })
+  }
   const config = useRuntimeConfig()
   const secret = config.stripeSecretKey as string
   if (!secret) {
@@ -32,13 +38,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, message: 'Το υλικό δεν έχει δημόσια διεύθυνση' })
   }
   const origin = getRequestURL(event).origin
+  const acceptedAt = new Date().toISOString()
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     line_items: [{ price_data: { currency: 'eur', unit_amount: price, product_data: { name: lesson.title } }, quantity: 1 }],
     success_url: `${origin}${lessonPath}?success=1`,
     cancel_url: `${origin}${lessonPath}?cancel=1`,
     client_reference_id: userId,
-    metadata: { lessonId, userId },
+    metadata: {
+      lessonId,
+      userId,
+      termsAcceptedAt: acceptedAt,
+      immediateAccessAcceptedAt: acceptedAt,
+    },
   })
   return { url: session.url }
 })

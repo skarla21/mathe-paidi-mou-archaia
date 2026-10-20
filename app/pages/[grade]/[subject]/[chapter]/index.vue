@@ -102,10 +102,24 @@ async function onPageChange(next: number) {
   })
 }
 
-useHead(() => describedHead(
-  chapter.value ? chapter.value.title : 'Κεφάλαιο',
-  chapter.value?.description,
-))
+useHead(() => ({
+  ...describedHead(
+    chapter.value ? chapter.value.title : 'Κεφάλαιο',
+    chapter.value?.description,
+    [],
+    route.path,
+  ),
+  script: tree.value
+    ? [jsonLdScript(jsonLdGraph([
+        breadcrumbList([
+          { name: 'Αρχική', path: '/' },
+          { name: tree.value.grade.name, path: gradeTo.value },
+          { name: tree.value.subject.name, path: subjectTo.value },
+          { name: chapter.value.title, path: route.path },
+        ]),
+      ]), 'ld-json')]
+    : [],
+}))
 
 onMounted(() => {
   if (import.meta.client) {

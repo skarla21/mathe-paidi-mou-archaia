@@ -28,10 +28,22 @@ const { data: subjectsData, error: subjectsError } = await useFetch<SubjectWithC
 const subjects = computed(() => subjectsData.value ?? [])
 const subjectsState = computed(() => catalogListState(Boolean(subjectsError.value), subjects.value.length))
 
-useHead(() => describedHead(
-  grade ? `${grade.name} - Τάξεις` : 'Τάξη',
-  grade ? `${grade.name}. Μαθήματα και κεφάλαια.` : null,
-))
+useHead(() => ({
+  ...describedHead(
+    grade ? `${grade.name} - Τάξεις` : 'Τάξη',
+    grade ? `${grade.name}: σημειώσεις και διδακτικό υλικό για αυτή τη σχολική τάξη.` : null,
+    [],
+    route.path,
+  ),
+  script: grade
+    ? [jsonLdScript(jsonLdGraph([
+        breadcrumbList([
+          { name: 'Αρχική', path: '/' },
+          { name: grade.name, path: route.path },
+        ]),
+      ]), 'ld-json')]
+    : [],
+}))
 
 onMounted(() => {
   if (import.meta.client) {

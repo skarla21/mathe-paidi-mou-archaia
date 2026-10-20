@@ -110,7 +110,7 @@ async function confirmLogout() {
         <span
           class="font-brand text-base font-bold leading-tight tracking-tight sm:text-lg group-hover/logo:text-primary transition-colors"
         >
-          Μάθε Παιδί Μου Αρχαία!
+          Μάθε Παιδί Μου Αρχαία
         </span>
       </NuxtLink>
 
@@ -415,7 +415,7 @@ async function confirmLogout() {
               />
             </span>
             <span class="font-brand text-lg font-bold leading-tight"
-              >Μάθε Παιδί Μου Αρχαία!</span
+              >Μάθε Παιδί Μου Αρχαία</span
             >
           </NuxtLink>
           <button

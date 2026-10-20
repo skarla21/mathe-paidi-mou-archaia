@@ -82,6 +82,8 @@ export interface Purchase {
   user_id: string
   lesson_id: string
   stripe_session_id: string | null
+  terms_accepted_at?: string | null
+  immediate_access_accepted_at?: string | null
   created_at: string
 }
 
@@ -141,5 +143,6 @@ export interface DbUser {
   isAdmin: boolean
   password_hash: string | null
   provider: string
+  terms_accepted_at: string
   created_at: string
 }

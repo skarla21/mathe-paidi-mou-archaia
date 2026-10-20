@@ -1,5 +1,12 @@
 import Stripe from 'stripe'
 
+function metadataTime(value: string | undefined) {
+  if (!value) return null
+  const time = Date.parse(value)
+  if (Number.isNaN(time)) return null
+  return new Date(time).toISOString()
+}
+
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const secret = config.stripeWebhookSecret as string
@@ -50,6 +57,8 @@ export default defineEventHandler(async (event) => {
       user_id: userId,
       lesson_id: lessonId,
       stripe_session_id: session.id,
+      terms_accepted_at: metadataTime(session.metadata?.termsAcceptedAt),
+      immediate_access_accepted_at: metadataTime(session.metadata?.immediateAccessAcceptedAt),
     })
     .select('id')
     .single()

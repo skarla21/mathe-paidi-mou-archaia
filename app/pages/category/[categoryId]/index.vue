@@ -84,10 +84,22 @@ async function onPageChange(next: number) {
   })
 }
 
-useHead(() => describedHead(
-  category.value?.name ?? 'Κατηγορία',
-  category.value?.description,
-))
+useHead(() => ({
+  ...describedHead(
+    category.value?.name ?? 'Κατηγορία',
+    category.value?.description,
+    [],
+    route.path,
+  ),
+  script: category.value
+    ? [jsonLdScript(jsonLdGraph([
+        breadcrumbList([
+          { name: 'Αρχική', path: '/' },
+          { name: category.value.name, path: route.path },
+        ]),
+      ]), 'ld-json')]
+    : [],
+}))
 
 onMounted(() => {
   if (import.meta.client) {

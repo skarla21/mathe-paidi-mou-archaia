@@ -130,7 +130,13 @@ onMounted(() => {
       class="mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-3 border-t border-border px-6 pt-6 text-xs text-muted-foreground md:flex-row lg:px-12"
     >
       <p>
-        {{ `© ${year} Μάθε Παιδί μου Αρχαία. Όλα τα δικαιώματα διατηρούνται.` }}
+        {{ `© ${year} Μάθε Παιδί Μου Αρχαία. Όλα τα δικαιώματα διατηρούνται.` }}
+        <NuxtLink
+          to="/oroi"
+          class="ml-2 font-medium text-foreground transition-colors hover:text-primary"
+        >
+          Όροι χρήσης
+        </NuxtLink>
       </p>
       <p>
         Designed by

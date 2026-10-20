@@ -5,7 +5,12 @@ import UiSkeleton from '~/components/ui/Skeleton.vue'
 import { catalogListState } from '~/utils/catalogLists'
 
 definePageMeta({ layout: 'default' })
-useHead(() => describedHead('Άρθρα', 'Άρθρα και σημειώσεις για όλες τις τάξεις.'))
+useHead(() => describedHead(
+  'Άρθρα',
+  'Κείμενα της διδάσκουσας για τα Αρχαία και τη σχολική ύλη.',
+  [],
+  '/articles',
+))
 
 type Row = {
   id: string

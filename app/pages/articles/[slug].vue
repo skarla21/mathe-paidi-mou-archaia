@@ -10,6 +10,7 @@ import ContentReadingTime from "~/components/content/ReadingTime.vue";
 import ArticleComments from "~/components/article/ArticleComments.vue";
 import type { ArticleCommentRow } from "~/components/article/ArticleCommentItem.vue";
 import { lessonExcerpt } from "#shared/utils/lessonExcerpt.mjs";
+import { articleImageUrl, articleJsonLd, jsonLdScript } from "~/utils/jsonLd";
 
 definePageMeta({ layout: "default" });
 const route = useRoute();
@@ -26,6 +27,7 @@ type ArticlePayload = {
   reading_time_minutes: number;
   image_url?: string | null;
   created_at: string;
+  updated_at: string;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -50,6 +52,38 @@ const likeLabel = computed(() =>
   article.value?.likedByMe ? "Αναίρεση επισήμανσης" : "Επισήμανση",
 );
 const shareOpen = ref(false);
+
+function greekDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("el-GR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Athens",
+  }).format(date);
+}
+
+function athensDay(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Athens",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+const publishedLabel = computed(() =>
+  article.value ? greekDate(article.value.created_at) : "",
+);
+const updatedLabel = computed(() => {
+  const current = article.value;
+  if (!current?.updated_at || !current.created_at) return "";
+  if (athensDay(current.updated_at) === athensDay(current.created_at)) return "";
+  return greekDate(current.updated_at);
+});
 
 const slug = computed(() => route.params.slug as string);
 
@@ -159,13 +193,32 @@ async function onLoadMoreComments() {
 
 await loadArticle();
 
-useHead(() =>
-  describedHead(
-    article.value?.title ? `${article.value.title} — Άρθρα` : "Άρθρα",
-    article.value?.body ? lessonExcerpt(article.value.body) : null,
-    article.value ? [{ property: "og:type", content: "article" }] : [],
-  ),
-);
+useHead(() => {
+  const current = article.value;
+  if (!current) return describedHead("Άρθρα");
+  const path = `/articles/${current.slug}`;
+  const description = lessonExcerpt(current.body);
+  const image = articleImageUrl(current.image_url);
+  return {
+    ...describedHead(current.title, description, [
+      { property: "og:type", content: "article" },
+      { property: "og:image", content: image },
+      { property: "og:image:alt", content: current.title },
+      { name: "twitter:image", content: image },
+      { name: "twitter:image:alt", content: current.title },
+    ], path),
+    script: [
+      jsonLdScript(articleJsonLd({
+        title: current.title,
+        description,
+        path,
+        createdAt: current.created_at,
+        updatedAt: current.updated_at,
+        imageUrl: current.image_url,
+      }), "ld-json"),
+    ],
+  };
+});
 
 onMounted(async () => {
   await loadComments();
@@ -247,13 +300,23 @@ function scrollToComments() {
 
     <template v-else>
       <header class="mb-8 space-y-2">
-        <h1 class="text-3xl font-heading font-bold">
-          {{ article.title }}
-        </h1>
-        <ContentReadingTime
-          class="text-end"
-          :minutes="article.reading_time_minutes"
-        />
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h1 class="text-3xl font-heading font-bold">
+              {{ article.title }}
+            </h1>
+            <p v-if="publishedLabel" class="mt-2 text-sm text-muted-foreground">
+              <time :datetime="article.created_at">Δημοσιεύτηκε {{ publishedLabel }}</time>
+              <template v-if="updatedLabel">
+                · <time :datetime="article.updated_at">Ενημερώθηκε {{ updatedLabel }}</time>
+              </template>
+            </p>
+          </div>
+          <ContentReadingTime
+            class="shrink-0 text-end"
+            :minutes="article.reading_time_minutes"
+          />
+        </div>
         <div v-if="article.tags?.length" class="flex flex-wrap gap-2 mt-4">
           <a
             v-for="tag in article.tags"

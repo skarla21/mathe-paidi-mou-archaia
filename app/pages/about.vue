@@ -3,7 +3,9 @@ definePageMeta({ layout: 'default' })
 
 useHead(() => describedHead(
   'Σχετικά',
-  'Οργανωμένες σημειώσεις και μαθήματα για την προετοιμασία στα Αρχαία.',
+  'Η φιλόλογος γράφει και οργανώνει διδακτικό υλικό για Αρχαία, για κάθε σχολική τάξη. Ιδιαίτερα μαθήματα από τη φόρμα επικοινωνίας.',
+  [],
+  '/about',
 ))
 
 const platformPoints = [
@@ -19,6 +21,7 @@ onMounted(() => {
       revealSection('#about-title')
       revealSection('#about-mission')
       revealSection('#about-platform')
+      revealSection('#about-faq')
       revealSection('#about-contact')
     })
   }
@@ -40,6 +43,7 @@ onMounted(() => {
         Η Αποστολή Μας
       </h2>
       <p class="text-muted-foreground leading-relaxed font-heading">Πιστεύουμε ότι κάθε μαθητής αξίζει ξεκάθαρο και οργανωμένο υλικό για τις εξετάσεις. Αυτή η πλατφόρμα φτιάχτηκε για να κάνει τα Αρχαία Ελληνικά προσιτά — μετατρέποντας ένα δύσκολο μάθημα σε έναν δομημένο, εφικτό στόχο.</p>
+      <p class="mt-4 text-muted-foreground leading-relaxed font-heading">Το διδακτικό υλικό το γράφει και το οργανώνει η φιλόλογος αυτής της πλατφόρμας, χωρισμένο ανά σχολική τάξη. Για διαδικτυακά ιδιαίτερα μαθήματα, στέλνεις μήνυμα από τη φόρμα επικοινωνίας.</p>
     </section>
 
     <!-- What we offer section -->
@@ -65,6 +69,8 @@ onMounted(() => {
         </li>
       </ul>
     </section>
+
+    <AboutFaq id="about-faq" class="mb-10" />
 
     <!-- Contact section -->
     <section id="about-contact" class="rounded-3xl border border-border bg-card p-6 shadow-sm">

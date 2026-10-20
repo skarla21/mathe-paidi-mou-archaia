@@ -110,6 +110,7 @@ useHead(() => describedHead(
   queryText.value
     ? `Αναζήτηση για «${queryText.value}».`
     : 'Αναζήτηση στο διδακτικό υλικό.',
+  [ROBOTS_NOINDEX_FOLLOW],
 ))
 
 async function onPageChange(next: number) {

@@ -1,4 +1,9 @@
+import { canonicalHref } from "../../shared/utils/siteMeta.mjs"
+
 const DESCRIPTION_MAX = 160
+
+export const ROBOTS_NOINDEX_NOFOLLOW = { name: "robots", content: "noindex, nofollow" }
+export const ROBOTS_NOINDEX_FOLLOW = { name: "robots", content: "noindex, follow" }
 
 type SocialTag = {
   tag?: string
@@ -26,15 +31,19 @@ export function describedHead(
   title: string,
   description?: string | null,
   extraMeta: Array<Record<string, string>> = [],
+  canonicalPath?: string | null,
 ) {
   const text = description?.replace(/\s+/g, " ").trim() ?? ""
   const content = text ? clip(text) : ""
+  const href = canonicalPath?.trim() ? canonicalHref(canonicalPath) : ""
   return {
     title,
     meta: [
       ...(content ? [{ name: "description", content }] : []),
+      ...(href ? [{ property: "og:url", content: href }] : []),
       ...extraMeta,
     ],
+    ...(href ? { link: [{ rel: "canonical", href }] } : {}),
   }
 }
 

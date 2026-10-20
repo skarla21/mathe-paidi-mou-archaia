@@ -10,6 +10,17 @@ describe('describedHead', () => {
     })
   })
 
+  it('emits a canonical link and drops the query string', () => {
+    const head = describedHead('Κείμενο', 'Περίληψη', [], '/articles/keimeno?page=2')
+    assert.deepEqual(head.link, [
+      { rel: 'canonical', href: 'https://mathearchaia.gr/articles/keimeno' },
+    ])
+    assert.deepEqual(head.meta, [
+      { name: 'description', content: 'Περίληψη' },
+      { property: 'og:url', content: 'https://mathearchaia.gr/articles/keimeno' },
+    ])
+  })
+
   it('keeps a short description and extra tags', () => {
     assert.deepEqual(describedHead('Κείμενο', 'Περίληψη', [
       { property: 'og:type', content: 'article' },

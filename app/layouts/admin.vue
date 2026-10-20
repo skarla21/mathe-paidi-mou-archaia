@@ -8,7 +8,10 @@ import UiBadge from '~/components/ui/Badge.vue'
 
 const route = useRoute()
 useHead({
-  meta: [{ name: 'description', content: 'Διαχείριση του διδακτικού υλικού.' }],
+  meta: [
+    { name: 'description', content: 'Διαχείριση του διδακτικού υλικού.' },
+    { name: 'robots', content: 'noindex, nofollow' },
+  ],
 })
 const adminFetch = useAdminFetch()
 const mainEl = ref<HTMLElement | null>(null)

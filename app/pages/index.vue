@@ -2,7 +2,7 @@
 import { SITE_DESCRIPTION, SITE_TITLE } from '#shared/utils/siteMeta.mjs'
 
 const route = useRoute()
-useHead(() => describedHead(SITE_TITLE, SITE_DESCRIPTION))
+useHead(() => describedHead(SITE_TITLE, SITE_DESCRIPTION, [], '/'))
 
 const sections = [
   { id: 'welcome', label: 'Καλώς ήρθατε', icon: 'bi-stars' },

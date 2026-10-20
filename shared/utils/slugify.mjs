@@ -114,6 +114,7 @@ export const RESERVED_GRADE_SLUGS = [
   'dashboard',
   'login',
   'notes',
+  'oroi',
   'profile',
   'register',
   'reset-password',

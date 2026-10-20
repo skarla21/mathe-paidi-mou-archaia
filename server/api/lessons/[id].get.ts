@@ -1,6 +1,7 @@
 import { lessonFileBlock } from '#shared/utils/lessonFileBlock.mjs'
 import { publicLessonPreviewUrl } from '#shared/utils/lessonPreviewUrl.mjs'
 import { canAccessLesson } from '../../utils/access'
+import { canonicalLessonPaths } from '../../utils/contentPath'
 import { signedLessonContentUrl } from '../../utils/lessonFileAccess'
 import { serverSupabaseService } from '../../utils/supabaseServer'
 
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const [{ count: commentCount }, myRatingRes] = await Promise.all([
+  const [{ count: commentCount }, myRatingRes, lessonPaths] = await Promise.all([
     supabase
       .from('lesson_comments')
       .select('*', { count: 'exact', head: true })
@@ -54,6 +55,7 @@ export default defineEventHandler(async (event) => {
           .eq('user_id', userId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    canonicalLessonPaths(supabase, [lesson.id]),
   ])
 
   const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl || '')
@@ -74,5 +76,6 @@ export default defineEventHandler(async (event) => {
     ratingCount: Number(lesson.rating_count ?? 0),
     commentCount: commentCount ?? 0,
     myRating: myRatingRes.data?.rating ?? null,
+    canonical_path: lessonPaths.get(lesson.id) ?? null,
   }
 })

@@ -5,6 +5,11 @@ import 'vue-sonner/style.css'
 import { toast, Toaster } from 'vue-sonner'
 import LayoutAppHeader from '~/components/layout/AppHeader.vue'
 import LayoutAppFooter from '~/components/layout/AppFooter.vue'
+import { jsonLdGraph, jsonLdScript, organizationNode, websiteNode } from '~/utils/jsonLd'
+
+useHead({
+  script: [jsonLdScript(jsonLdGraph([organizationNode(), websiteNode()]), 'ld-json-site')],
+})
 
 const theme = useTheme()
 const route = useRoute()

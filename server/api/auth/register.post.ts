@@ -15,7 +15,11 @@ export default defineEventHandler(async (event) => {
     message: 'Πάρα πολλές αιτήσεις. Παρακαλώ δοκίμασε ξανά αργότερα.',
   })
 
-  const body = await readBody<{ email?: string; password?: string; name?: string }>(event)
+  const body = await readBody<{ email?: string; password?: string; name?: string; acceptTerms?: boolean }>(event)
+
+  if (body?.acceptTerms !== true) {
+    throw createError({ statusCode: 400, message: 'Αποδέξου τους όρους χρήσης για να συνεχίσεις' })
+  }
 
   const name = body.name?.trim() ?? ''
   if (!body.email || !EMAIL_REGEX.test(body.email)) {
@@ -57,6 +61,7 @@ export default defineEventHandler(async (event) => {
     p_name: name,
     p_token_hash: tokenHash,
     p_expires_at: expiresAt,
+    p_terms_accepted_at: new Date().toISOString(),
   })
 
   if (registerError) {

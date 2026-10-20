@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "node:path";
-import { SITE_DESCRIPTION, SITE_TITLE } from "./shared/utils/siteMeta.mjs";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE, SITE_TITLE } from "./shared/utils/siteMeta.mjs";
 
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -15,13 +15,13 @@ export default defineNuxtConfig({
         { name: "description", content: SITE_DESCRIPTION },
         { property: "og:type", content: "website" },
         { property: "og:locale", content: "el_GR" },
-        { property: "og:site_name", content: "Μάθε Παιδί Μου Αρχαία" },
-        { property: "og:image", content: "https://mathearchaia.gr/og.jpg" },
+        { property: "og:site_name", content: SITE_NAME },
+        { property: "og:image", content: SITE_OG_IMAGE },
         { property: "og:image:width", content: "1200" },
         { property: "og:image:height", content: "1200" },
-        { property: "og:image:alt", content: "Μάθε Παιδί Μου Αρχαία" },
+        { property: "og:image:alt", content: SITE_NAME },
         { name: "twitter:card", content: "summary" },
-        { name: "twitter:image", content: "https://mathearchaia.gr/og.jpg" },
+        { name: "twitter:image", content: SITE_OG_IMAGE },
       ],
     },
   },

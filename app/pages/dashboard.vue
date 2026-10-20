@@ -5,7 +5,11 @@ import UiSkeleton from '~/components/ui/Skeleton.vue'
 
 definePageMeta({ middleware: 'auth' })
 
-useHead(() => describedHead('Πίνακας', 'Τα μαθήματα που έχεις αποθηκεύσει.'))
+useHead(() => describedHead(
+  'Πίνακας',
+  'Τα μαθήματα που έχεις αποθηκεύσει.',
+  [ROBOTS_NOINDEX_NOFOLLOW],
+))
 
 type BookmarkRow = {
   id: string
