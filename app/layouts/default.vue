@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { authDialogQuery } from '#shared/utils/authDialogQuery.mjs'
 import { acceptEmailVerification, emailVerificationFollowUp } from '#shared/utils/emailVerificationLanding.mjs'
+import { googleAuthErrorMessage, takeGoogleAuthError } from '#shared/utils/googleAuthError.mjs'
 import 'vue-sonner/style.css'
 import { toast, Toaster } from 'vue-sonner'
 import LayoutAppHeader from '~/components/layout/AppHeader.vue'
@@ -24,6 +25,20 @@ const { openLogin, openRegister } = useAuthModal()
 await Promise.all([ensure(), ensureCategories()])
 
 const handledEmailVerification = useState<string | null>('emailVerification.handled', () => null)
+const handledGoogleAuth = useState<string | null>('googleAuth.handled', () => null)
+
+async function consumeGoogleAuth() {
+  const value = route.query.googleAuth
+  const code = Array.isArray(value) ? value[0] : value
+  const next = takeGoogleAuthError(handledGoogleAuth.value, code)
+  handledGoogleAuth.value = next.handled
+  if (!next.toast || !code) return
+
+  const query = { ...route.query }
+  delete query.googleAuth
+  await navigateTo({ path: route.path, query }, { replace: true })
+  toast.error(googleAuthErrorMessage(code))
+}
 
 async function consumeEmailVerification() {
   const status = acceptEmailVerification(route.query.emailVerification, handledEmailVerification.value)
@@ -61,9 +76,16 @@ onMounted(() => {
   theme.init()
   void (async () => {
     await consumeEmailVerification()
+    await consumeGoogleAuth()
     await openAuthFromQuery()
   })()
 })
+
+if (import.meta.client) {
+  watch(() => route.query.googleAuth, () => {
+    void consumeGoogleAuth()
+  })
+}
 </script>
 
 <template>

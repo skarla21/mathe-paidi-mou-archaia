@@ -42,9 +42,37 @@ describe('sitemap paging', () => {
 })
 
 describe('google signup', () => {
-  it('does not insert a user who has not accepted the terms', () => {
+  it('verifies a real Google address without a verification email', () => {
     const source = readFileSync(new URL('../server/utils/authOptions.ts', import.meta.url), 'utf8')
-    assert.match(source, /Google sign-in refused until terms are accepted/)
-    assert.doesNotMatch(source, /provider: "google"/)
+    const refused = source.indexOf('Google sign-in refused until terms are accepted')
+    const insert = source.indexOf('provider: "google"')
+    assert.ok(refused !== -1 && insert !== -1 && refused < insert)
+    assert.match(source, /email_verified: true/)
+    assert.match(source, /terms_accepted_at: termsAcceptedAt/)
+    assert.match(source, /email_verified !== true/)
+    assert.match(source, /googleAccountLinkUpdate/)
+    assert.doesNotMatch(source, /sendVerificationEmail/)
+    assert.doesNotMatch(source, /issue_verification_token/)
+    assert.doesNotMatch(source, /register_credentials_user/)
+  })
+
+  it('shows a Greek message for cancel, an unverified address, and a generic failure', () => {
+    const messages = readFileSync(new URL('../shared/utils/googleAuthError.mjs', import.meta.url), 'utf8')
+    const page = readFileSync(new URL('../app/pages/auth/oauth-error.vue', import.meta.url), 'utf8')
+    const layout = readFileSync(new URL('../app/layouts/default.vue', import.meta.url), 'utf8')
+    assert.match(messages, /OAuthCallbackError/)
+    assert.match(messages, /Η σύνδεση με Google ακυρώθηκε/)
+    assert.match(messages, /UnverifiedEmail/)
+    assert.match(messages, /Το email της Google δεν είναι επαληθευμένο/)
+    assert.match(messages, /Η σύνδεση με Google δεν ήταν δυνατή/)
+    assert.match(page, /googleAuth: code/)
+    assert.match(layout, /googleAuthErrorMessage\(code\)/)
+  })
+
+  it('asks for terms before a Google signup and hides the button until Google is configured', () => {
+    const modal = readFileSync(new URL('../app/components/auth/AuthModal.vue', import.meta.url), 'utf8')
+    assert.match(modal, /googleEnabled\.value = Boolean\(providers\.google\)/)
+    assert.match(modal, /v-if="googleEnabled"/)
+    assert.match(modal, /\$fetch\('\/api\/google-terms'/)
   })
 })

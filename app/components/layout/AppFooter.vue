@@ -137,6 +137,12 @@ onMounted(() => {
         >
           Όροι χρήσης
         </NuxtLink>
+        <NuxtLink
+          to="/aporrito"
+          class="ml-2 font-medium text-foreground transition-colors hover:text-primary"
+        >
+          Πολιτική απορρήτου
+        </NuxtLink>
       </p>
       <p>
         Designed by

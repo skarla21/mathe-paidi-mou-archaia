@@ -15,6 +15,7 @@ describe('formatDocumentTitle', () => {
 describe('canonicalHref', () => {
   it('stays on this origin and rejects a protocol-relative path', () => {
     assert.equal(canonicalHref('/oroi'), `${SITE_ORIGIN}/oroi`)
+    assert.equal(canonicalHref('/aporrito'), `${SITE_ORIGIN}/aporrito`)
     assert.equal(canonicalHref('//evil.com'), `${SITE_ORIGIN}/`)
     assert.equal(canonicalHref('///evil.com'), `${SITE_ORIGIN}/`)
     assert.equal(canonicalHref('https://evil.com/phish'), `${SITE_ORIGIN}/phish`)
@@ -34,6 +35,7 @@ describe('sitemap', () => {
     const lessonPaths = entries.filter((entry) => entry.path === '/a-lykeiou/archaia/keimeno/mathima')
     assert.equal(lessonPaths.length, 1)
     assert.equal(entries.some((entry) => entry.path === '/oroi'), true)
+    assert.equal(entries.some((entry) => entry.path === '/aporrito'), true)
     assert.equal(entries.some((entry) => entry.path === '/articles/hidden'), false)
     const xml = sitemapXml(entries)
     assert.equal(xml.includes('Κρυφό'), false)

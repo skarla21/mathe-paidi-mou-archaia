@@ -79,7 +79,7 @@ describe('gradeSlug', () => {
   })
 
   it('keeps the database rule aligned with the reserved list', () => {
-    const migration = readFileSync(new URL('../supabase/migrations/20261020160000_terms_acceptance_article_dates_oroi.sql', import.meta.url), 'utf8')
+    const migration = readFileSync(new URL('../supabase/migrations/20261020170000_reserve_aporrito_auth_slugs.sql', import.meta.url), 'utf8')
     const schema = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
     assert.deepEqual(reservedGradeSlugs(migration), [...RESERVED_GRADE_SLUGS])
     assert.deepEqual(reservedGradeSlugs(schema), [...RESERVED_GRADE_SLUGS])

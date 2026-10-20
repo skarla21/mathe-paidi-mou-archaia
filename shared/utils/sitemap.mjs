@@ -1,6 +1,6 @@
 import { canonicalHref } from './siteMeta.mjs'
 
-const STATIC_PATHS = ['/', '/about', '/articles', '/oroi']
+const STATIC_PATHS = ['/', '/about', '/aporrito', '/articles', '/oroi']
 
 export function escapeXml(value) {
   return String(value)

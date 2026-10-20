@@ -4,6 +4,8 @@ import { EMAIL_REGEX, PASSWORD_MIN_LENGTH } from '~/lib/validation'
 
 const { isOpen, activeTab, loginSubView, pendingRedirect, close, openForgot, backToLogin } = useAuthModal()
 const { session, fetchSession } = useCurrentUser()
+const { signInWithGoogle } = useGoogleSignIn()
+const googleEnabled = ref(false)
 
 // Login state
 const loginEmail = ref('')
@@ -41,6 +43,42 @@ watch(
     if (userId && isOpen.value) close()
   },
 )
+
+watch(isOpen, (open) => {
+  if (open) void loadGoogleProvider()
+})
+
+async function loadGoogleProvider() {
+  try {
+    const providers = await $fetch<Record<string, unknown>>('/api/auth/providers', { credentials: 'include' })
+    googleEnabled.value = Boolean(providers.google)
+  } catch {
+    googleEnabled.value = false
+  }
+}
+
+async function onGoogleLogin() {
+  await signInWithGoogle(pendingRedirect.value ?? '/')
+}
+
+async function onGoogleSignup() {
+  registerErrors.value = { ...registerErrors.value, terms: undefined }
+  if (!registerAcceptTerms.value) {
+    registerErrors.value.terms = 'Αποδέξου τους όρους χρήσης για να συνεχίσεις'
+    return
+  }
+  try {
+    const { csrfToken } = await $fetch<{ csrfToken: string }>('/api/auth/csrf', { credentials: 'include' })
+    await $fetch('/api/google-terms', {
+      method: 'POST',
+      credentials: 'include',
+      body: { csrfToken },
+    })
+    await signInWithGoogle(pendingRedirect.value ?? '/', csrfToken)
+  } catch {
+    toast.error('Η εγγραφή με Google δεν ήταν δυνατή')
+  }
+}
 
 async function onLoginSubmit() {
   loginErrors.value = {}
@@ -275,6 +313,18 @@ async function onRegisterSubmit() {
                   </UiButton>
                 </form>
 
+                <div v-if="googleEnabled" class="mt-3 space-y-3">
+                  <div class="flex items-center gap-3">
+                    <span class="h-px flex-1 bg-border" />
+                    <span class="text-xs text-muted-foreground">ή</span>
+                    <span class="h-px flex-1 bg-border" />
+                  </div>
+                  <UiButton type="button" variant="outline" class="w-full gap-2" @click="onGoogleLogin">
+                    <AuthGoogleMark />
+                    Σύνδεση με Google
+                  </UiButton>
+                </div>
+
                 <!-- Switch to register -->
                 <p class="text-center text-sm text-muted-foreground mt-4">
                   Δεν έχεις λογαριασμό;
@@ -354,6 +404,14 @@ async function onRegisterSubmit() {
                       >
                         όρους χρήσης
                       </NuxtLink>.
+                      Τα στοιχεία του λογαριασμού περιγράφονται στην
+                      <NuxtLink
+                        to="/aporrito"
+                        class="font-semibold text-primary underline-offset-4 hover:underline"
+                        @click.stop="close"
+                      >
+                        πολιτική απορρήτου
+                      </NuxtLink>.
                     </UiLabel>
                   </div>
                   <p v-if="registerErrors.terms" id="register-terms-error" class="text-xs text-destructive mt-1">{{ registerErrors.terms }}</p>
@@ -364,6 +422,18 @@ async function onRegisterSubmit() {
                   {{ registerLoading ? 'Γίνεται εγγραφή...' : 'Εγγραφή' }}
                 </UiButton>
               </form>
+
+              <div v-if="googleEnabled" class="mt-3 space-y-3">
+                <div class="flex items-center gap-3">
+                  <span class="h-px flex-1 bg-border" />
+                  <span class="text-xs text-muted-foreground">ή</span>
+                  <span class="h-px flex-1 bg-border" />
+                </div>
+                <UiButton type="button" variant="outline" class="w-full gap-2" @click="onGoogleSignup">
+                  <AuthGoogleMark />
+                  Εγγραφή με Google
+                </UiButton>
+              </div>
 
               <!-- Switch to login -->
               <p class="text-center text-sm text-muted-foreground mt-4">

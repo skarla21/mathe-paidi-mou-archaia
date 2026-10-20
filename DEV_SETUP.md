@@ -147,7 +147,8 @@ Auth is implemented with **Auth.js** (`@auth/core`): JWT sessions, Credentials p
 
 - **Env:**
   - `NUXT_AUTH_SECRET` – used to sign JWTs (see section 2).
-  - `NUXT_GOOGLE_CLIENT_ID` / `NUXT_GOOGLE_CLIENT_SECRET` – credentials for Google OAuth.
+  - `NUXT_GOOGLE_CLIENT_ID` / `NUXT_GOOGLE_CLIENT_SECRET` – server-only credentials for Google OAuth. The provider is omitted when either value is empty, and the auth dialog hides the Google buttons. Do not use a `NUXT_PUBLIC_` name. Set the production pair in the Vercel Production environment, then redeploy.
+- **Google Cloud:** In the same Google account that owns reCAPTCHA, open [Google Auth Platform clients](https://console.cloud.google.com/auth/clients) and use the existing Cloud project. Create a Web application client named `mathearchaia web`. Authorized JavaScript origins: `http://localhost:3000`, `https://mathearchaia.gr`, `https://www.mathearchaia.gr`. Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`, `https://mathearchaia.gr/api/auth/callback/google`, `https://www.mathearchaia.gr/api/auth/callback/google`. Keep the default `openid`, `email`, and `profile` scopes. While Audience is Testing, add your own Google account as a test user. Switch Audience to In production after that account can sign in. A new Google signup stores `email_verified: true` and does not send a verification email. It also requires the terms checkbox; email-and-password signup still sends a verification email.
 - **Database (`users` table):**
   - `id uuid primary key default gen_random_uuid()`
   - `email text`

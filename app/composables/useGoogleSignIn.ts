@@ -4,12 +4,12 @@
  * redirect to Google.
  */
 export function useGoogleSignIn() {
-  async function signInWithGoogle(callbackUrl = "/") {
+  async function signInWithGoogle(callbackUrl = "/", csrfToken?: string) {
     if (!import.meta.client) return
 
-    const { csrfToken } = await $fetch<{ csrfToken: string }>("/api/auth/csrf", {
+    const token = csrfToken ?? (await $fetch<{ csrfToken: string }>("/api/auth/csrf", {
       credentials: "include",
-    });
+    })).csrfToken;
 
     const form = document.createElement("form");
     form.method = "POST";
@@ -18,7 +18,7 @@ export function useGoogleSignIn() {
     const csrfInput = document.createElement("input");
     csrfInput.type = "hidden";
     csrfInput.name = "csrfToken";
-    csrfInput.value = csrfToken;
+    csrfInput.value = token;
     form.appendChild(csrfInput);
 
     const callbackInput = document.createElement("input");
