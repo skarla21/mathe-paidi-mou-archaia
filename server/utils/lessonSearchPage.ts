@@ -5,6 +5,10 @@ export const LESSON_SEARCH_PAGE_SIZE = 20
 /** Max title matches fetched before path-filter + in-memory pagination. */
 export const LESSON_SEARCH_FETCH_CAP = 500
 
+function clampPage(page: number): number {
+  return Math.max(1, Math.floor(page) || 1)
+}
+
 export type LessonSearchItem = {
   id: string
   title: string
@@ -31,7 +35,7 @@ export function emptyLessonSearchPage(page = 1): LessonSearchPage {
   return {
     items: [],
     total: 0,
-    page: Math.max(1, Math.floor(page) || 1),
+    page: clampPage(page),
     pageSize: LESSON_SEARCH_PAGE_SIZE,
   }
 }
@@ -78,9 +82,6 @@ export function withLessonSearchBookmarks(
   items: readonly LessonSearchItem[],
   bookmarkedIds: ReadonlySet<string>,
 ): LessonSearchItem[] {
-  if (!bookmarkedIds.size) {
-    return items.map((item) => ({ ...item, bookmarked: false }))
-  }
   return items.map((item) => ({
     ...item,
     bookmarked: bookmarkedIds.has(item.id),
@@ -93,7 +94,7 @@ export function paginateLessonSearchItems(
   page: number,
   pageSize = LESSON_SEARCH_PAGE_SIZE,
 ): LessonSearchPage {
-  const safePage = Math.max(1, Math.floor(page) || 1)
+  const safePage = clampPage(page)
   const size = pageSize > 0 ? pageSize : LESSON_SEARCH_PAGE_SIZE
   const from = (safePage - 1) * size
   return {

@@ -16,12 +16,16 @@ function firstQuery(value: unknown): string {
   return String(value)
 }
 
-export function publicPage(value: unknown): number {
+function positiveIntQuery(value: unknown): number | null {
   const raw = firstQuery(value).trim()
-  if (!raw) return 1
+  if (!raw) return null
   const n = Number(raw)
-  if (!Number.isFinite(n) || n < 1) return 1
+  if (!Number.isFinite(n) || n < 1) return null
   return Math.floor(n)
+}
+
+export function publicPage(value: unknown): number {
+  return positiveIntQuery(value) ?? 1
 }
 
 /** Page size from `limit` or `pageSize`. Defaults to 20; hard-capped at 50. */
@@ -29,11 +33,9 @@ export function publicPageSize(
   value: unknown,
   fallback = PUBLIC_LIST_PAGE_SIZE,
 ): number {
-  const raw = firstQuery(value).trim()
-  if (!raw) return fallback
-  const n = Number(raw)
-  if (!Number.isFinite(n) || n < 1) return fallback
-  return Math.min(Math.floor(n), PUBLIC_LIST_MAX_PAGE_SIZE)
+  const n = positiveIntQuery(value)
+  if (n == null) return fallback
+  return Math.min(n, PUBLIC_LIST_MAX_PAGE_SIZE)
 }
 
 export function publicPageRange(page: number, pageSize: number) {

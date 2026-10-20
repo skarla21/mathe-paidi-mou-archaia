@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  isAllowedUploadMime,
   isImageEntity,
+  isStorageNameTaken,
   isUploadPath,
   mimeAllowedForPath,
   mimeFromMagic,
@@ -132,6 +134,28 @@ describe('upload file checks', () => {
     assert.equal(uploadByteLength(206, 'bytes 0-15/45088768', '16'), 45088768)
     assert.equal(uploadByteLength(200, null, '128'), 128)
     assert.equal(uploadByteLength(206, 'bytes 0-15/*', '16'), null)
+  })
+
+  it('rejects a malformed range total and unsafe integer sizes', () => {
+    assert.equal(uploadByteLength(206, 'bytes 0-15/not-digits', '16'), null)
+    assert.equal(uploadByteLength(200, null, `${Number.MAX_SAFE_INTEGER + 1}`), null)
+  })
+
+  it('knows which entities accept images and which mime each target allows', () => {
+    assert.equal(isImageEntity('article'), true)
+    assert.equal(isImageEntity('nope'), false)
+    assert.equal(isAllowedUploadMime('image', 'application/pdf'), false)
+    assert.equal(isAllowedUploadMime('lesson', 'application/pdf'), true)
+  })
+
+  it('returns null for an invalid project base URL', () => {
+    assert.equal(storageObjectUrl('not a url', 'lesson-content/notes-abcd1234.pdf'), null)
+  })
+
+  it('detects a taken storage name from status or message', () => {
+    assert.equal(isStorageNameTaken({ status: 409 }), true)
+    assert.equal(isStorageNameTaken({ message: 'Already exists' }), true)
+    assert.equal(isStorageNameTaken({ status: 500, message: 'storage down' }), false)
   })
 })
 

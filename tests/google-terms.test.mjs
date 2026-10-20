@@ -6,6 +6,7 @@ import {
   googleTermsAcceptedAt,
   googleTermsClearCookie,
   googleTermsCsrfOk,
+  googleTermsUseSecureCookie,
   signGoogleTerms,
 } from '../server/utils/googleTerms.ts'
 import { googleAuthErrorMessage, takeGoogleAuthError } from '../shared/utils/googleAuthError.mjs'
@@ -17,6 +18,13 @@ function csrfCookie(token, csrfSecret = secret) {
   const hash = createHash('sha256').update(`${token}${csrfSecret}`).digest('hex')
   return `${token}|${hash}`
 }
+
+describe('googleTermsUseSecureCookie', () => {
+  it('marks the cookie secure only on https', () => {
+    assert.equal(googleTermsUseSecureCookie('https:'), true)
+    assert.equal(googleTermsUseSecureCookie('http:'), false)
+  })
+})
 
 describe('google terms cookie', () => {
   it('accepts a signed timestamp from the last 15 minutes', () => {
@@ -68,6 +76,10 @@ describe('google auth errors', () => {
     assert.equal(googleAuthErrorMessage('UnverifiedEmail'), 'Το email της Google δεν είναι επαληθευμένο')
     assert.equal(googleAuthErrorMessage('AccessDenied'), 'Η σύνδεση με Google δεν ήταν δυνατή')
     assert.equal(googleAuthErrorMessage('Configuration'), 'Η σύνδεση με Google δεν ήταν δυνατή')
+    assert.equal(
+      googleAuthErrorMessage('TermsRequired'),
+      'Αποδέξου τους όρους χρήσης για να εγγραφείς με Google',
+    )
   })
 
   it('toasts again when the same error happens on a later attempt', () => {

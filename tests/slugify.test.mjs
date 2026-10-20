@@ -34,6 +34,15 @@ describe('slugifyGreek', () => {
     assert.equal(slugifyGreek('Lesson Αρχαία'), 'lesson-archaia')
   })
 
+  it('transliterates digraphs with ELOT 743 edge cases', () => {
+    assert.equal(slugifyGreek('άγγελος'), 'angelos')
+    assert.equal(slugifyGreek('γκα'), 'gka')
+    assert.equal(slugifyGreek('μπαλα'), 'bala')
+    assert.equal(slugifyGreek('αμπελος'), 'ampelos')
+    assert.equal(slugifyGreek('εγξα'), 'enxa')
+    assert.equal(slugifyGreek('εγχειριδιο'), 'encheiridio')
+  })
+
   it('adds a numeric suffix only when the slug is already taken', () => {
     assert.equal(uniqueSlug('lesson1', []), 'lesson1')
     assert.equal(uniqueSlug('lesson1', ['lesson1']), 'lesson1-2')

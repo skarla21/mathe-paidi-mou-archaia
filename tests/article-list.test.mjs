@@ -24,4 +24,28 @@ describe('publicArticleList', () => {
     assert.equal(article.likeCount, 0)
     assert.equal(Object.hasOwn(article, 'body'), false)
   })
+
+  it('returns an empty list for null input', () => {
+    assert.deepEqual(publicArticleList(null), [])
+  })
+
+  it('normalizes missing body, tags, likes, and image fields', () => {
+    const [article] = publicArticleList([
+      {
+        id: 'a2',
+        title: 'Κενό',
+        slug: 'keno',
+        body: null,
+        tags: 'nope',
+        reading_time_minutes: 1,
+        like_count: null,
+        image_url: undefined,
+        created_at: '2026-02-01',
+      },
+    ])
+    assert.equal(article.excerpt, '')
+    assert.deepEqual(article.tags, [])
+    assert.equal(article.likeCount, 0)
+    assert.equal(article.image_url, null)
+  })
 })

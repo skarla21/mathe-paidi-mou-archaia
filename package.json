@@ -34,7 +34,8 @@
     "typecheck": "nuxt typecheck",
     "lint:fix": "eslint . --fix",
     "check": "pnpm run typecheck && pnpm run lint:fix",
-    "test": "node --experimental-strip-types --import ./tests/register-ts-extension.mjs --test tests/*.test.mjs"
+    "test": "node --experimental-strip-types --import ./tests/register-ts-extension.mjs --test tests/*.test.mjs",
+    "test:coverage": "node --experimental-strip-types --import ./tests/register-ts-extension.mjs --test --experimental-test-coverage --test-coverage-include=server/utils/* --test-coverage-include=shared/utils/* --test-coverage-include=app/utils/* --test-coverage-include=app/lib/* --test-reporter=spec tests/*.test.mjs"
   },
   "dependencies": {
     "@auth/core": "^0.37.2",

@@ -149,11 +149,7 @@ export function useAdminFileUpload() {
           filename: file.name,
           mimeType: file.type,
           size: file.size,
-          target: options.kind === 'image'
-            ? 'image'
-            : options.kind === 'preview'
-              ? 'preview'
-              : 'lesson',
+          target: options.kind,
           entity: options.entity,
         },
       })

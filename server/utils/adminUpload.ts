@@ -18,6 +18,12 @@ const IMAGE_ENTITIES = new Set(['category', 'chapter', 'subject', 'article'])
 export type UploadTarget = 'lesson' | 'image' | 'preview'
 export type UploadMime = 'application/pdf' | 'image/jpeg' | 'image/png'
 
+const FOLDER_BY_TARGET: Record<UploadTarget, string> = {
+  lesson: 'lesson-content',
+  image: 'entity-images',
+  preview: 'lesson-previews',
+}
+
 export interface UploadTicket {
   path: string
   exp: number
@@ -45,12 +51,8 @@ export function uploadObjectPath(
   entity: string,
   suffix: string,
 ): string {
-  const folder = target === 'image'
-    ? 'entity-images'
-    : target === 'preview'
-      ? 'lesson-previews'
-      : 'lesson-content'
-  const entityPrefix = entity.replace(/[\\/]/g, '').replace(/[^A-Za-z0-9-]/g, '') || 'item'
+  const folder = FOLDER_BY_TARGET[target]
+  const entityPrefix = entity.replace(/[^A-Za-z0-9-]/g, '') || 'item'
   const named = target === 'image' ? `${entityPrefix}-${filename}` : filename
   return `${folder}/${storedFileName(named, mimeType, suffix)}`
 }

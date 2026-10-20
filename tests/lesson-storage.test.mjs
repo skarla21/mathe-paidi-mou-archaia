@@ -5,12 +5,16 @@ import {
   lessonPreviewPathFromUrl,
   LESSON_CONTENT_REAP_AGE_MS,
   reapOrphanLessonContent,
+  reapOrphanLessonPreviews,
   removeUnusedLessonContent,
+  removeUnusedLessonPreview,
 } from '../server/utils/lessonStorage.ts'
 
 const SUPABASE_URL = 'https://proj.supabase.co'
 const FILE_URL = `${SUPABASE_URL}/storage/v1/object/public/uploads/lesson-content/1-notes.pdf`
 const SAME_FILE_WITH_QUERY = `${FILE_URL}?download=notes.pdf`
+const PREVIEW_URL = `${SUPABASE_URL}/storage/v1/object/public/uploads/lesson-previews/1-preview.png`
+const SAME_PREVIEW_WITH_QUERY = `${PREVIEW_URL}?download=preview.png`
 
 function fakeSupabase(urls, { removeError = null, listError = null } = {}) {
   const removed = []
@@ -271,5 +275,145 @@ describe('reapOrphanLessonContent', () => {
     ], { removeError: { message: 'storage down' } })
     await reapOrphanLessonContent(supabase.client, SUPABASE_URL, now)
     assert.deepEqual(supabase.removed, ['lesson-content/orphan.pdf'])
+  })
+})
+
+function fakePreviewSupabase(urls, { removeError = null, listError = null } = {}) {
+  const removed = []
+  const query = {
+    select() {
+      return query
+    },
+    not() {
+      return query
+    },
+    order() {
+      return query
+    },
+    range(start, end) {
+      if (listError) return Promise.resolve({ data: null, error: listError })
+      return Promise.resolve({
+        data: urls.slice(start, end + 1).map(preview_url => ({ preview_url })),
+        error: null,
+      })
+    },
+  }
+  return {
+    removed,
+    client: {
+      from() {
+        return query
+      },
+      storage: {
+        from() {
+          return {
+            remove(paths) {
+              removed.push(...paths)
+              return Promise.resolve({ error: removeError })
+            },
+          }
+        },
+      },
+    },
+  }
+}
+
+describe('removeUnusedLessonPreview', () => {
+  it('keeps the preview when another lesson still references it', async () => {
+    const supabase = fakePreviewSupabase([SAME_PREVIEW_WITH_QUERY])
+    await removeUnusedLessonPreview(supabase.client, PREVIEW_URL, SUPABASE_URL)
+    assert.deepEqual(supabase.removed, [])
+  })
+
+  it('removes a preview object that no lesson references', async () => {
+    const supabase = fakePreviewSupabase([
+      `${SUPABASE_URL}/storage/v1/object/public/uploads/lesson-previews/2-other.png`,
+    ])
+    await removeUnusedLessonPreview(supabase.client, PREVIEW_URL, SUPABASE_URL)
+    assert.deepEqual(supabase.removed, ['lesson-previews/1-preview.png'])
+  })
+
+  it('skips a url that is not a stored preview in this project', async () => {
+    const supabase = fakePreviewSupabase([])
+    await removeUnusedLessonPreview(supabase.client, 'https://cdn.example/preview.png', SUPABASE_URL)
+    assert.deepEqual(supabase.removed, [])
+  })
+
+  it('does not remove a preview when the lesson lookup fails', async () => {
+    const supabase = fakePreviewSupabase([PREVIEW_URL], { listError: { message: 'db down' } })
+    await removeUnusedLessonPreview(supabase.client, PREVIEW_URL, SUPABASE_URL)
+    assert.deepEqual(supabase.removed, [])
+  })
+})
+
+function fakePreviewBucket(urls, objects, { listError = null, removeError = null, lessonsError = null } = {}) {
+  const removed = []
+  const listed = []
+  const query = {
+    select() {
+      return query
+    },
+    not() {
+      return query
+    },
+    order() {
+      return query
+    },
+    range(start, end) {
+      if (lessonsError) return Promise.resolve({ data: null, error: lessonsError })
+      return Promise.resolve({
+        data: urls.slice(start, end + 1).map(preview_url => ({ preview_url })),
+        error: null,
+      })
+    },
+  }
+  return {
+    removed,
+    listed,
+    client: {
+      from() {
+        return query
+      },
+      storage: {
+        from() {
+          return {
+            list(prefix, options = {}) {
+              listed.push(prefix)
+              if (prefix !== 'lesson-previews') {
+                return Promise.resolve({ data: [], error: null })
+              }
+              if (listError) return Promise.resolve({ data: null, error: listError })
+              const start = options.offset ?? 0
+              const limit = options.limit ?? objects.length
+              return Promise.resolve({ data: objects.slice(start, start + limit), error: null })
+            },
+            remove(paths) {
+              removed.push(...paths)
+              return Promise.resolve({ error: removeError })
+            },
+          }
+        },
+      },
+    },
+  }
+}
+
+describe('reapOrphanLessonPreviews', () => {
+  const now = Date.parse('2026-10-06T12:00:00.000Z')
+  const staleAt = new Date(now - LESSON_CONTENT_REAP_AGE_MS - 1000).toISOString()
+  const freshAt = new Date(now - 60 * 1000).toISOString()
+
+  it('deletes a stale unreferenced preview and keeps referenced and fresh objects', async () => {
+    const supabase = fakePreviewBucket(
+      [`${PREVIEW_URL}?download=preview.png`],
+      [
+        { name: '1-preview.png', id: 'kept', created_at: staleAt },
+        { name: 'orphan.png', id: 'orphan', created_at: staleAt },
+        { name: 'fresh.png', id: 'fresh', created_at: freshAt },
+      ],
+    )
+    await reapOrphanLessonPreviews(supabase.client, SUPABASE_URL, now)
+    assert.deepEqual(supabase.listed, ['lesson-previews'])
+    assert.deepEqual(supabase.removed, ['lesson-previews/orphan.png'])
   })
 })

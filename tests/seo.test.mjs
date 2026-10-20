@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { articleJsonLd } from '../app/utils/jsonLd.ts'
+import {
+  articleImageUrl,
+  articleJsonLd,
+  breadcrumbList,
+  jsonLdGraph,
+  jsonLdScript,
+  learningResourceNode,
+  organizationNode,
+  websiteNode,
+} from '../app/utils/jsonLd.ts'
 import { robotsTxt } from '../shared/utils/robots.mjs'
-import { SITE_NAME, SITE_ORIGIN, SITE_TITLE, canonicalHref, formatDocumentTitle } from '../shared/utils/siteMeta.mjs'
+import { SITE_NAME, SITE_ORIGIN, SITE_OG_IMAGE, SITE_TITLE, canonicalHref, formatDocumentTitle } from '../shared/utils/siteMeta.mjs'
 import { buildSitemapEntries, sitemapXml } from '../shared/utils/sitemap.mjs'
 
 describe('formatDocumentTitle', () => {
@@ -19,6 +28,94 @@ describe('canonicalHref', () => {
     assert.equal(canonicalHref('//evil.com'), `${SITE_ORIGIN}/`)
     assert.equal(canonicalHref('///evil.com'), `${SITE_ORIGIN}/`)
     assert.equal(canonicalHref('https://evil.com/phish'), `${SITE_ORIGIN}/phish`)
+  })
+
+  it('falls back to the site root when an http URL cannot be parsed', () => {
+    assert.equal(canonicalHref('http://['), `${SITE_ORIGIN}/`)
+  })
+})
+
+describe('organizationNode and websiteNode', () => {
+  it('anchors on SITE_ORIGIN and marks the site language', () => {
+    const org = organizationNode()
+    assert.equal(org.url, SITE_ORIGIN)
+    assert.equal(org['@id'], `${SITE_ORIGIN}/#organization`)
+    assert.equal(org.logo, canonicalHref('/imgs/mathe_archaia_logo.jpg'))
+
+    const site = websiteNode()
+    assert.equal(site.url, SITE_ORIGIN)
+    assert.equal(site.inLanguage, 'el')
+    assert.equal(site.publisher['@id'], `${SITE_ORIGIN}/#organization`)
+  })
+})
+
+describe('breadcrumbList', () => {
+  it('numbers items from one and uses canonical paths', () => {
+    const data = breadcrumbList([
+      { name: 'Άρθρα', path: '/articles' },
+      { name: 'Τίτλος', path: '/articles/titlos' },
+    ])
+    assert.deepEqual(data.itemListElement.map((item) => item.position), [1, 2])
+    assert.equal(data.itemListElement[0].item, canonicalHref('/articles'))
+    assert.equal(data.itemListElement[1].item, canonicalHref('/articles/titlos'))
+  })
+})
+
+describe('articleImageUrl', () => {
+  it('keeps absolute URLs and falls back for relative or empty values', () => {
+    assert.equal(articleImageUrl('  https://cdn.example/a.jpg  '), 'https://cdn.example/a.jpg')
+    assert.equal(articleImageUrl('http://cdn.example/a.jpg'), 'http://cdn.example/a.jpg')
+    assert.equal(articleImageUrl('/uploads/cover.png'), SITE_OG_IMAGE)
+    assert.equal(articleImageUrl('   '), SITE_OG_IMAGE)
+    assert.equal(articleImageUrl(null), SITE_OG_IMAGE)
+  })
+})
+
+describe('learningResourceNode', () => {
+  it('omits blank fields and passes free access through', () => {
+    const sparse = learningResourceNode({
+      name: 'Κεφάλαιο',
+      description: '   ',
+      path: '/notes/keimeno',
+      educationalLevel: null,
+      isAccessibleForFree: true,
+    })
+    assert.equal(sparse.name, 'Κεφάλαιο')
+    assert.equal(Object.hasOwn(sparse, 'description'), false)
+    assert.equal(Object.hasOwn(sparse, 'educationalLevel'), false)
+    assert.equal(sparse.isAccessibleForFree, true)
+    assert.equal(sparse.learningResourceType, 'Σημειώσεις')
+    assert.equal(sparse.url, canonicalHref('/notes/keimeno'))
+
+    const full = learningResourceNode({
+      name: 'Κεφάλαιο',
+      description: ' Περίληψη ',
+      path: '/notes/keimeno',
+      educationalLevel: ' Α Λυκείου ',
+      isAccessibleForFree: false,
+    })
+    assert.equal(full.description, 'Περίληψη')
+    assert.equal(full.educationalLevel, 'Α Λυκείου')
+    assert.equal(full.isAccessibleForFree, false)
+  })
+})
+
+describe('jsonLdGraph', () => {
+  it('wraps the nodes in one schema.org graph', () => {
+    const node = organizationNode()
+    assert.deepEqual(jsonLdGraph([node]), {
+      '@context': 'https://schema.org',
+      '@graph': [node],
+    })
+  })
+})
+
+describe('jsonLdScript', () => {
+  it('escapes less-than signs in the serialized graph', () => {
+    const script = jsonLdScript({ note: '<script>' }, 'article-ld')
+    assert.equal(script.key, 'article-ld')
+    assert.match(script.innerHTML, /\\u003c/)
+    assert.equal(script.innerHTML.includes('<'), false)
   })
 })
 

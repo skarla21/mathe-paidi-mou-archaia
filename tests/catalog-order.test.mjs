@@ -20,4 +20,22 @@ describe('sortChapters', () => {
     sortChapters(input)
     assert.deepEqual(input.map((chapter) => chapter.id), ['beta', 'alpha'])
   })
+
+  it('returns an empty array for null input', () => {
+    assert.deepEqual(sortChapters(null), [])
+  })
+
+  it('treats missing order and title as zero and empty string', () => {
+    const byOrder = sortChapters([
+      { id: 'later', order: 1, title: 'Β' },
+      { id: 'default-order', title: 'Α' },
+    ])
+    assert.deepEqual(byOrder.map((chapter) => chapter.id), ['default-order', 'later'])
+
+    const byTitle = sortChapters([
+      { id: 'named', order: 0, title: 'Α' },
+      { id: 'unnamed', order: 0 },
+    ])
+    assert.deepEqual(byTitle.map((chapter) => chapter.id), ['unnamed', 'named'])
+  })
 })

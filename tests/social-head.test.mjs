@@ -32,6 +32,24 @@ describe('describedHead', () => {
       ],
     })
   })
+
+  it('clips a long description on a word boundary when a space sits past sixty percent', () => {
+    const description = `${'α'.repeat(100)} ${'β'.repeat(100)}`
+    const head = describedHead('Τίτλος', description)
+    const content = head.meta.find((tag) => tag.name === 'description')?.content
+    assert.ok(content.endsWith('…'))
+    assert.equal(content.includes('β'), false)
+    assert.equal(content.length, 101)
+  })
+
+  it('hard-cuts at one hundred sixty characters when the first space is too early', () => {
+    const description = `${'α'.repeat(50)} ${'β'.repeat(200)}`
+    const head = describedHead('Τίτλος', description)
+    const content = head.meta.find((tag) => tag.name === 'description')?.content
+    assert.ok(content.endsWith('…'))
+    assert.equal(content.length, 161)
+    assert.equal(content.startsWith(`${'α'.repeat(50)} ${'β'.repeat(109)}`), true)
+  })
 })
 
 describe('applySocialMeta', () => {

@@ -1,27 +1,29 @@
+interface CurrentUser {
+  id: string;
+  email?: string | null;
+  isAdmin: boolean;
+  name?: string | null;
+  avatar_url?: string | null;
+  provider?: string;
+  created_at?: string | null;
+  email_verified?: boolean;
+}
+
+type SessionUser = Omit<CurrentUser, "isAdmin"> & { isAdmin?: boolean };
+
 export function useCurrentUser() {
-  const session = useState<{
-    user: {
-      id: string;
-      email?: string | null;
-      isAdmin: boolean;
-      name?: string | null;
-      avatar_url?: string | null;
-      provider?: string;
-      created_at?: string | null;
-      email_verified?: boolean;
-    } | null;
-  }>("current-user-session", () => ({ user: null }));
+  const session = useState<{ user: CurrentUser | null }>("current-user-session", () => ({ user: null }));
 
   const fetchSession = async () => {
-    const result = await $fetch("/api/auth/session", {
+    const result = await $fetch<{ user?: SessionUser | null }>("/api/auth/session", {
       method: "GET",
       credentials: "include",
     }).catch((err) => {
       if (import.meta.dev) console.warn('[useCurrentUser] session fetch failed:', err)
-      return { user: null, session: null }
+      return { user: null }
     });
 
-    const user = (result as { user?: { id: string; email?: string | null; isAdmin?: boolean; name?: string | null; avatar_url?: string | null; provider?: string; created_at?: string | null; email_verified?: boolean } | null })?.user
+    const user = result.user
     session.value.user = user ? { ...user, isAdmin: user.isAdmin === true } : null
   };
 

@@ -36,4 +36,11 @@ describe('lessonExcerpt', () => {
   it('cuts a word when the line has no space in the kept part', () => {
     assert.equal(lessonExcerpt('abcdefghijklmnopqrstuvwxyz', 10), 'abcdefghij…')
   })
+
+  it('decodes numeric, hex, surrogate, and unknown entities', () => {
+    assert.equal(lessonExcerpt('&#39;'), "'")
+    assert.equal(lessonExcerpt('&#x2026;'), '…')
+    assert.equal(lessonExcerpt('&#xD800;'), '')
+    assert.equal(lessonExcerpt('&unknown;'), '')
+  })
 })
