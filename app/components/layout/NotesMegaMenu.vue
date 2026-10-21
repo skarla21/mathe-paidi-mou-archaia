@@ -156,8 +156,8 @@ onBeforeUnmount(() => {
   >
     <button
       type="button"
-      class="nav-bobble flex items-center gap-1 px-1 py-1 text-[15px] font-bold"
-      :class="notesActive ? 'text-[#10b981] wavy-green' : 'text-muted-foreground hover:text-[#10b981] hover-wavy-green'"
+      class="flex items-center gap-1 px-1 py-1 text-[15px] font-semibold"
+      :class="notesActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
       :aria-expanded="open"
       aria-haspopup="true"
       @click="open ? closeMenu() : openMenu()"
@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
       :class="activeGradeId ? 'w-[min(36rem,calc(100vw-2rem))]' : 'w-80'"
       :style="panelShift ? { transform: `translateX(${panelShift}px)` } : undefined"
     >
-      <div class="flex gap-3 rounded-2xl border border-border bg-card p-4 text-left shadow-[0_24px_48px_-12px_rgba(15,23,42,0.18)]">
+      <div class="flex gap-3 rounded-xl border border-border bg-card p-4 text-left shadow-[0_10px_24px_rgba(42,36,32,0.08)]">
         <div
           class="flex flex-col gap-1 rounded-xl bg-secondary p-2"
           :class="activeGradeId ? 'w-[calc((36rem-2rem-0.75rem)/2)] shrink-0' : 'min-w-52 flex-1'"

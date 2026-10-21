@@ -74,8 +74,8 @@ onBeforeUnmount(clearCloseTimer)
   >
     <button
       type="button"
-      class="nav-bobble px-1 py-1 text-[15px] font-bold"
-      :class="extrasActive ? 'text-[#0e7490] wavy-teal' : 'text-muted-foreground hover:text-[#0e7490] hover-wavy-teal'"
+      class="px-1 py-1 text-[15px] font-semibold"
+      :class="extrasActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
       :aria-expanded="open"
       aria-haspopup="true"
       @click="open ? closeMenu() : openMenu()"
@@ -83,7 +83,7 @@ onBeforeUnmount(clearCloseTimer)
       Κατηγορίες
     </button>
     <div v-show="open" class="absolute top-full left-0 z-50 pt-3 w-72">
-      <div class="rounded-2xl border border-border bg-card p-3 shadow-[0_24px_48px_-12px_rgba(15,23,42,0.18)] flex flex-col gap-1">
+      <div class="flex flex-col gap-1 rounded-xl border border-border bg-card p-1.5 shadow-[0_10px_24px_rgba(42,36,32,0.08)]">
         <NuxtLink
           v-for="category in categories"
           :key="category.id"

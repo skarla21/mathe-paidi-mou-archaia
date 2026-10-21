@@ -8,27 +8,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <footer
-    class="relative mt-16 w-full overflow-hidden border-t border-border bg-secondary pt-16 pb-10"
-  >
-    <div
-      class="pointer-events-none absolute -bottom-10 -right-8 hidden h-28 w-56 opacity-40 md:block"
-      aria-hidden="true"
-    >
-      <svg
-        viewBox="0 0 160 80"
-        class="h-full w-full text-primary/30"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
+  <footer class="mt-16 w-full border-t border-border bg-secondary pt-12 pb-10">
+    <div class="mx-auto max-w-7xl px-6 lg:px-12">
+      <p
+        class="max-w-3xl font-brand text-2xl leading-snug text-foreground sm:text-[1.75rem]"
       >
-        <path d="M8 60c20-28 40-28 60 0s40 28 60 0" />
-        <path d="M20 20h24v28H20z" />
-        <path d="M28 20V8" />
-      </svg>
+        «Χαλεπὰ τὰ καλά — τα σπουδαία κερδίζονται με χαρά και δημιουργικότητα.»
+      </p>
     </div>
     <div
-      class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 md:grid-cols-2 lg:grid-cols-12 lg:px-12"
+      class="mx-auto mt-10 grid max-w-7xl grid-cols-1 gap-10 px-6 md:grid-cols-2 lg:grid-cols-12 lg:px-12"
     >
       <div class="space-y-4 lg:col-span-4">
         <div class="flex items-center gap-2">
@@ -39,7 +28,7 @@ onMounted(() => {
               class="size-full object-cover"
             />
           </span>
-          <span class="font-brand text-lg font-bold text-foreground"
+          <span class="font-brand text-lg text-foreground"
             >Μάθε Παιδί Μου Αρχαία</span
           >
         </div>
@@ -47,12 +36,6 @@ onMounted(() => {
           Το ψηφιακό σου σχολείο με κλασική σοφία και σύγχρονο παλμό. Μαθήματα,
           σημειώσεις και οργανωμένο υλικό για όλες τις τάξεις.
         </p>
-        <div class="rounded-2xl bg-muted/80 p-4">
-          <p class="font-brand text-lg font-bold leading-snug text-foreground">
-            «Χαλεπὰ τὰ καλά — τα σπουδαία κερδίζονται με χαρά και
-            δημιουργικότητα.»
-          </p>
-        </div>
       </div>
 
       <div class="space-y-3 lg:col-span-2">

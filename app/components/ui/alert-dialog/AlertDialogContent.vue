@@ -14,7 +14,7 @@ const props = defineProps<Props>();
   <RadixContent
     :class="
       cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 shadow-lg transition-opacity sm:rounded-lg',
+        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-card p-6 shadow-[0_10px_24px_rgba(42,36,32,0.08)] transition-opacity sm:rounded-2xl',
         props.class,
       )
     "

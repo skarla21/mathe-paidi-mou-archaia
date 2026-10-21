@@ -127,7 +127,7 @@ onUnmounted(() => {
     <UiPopoverAnchor as-child>
       <div ref="rootRef" :class="props.class">
         <div
-          class="flex w-full items-center gap-2 rounded-full border border-border bg-secondary px-3.5 shadow-sm transition-all hover:bg-muted focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/30"
+          class="flex w-full items-center gap-2 rounded-[10px] border border-border bg-card px-3 transition-[background-color,border-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring"
           :class="props.submitButton ? 'pr-1.5' : ''"
         >
           <VIcon
@@ -141,14 +141,14 @@ onUnmounted(() => {
             :placeholder="placeholder"
             aria-label="Αναζήτηση υλικού..."
             class="w-full min-w-0 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none border-none"
-            :class="props.size === 'lg' ? 'h-12 text-base' : 'h-9 text-[13.5px]'"
+            :class="props.size === 'lg' ? 'h-12 text-base' : 'h-11 text-base'"
             @focus="onFocus"
             @keydown="onKeydown"
           >
           <button
             v-if="props.submitButton"
             type="button"
-            class="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-4 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+            class="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[10px] bg-primary px-4 font-semibold text-primary-foreground transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-primary/90 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
             :class="props.size === 'lg' ? 'h-9 text-sm' : 'h-7 text-xs'"
             :disabled="!canSubmit"
             aria-label="Αναζήτηση"
@@ -159,7 +159,7 @@ onUnmounted(() => {
           </button>
           <kbd
             v-else-if="props.hotkey"
-            class="hidden lg:inline-flex shrink-0 rounded-full border border-border bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground pointer-events-none"
+            class="pointer-events-none hidden shrink-0 rounded-[8px] border border-border bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground lg:inline-flex"
           >
             Ctrl K
           </kbd>

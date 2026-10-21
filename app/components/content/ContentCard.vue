@@ -31,6 +31,7 @@ const props = withDefaults(
     avgRating?: number | null;
     ratingCount?: number | null;
     likeCount?: number | null;
+    frame?: "card" | "quiet";
   }>(),
   {
     description: null,
@@ -50,6 +51,7 @@ const props = withDefaults(
     avgRating: null,
     ratingCount: null,
     likeCount: null,
+    frame: "card",
   },
 );
 
@@ -144,15 +146,18 @@ async function toggleBookmark() {
 
 <template>
   <article
-    class="flex w-full flex-col gap-4 rounded-3xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-stretch sm:gap-5 sm:p-5"
+    :class="frame === 'quiet'
+      ? 'flex w-full flex-col gap-4 rounded-[10px] border border-border bg-card p-3 sm:flex-row sm:items-center'
+      : 'flex w-full flex-col gap-4 rounded-3xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-stretch sm:gap-5 sm:p-5'"
   >
     <div
-      class="relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-muted"
-      :class="
+      class="relative flex shrink-0 items-center justify-center overflow-hidden"
+      :class="[
         thumbLayout === 'landscape'
           ? 'aspect-4/3 w-full max-w-56 sm:w-44 sm:max-w-none'
-          : 'aspect-210/297 w-22 sm:w-28'
-      "
+          : 'aspect-210/297 w-22 sm:w-28',
+        frame === 'quiet' ? 'rounded-[10px] border-0 bg-secondary' : 'rounded-2xl border border-border/70 bg-muted',
+      ]"
       aria-hidden="true"
     >
       <img
@@ -271,7 +276,7 @@ async function toggleBookmark() {
         type="button"
         variant="outline"
         size="icon"
-        class="rounded-full"
+        :class="frame === 'quiet' ? '[@media(hover:hover)_and_(pointer:fine)]:hover:bg-card! [@media(hover:hover)_and_(pointer:fine)]:hover:text-primary!' : 'rounded-full'"
         :disabled="bookmarkBusy"
         :aria-pressed="saved"
         :aria-label="bookmarkLabel"
@@ -285,7 +290,8 @@ async function toggleBookmark() {
       </UiButton>
       <NuxtLink
         :to="to"
-        class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        class="inline-flex h-10 items-center justify-center gap-2 bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors [@media(hover:hover)]:hover:bg-primary/90"
+        :class="frame === 'quiet' ? 'rounded-[10px]' : 'rounded-full'"
       >
         <VIcon name="bi-eye" class="size-4" aria-hidden="true" />
         Άνοιγμα

@@ -31,7 +31,7 @@ import {
 } from '~/lib/lessonEngageStorage'
 
 const descriptionClass = [
-  'mt-5 max-w-3xl font-reading text-lg leading-relaxed text-muted-foreground',
+  'mt-8 max-w-3xl font-reading text-lg leading-relaxed text-foreground',
   '[&_a]:font-semibold [&_a]:text-primary [&_a]:underline-offset-4 hover:[&_a]:underline',
   '[&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:italic',
   '[&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm',
@@ -476,17 +476,23 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
-    <header id="lesson-title" class="max-w-3xl">
-      <CatalogBackLink :to="parent.to" :name="parent.name" />
-      <UiSkeleton v-if="!lesson" class="mt-5 h-12 w-2/3 rounded-xl" />
+  <div class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
+    <header id="lesson-title">
+      <NuxtLink
+        :to="parent.to"
+        class="inline-flex max-w-full items-center gap-2 text-[15px] font-semibold text-foreground"
+      >
+        <VIcon name="bi-arrow-left" class="size-4 shrink-0" aria-hidden="true" />
+        <span class="truncate">{{ parent.name }}</span>
+      </NuxtLink>
+      <UiSkeleton v-if="!lesson" class="mt-5 h-16 w-2/3 rounded-[10px]" />
       <h1
         v-else
-        class="mt-5 font-heading text-4xl font-extrabold leading-tight tracking-tight text-balance text-foreground sm:text-5xl"
+        class="mt-5 font-heading text-[clamp(3.25rem,7vw,6.25rem)] leading-[0.92] tracking-tight text-foreground"
       >
         {{ lesson.title }}
       </h1>
-      <p v-if="lesson" class="mt-3 text-sm font-semibold text-muted-foreground">
+      <p v-if="lesson" class="mt-4 text-sm font-semibold text-muted-foreground">
         {{ lesson.is_free ? 'Δωρεάν σημειώσεις' : 'Σημειώσεις · το PDF είναι επί πληρωμή' }}
       </p>
       <CatalogChips
@@ -496,20 +502,99 @@ onMounted(async () => {
       />
     </header>
     <template v-if="lesson">
-      <ClientOnly v-if="lesson.content">
-        <!-- eslint-disable vue/no-v-html -- safeContent is DOMPurify.sanitize() output -->
-        <div
-          v-if="safeContent"
-          :class="descriptionClass"
-          v-html="safeContent"
-        />
-        <!-- eslint-enable vue/no-v-html -->
-        <template #fallback>
-          <p class="mt-5 max-w-3xl font-reading text-lg leading-relaxed text-muted-foreground">
-            {{ lessonPlainText }}
+      <div
+        v-if="fileBlock"
+        class="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between"
+      >
+        <div v-if="fileBlock === 'sign-in' || fileBlock === 'verify-email'" class="max-w-xl">
+          <h2 class="font-heading text-lg font-semibold text-foreground">
+            {{ fileBlock === 'sign-in' ? 'Συνδέσου για πρόσβαση στο υλικό' : 'Επαλήθευσε το email σου για πρόσβαση στο υλικό' }}
+          </h2>
+          <p class="mt-1 text-base leading-relaxed text-foreground">
+            {{ fileBlock === 'sign-in' ? 'Χρειάζεται να συνδεθείς για να δεις ή να κατεβάσεις αυτό το υλικό.' : 'Χρειάζεται να επαληθεύσεις το email σου πριν μπορέσεις να δεις ή να κατεβάσεις υλικό.' }}
           </p>
-        </template>
-      </ClientOnly>
+        </div>
+        <div v-else class="max-w-xl">
+          <h2 class="font-heading text-lg font-semibold text-foreground">
+            Ξεκλείδωσε αυτό το υλικό
+          </h2>
+          <p class="mt-1 text-base leading-relaxed text-foreground">
+            Αγόρασε αυτό το υλικό για πρόσβαση στο PDF.
+          </p>
+          <div class="mt-4 flex flex-col gap-3">
+            <div class="flex items-start gap-2">
+              <Checkbox
+                id="buy-terms"
+                v-model="acceptTerms"
+                class="mt-0.5"
+              />
+              <label for="buy-terms" class="text-sm leading-relaxed text-muted-foreground">
+                Αποδέχομαι τους
+                <NuxtLink
+                  to="/oroi"
+                  class="font-semibold text-primary underline-offset-4 hover:underline"
+                  @click.stop
+                >
+                  όρους χρήσης
+                </NuxtLink>.
+              </label>
+            </div>
+            <div class="flex items-start gap-2">
+              <Checkbox
+                id="buy-immediate"
+                v-model="acceptImmediateAccess"
+                class="mt-0.5"
+              />
+              <label for="buy-immediate" class="text-sm leading-relaxed text-muted-foreground">
+                Ζητώ να ξεκινήσει αμέσως η πρόσβαση στο ψηφιακό υλικό και γνωρίζω ότι χάνω το δικαίωμα υπαναχώρησης των 14 ημερών.
+              </label>
+            </div>
+          </div>
+        </div>
+        <UiButton
+          v-if="fileBlock === 'sign-in'"
+          class="shrink-0"
+          @click="openLogin(route.fullPath)"
+        >
+          Σύνδεση
+        </UiButton>
+        <UiButton
+          v-else-if="fileBlock === 'verify-email'"
+          class="shrink-0"
+          @click="openEditProfile"
+        >
+          Επεξεργασία προφίλ
+        </UiButton>
+        <UiButton
+          v-else
+          class="shrink-0"
+          :disabled="purchasing || !acceptTerms || !acceptImmediateAccess"
+          @click="buyLesson"
+        >
+          {{ purchasing ? 'Ανακατεύθυνση...' : 'Αγόρασε αυτό το υλικό' }}
+        </UiButton>
+      </div>
+      <figure v-if="fileBlock" class="mt-8 w-full max-w-3xl">
+        <img
+          v-if="lockedPreviewSrc"
+          :src="lockedPreviewSrc"
+          alt=""
+          class="block max-h-[640px] w-full rounded-[10px] border border-border bg-secondary object-contain object-top"
+          @error="previewFailed = true"
+        >
+        <span
+          v-else
+          class="flex aspect-[1/1.2] max-h-[480px] items-center justify-center rounded-[10px] border border-border bg-secondary text-muted-foreground"
+        >
+          <VIcon name="bi-journal-text" class="size-8" aria-hidden="true" />
+        </span>
+        <figcaption
+          v-if="lockedPageLabel || lockedSizeLabel"
+          class="mt-3 text-[15px] font-semibold text-muted-foreground"
+        >
+          {{ [lockedPageLabel, lockedSizeLabel].filter(Boolean).join(' · ') }}
+        </figcaption>
+      </figure>
       <div v-if="canAccess && canAccessContent && lesson.content_url" class="mt-8">
         <LessonContentViewer
           :src="lesson.content_url"
@@ -522,116 +607,20 @@ onMounted(async () => {
           @engaged="onContentEngaged"
         />
       </div>
-      <div
-        v-else-if="fileBlock"
-        class="mx-auto mt-8 flex max-w-md flex-col items-center gap-4"
-      >
-        <div class="w-56 rounded-3xl border border-border bg-card p-3">
-          <img
-            v-if="lockedPreviewSrc"
-            :src="lockedPreviewSrc"
-            alt=""
-            class="block h-auto w-full rounded-sm object-contain object-top"
-            @error="previewFailed = true"
-          >
-          <span
-            v-else
-            class="flex aspect-[1/1.414] items-center justify-center rounded-sm bg-muted text-muted-foreground"
-          >
-            <VIcon name="bi-journal-text" class="size-8" aria-hidden="true" />
-          </span>
-          <span
-            v-if="lockedPageLabel || lockedSizeLabel"
-            class="mt-3 flex items-center justify-between gap-2"
-          >
-            <span class="text-sm font-semibold text-foreground">{{ lockedPageLabel }}</span>
-            <span v-if="lockedSizeLabel" class="text-xs font-semibold text-muted-foreground tabular-nums">
-              {{ lockedSizeLabel }}
-            </span>
-          </span>
-        </div>
-      <div
-        v-if="fileBlock === 'sign-in' || fileBlock === 'verify-email'"
-        class="flex w-full flex-col items-center gap-4 rounded-3xl border border-amber/30 bg-amber/10 p-8 text-center"
-      >
-        <span
-          class="flex size-14 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-500"
-        >
-          <VIcon
-            :name="fileBlock === 'sign-in' ? 'bi-person-circle' : 'bi-envelope-exclamation'"
-            class="size-7"
-            aria-hidden="true"
-          />
-        </span>
-        <div>
-          <h3 class="font-heading text-xl font-bold text-foreground">
-            {{ fileBlock === 'sign-in' ? 'Συνδέσου για πρόσβαση στο υλικό' : 'Επαλήθευσε το email σου για πρόσβαση στο υλικό' }}
-          </h3>
-          <p class="mt-2 text-sm text-muted-foreground leading-relaxed">
-            {{ fileBlock === 'sign-in' ? 'Χρειάζεται να συνδεθείς για να δεις ή να κατεβάσεις αυτό το υλικό.' : 'Χρειάζεται να επαληθεύσεις το email σου πριν μπορέσεις να δεις ή να κατεβάσεις υλικό.' }}
+      <ClientOnly v-if="lesson.content">
+        <!-- eslint-disable vue/no-v-html -- safeContent is DOMPurify.sanitize() output -->
+        <div
+          v-if="safeContent"
+          :class="descriptionClass"
+          v-html="safeContent"
+        />
+        <!-- eslint-enable vue/no-v-html -->
+        <template #fallback>
+          <p class="mt-8 max-w-3xl font-reading text-lg leading-relaxed text-foreground">
+            {{ lessonPlainText }}
           </p>
-        </div>
-        <UiButton v-if="fileBlock === 'sign-in'" variant="outline" @click="openLogin(route.fullPath)">
-          Σύνδεση
-        </UiButton>
-        <UiButton v-else variant="outline" @click="openEditProfile">
-          Επεξεργασία προφίλ
-        </UiButton>
-      </div>
-      <div
-        v-else
-        class="flex w-full flex-col items-center gap-4 rounded-3xl border border-primary/30 bg-flame-fixed/40 p-8 text-center"
-      >
-        <span
-          class="flex size-14 items-center justify-center rounded-2xl bg-accent/20 text-accent"
-        >
-          <VIcon name="bi-gem" class="size-7" aria-hidden="true" />
-        </span>
-        <div>
-          <h3 class="font-heading text-xl font-bold text-foreground">
-            Ξεκλείδωσε αυτό το υλικό
-          </h3>
-          <p class="mt-2 text-sm text-muted-foreground leading-relaxed">
-            Αγόρασε αυτό το υλικό για πρόσβαση στο PDF.
-          </p>
-        </div>
-        <div class="flex w-full flex-col gap-3 text-left">
-          <div class="flex items-start gap-2">
-            <Checkbox
-              id="buy-terms"
-              v-model="acceptTerms"
-              class="mt-0.5"
-            />
-            <label for="buy-terms" class="text-sm leading-relaxed text-muted-foreground">
-              Αποδέχομαι τους
-              <NuxtLink
-                to="/oroi"
-                class="font-semibold text-primary underline-offset-4 hover:underline"
-                @click.stop
-              >
-                όρους χρήσης
-              </NuxtLink>.
-            </label>
-          </div>
-          <div class="flex items-start gap-2">
-            <Checkbox
-              id="buy-immediate"
-              v-model="acceptImmediateAccess"
-              class="mt-0.5"
-            />
-            <label for="buy-immediate" class="text-sm leading-relaxed text-muted-foreground">
-              Ζητώ να ξεκινήσει αμέσως η πρόσβαση στο ψηφιακό υλικό και γνωρίζω ότι χάνω το δικαίωμα υπαναχώρησης των 14 ημερών.
-            </label>
-          </div>
-        </div>
-        <UiButton
-          :disabled="purchasing || !acceptTerms || !acceptImmediateAccess"
-          @click="buyLesson"
-        >
-          {{ purchasing ? 'Ανακατεύθυνση...' : 'Αγόρασε αυτό το υλικό' }}
-        </UiButton>
-      </div>
-      </div>
+        </template>
+      </ClientOnly>
 
       <LessonEngagePrompt
         v-if="showEngagePrompt"
@@ -707,6 +696,6 @@ onMounted(async () => {
         />
       </div>
     </template>
-    <UiSkeleton v-else class="mt-8 h-72 w-56 rounded-3xl" />
+    <UiSkeleton v-else class="mt-8 h-72 w-full max-w-3xl rounded-[10px]" />
   </div>
 </template>

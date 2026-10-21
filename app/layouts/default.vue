@@ -89,7 +89,7 @@ if (import.meta.client) {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-background text-foreground">
+  <div class="app-shell min-h-screen flex flex-col bg-background text-foreground">
     <Toaster />
     <AuthModal />
     <EditProfileModal />

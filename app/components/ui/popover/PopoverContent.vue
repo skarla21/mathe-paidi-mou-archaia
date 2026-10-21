@@ -28,7 +28,7 @@ const props = withDefaults(defineProps<Props>(), {
       :collision-padding="props.collisionPadding"
       :class="
         cn(
-          'z-50 w-full min-w-32 overflow-hidden rounded-md border bg-card p-1 text-card-foreground shadow-lg',
+          'z-50 w-full min-w-32 origin-(--radix-popover-content-transform-origin) overflow-hidden rounded-xl border border-border bg-card p-1 text-card-foreground shadow-[0_10px_24px_rgba(42,36,32,0.08)]',
           props.class,
         )
       "

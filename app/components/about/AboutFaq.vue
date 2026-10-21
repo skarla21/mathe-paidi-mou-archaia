@@ -31,40 +31,51 @@ const questions = [
 useHead({
   script: [jsonLdScript(jsonLdGraph([faqPageNode(questions)]), 'ld-json-faq')],
 })
+
+const openIndex = ref(0)
+
+function onToggle(index: number, event: Event) {
+  const details = event.currentTarget
+  if (!(details instanceof HTMLDetailsElement)) return
+  if (details.open) {
+    openIndex.value = index
+    return
+  }
+  if (openIndex.value === index) openIndex.value = -1
+}
 </script>
 
 <template>
-  <section>
-    <h2 class="mb-4 flex items-center gap-2 font-heading text-2xl font-semibold">
-      <span class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <VIcon name="bi-info-circle" class="size-4" aria-hidden="true" />
-      </span>
-      Συχνές ερωτήσεις
-    </h2>
-    <p class="mb-4 font-heading leading-relaxed text-muted-foreground">
-      Σύντομες απαντήσεις για το υλικό, τις σχολικές τάξεις και τα ιδιαίτερα.
-    </p>
-    <div class="rounded-3xl border border-border bg-card px-5 shadow-sm sm:px-6">
-      <details
-        v-for="(item, index) in questions"
-        :key="item.question"
-        class="group border-b border-border last:border-b-0"
-        :open="index === 0"
-      >
-        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-4 outline-none focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-primary/40 [&::-webkit-details-marker]:hidden">
-          <h3 class="font-heading text-base font-semibold text-foreground">
-            {{ item.question }}
-          </h3>
-          <VIcon
-            name="bi-chevron-down"
-            class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
-            aria-hidden="true"
-          />
-        </summary>
-        <p class="pb-4 font-heading leading-relaxed text-muted-foreground">
-          {{ item.answer }}
-        </p>
-      </details>
+  <section class="grid gap-6 lg:grid-cols-[180px_1fr]">
+    <p class="text-sm font-semibold text-muted-foreground">Ερωτήσεις</p>
+    <div>
+      <h2 class="font-heading text-4xl text-foreground sm:text-5xl">Συχνές ερωτήσεις</h2>
+      <p class="mt-3 max-w-xl text-lg text-foreground">
+        Σύντομες απαντήσεις για το υλικό, τις σχολικές τάξεις και τα ιδιαίτερα.
+      </p>
+      <div class="mt-8 border-t border-border">
+        <details
+          v-for="(item, index) in questions"
+          :key="item.question"
+          class="group border-b border-border"
+          :open="openIndex === index"
+          @toggle="onToggle(index, $event)"
+        >
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-5 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+            <h3 class="font-heading text-xl text-foreground sm:text-2xl">
+              {{ item.question }}
+            </h3>
+            <VIcon
+              name="bi-chevron-down"
+              class="size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-180"
+              aria-hidden="true"
+            />
+          </summary>
+          <p class="max-w-[52ch] pb-5 text-base leading-relaxed text-muted-foreground">
+            {{ item.answer }}
+          </p>
+        </details>
+      </div>
     </div>
   </section>
 </template>

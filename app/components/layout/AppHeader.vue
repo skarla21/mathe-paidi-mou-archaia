@@ -85,20 +85,18 @@ async function confirmLogout() {
 </script>
 
 <template>
-  <header
-    class="sticky top-0 z-50 w-full border-b border-header-border bg-header-bg/90 shadow-[0_1px_10px_rgba(0,0,0,0.03)] backdrop-blur-xl"
-  >
+  <header class="sticky top-0 z-50 w-full border-b border-border bg-background">
     <div
-      class="relative flex h-20 w-full items-center gap-3 px-4 sm:px-6 lg:px-8"
+      class="relative mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4 sm:px-6 lg:px-8"
     >
       <NuxtLink
         to="/"
-        class="group/logo flex shrink-0 items-center gap-3 text-foreground"
+        class="group/logo order-1 flex min-w-0 flex-1 items-center gap-3 text-foreground"
         @mouseenter="onLogoHover"
       >
         <span
           ref="logoRef"
-          class="size-9 shrink-0 overflow-hidden rounded-full ring-2 ring-primary/20 transition-all group-hover/logo:ring-primary"
+          class="size-11 shrink-0 overflow-hidden rounded-full"
           aria-hidden="true"
         >
           <img
@@ -108,7 +106,7 @@ async function confirmLogout() {
           />
         </span>
         <span
-          class="font-brand text-base font-bold leading-tight tracking-tight sm:text-lg group-hover/logo:text-primary transition-colors"
+          class="font-brand wrap-break-word text-2xl leading-tight tracking-tight sm:text-[1.75rem]"
         >
           Μάθε Παιδί Μου Αρχαία
         </span>
@@ -116,26 +114,24 @@ async function confirmLogout() {
 
       <button
         type="button"
-        class="flex items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground xl:hidden"
+        class="order-2 flex items-center justify-center rounded-[10px] p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:hidden"
         aria-label="Άνοιγμα μενού πλοήγησης"
         @click="openMobileMenu"
       >
         <VIcon name="bi-list" class="size-5" aria-hidden="true" />
       </button>
 
-      <div
-        class="ml-auto hidden items-center gap-4 md:flex xl:absolute xl:left-1/2 xl:ml-0 xl:-translate-x-1/2"
-      >
+      <div class="order-4 hidden w-full flex-col gap-3 md:flex">
         <nav
-          class="hidden items-center gap-4 font-ui text-[15px] font-bold whitespace-nowrap xl:flex"
+          class="hidden flex-wrap items-center gap-x-6 gap-y-2 font-ui text-[15px] font-semibold lg:flex"
         >
           <NuxtLink
             to="/"
-            class="nav-bobble px-1 py-1"
+            class="px-1 py-1"
             :class="
               homeActive
-                ? 'text-primary wavy-underline'
-                : 'text-muted-foreground hover:text-primary hover-wavy-orange'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             "
             :aria-current="homeActive ? 'page' : undefined"
           >
@@ -143,11 +139,11 @@ async function confirmLogout() {
           </NuxtLink>
           <NuxtLink
             to="/about"
-            class="nav-bobble px-1 py-1"
+            class="px-1 py-1"
             :class="
               aboutActive
-                ? 'text-[#f59e0b] wavy-amber'
-                : 'text-muted-foreground hover:text-[#f59e0b] hover-wavy-amber'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             "
           >
             Σχετικά
@@ -156,11 +152,11 @@ async function confirmLogout() {
           <LayoutExtrasMenu />
           <NuxtLink
             to="/articles"
-            class="nav-bobble px-1 py-1"
+            class="px-1 py-1"
             :class="
               articlesActive
-                ? 'text-amethyst wavy-purple'
-                : 'text-muted-foreground hover:text-amethyst hover-wavy-purple'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             "
             :aria-current="articlesActive ? 'page' : undefined"
           >
@@ -168,19 +164,16 @@ async function confirmLogout() {
           </NuxtLink>
           <a
             href="/#communication"
-            class="nav-bobble px-1 py-1 text-muted-foreground hover:text-rose-600 hover-wavy-rose"
+            class="px-1 py-1 text-muted-foreground hover:text-foreground"
             @click="goToContact"
           >
             Επικοινωνία
           </a>
         </nav>
-        <SearchGlobalSearch
-          hotkey
-          class="w-52 shrink-0 lg:w-64 xl:w-56 2xl:w-64"
-        />
+        <SearchGlobalSearch hotkey class="w-full" />
       </div>
 
-      <div class="flex shrink-0 items-center gap-2 max-md:ml-auto xl:ml-auto">
+      <div class="order-3 ml-auto flex shrink-0 items-center gap-2">
         <div class="hidden sm:block">
           <LayoutThemeLanguageControls />
         </div>
@@ -388,7 +381,7 @@ async function confirmLogout() {
       enter-active-class="transition-opacity duration-200 ease-out"
       enter-from-class="opacity-0"
       enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-150 ease-in"
+      leave-active-class="transition-opacity duration-150 ease-out"
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >

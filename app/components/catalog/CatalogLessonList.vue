@@ -25,6 +25,7 @@ defineProps<{
     <ContentCard
       v-for="lesson in lessons"
       :key="lesson.id"
+      frame="quiet"
       :to="lesson.to"
       :title="lesson.title"
       :description="lesson.excerpt"

@@ -223,7 +223,7 @@ function onDeleted() {
       <UiTextarea
         v-model="composerText"
         placeholder="Γράψτε ένα σχόλιο…"
-        class="min-h-28 rounded-2xl border-none bg-secondary font-reading text-base focus:bg-card"
+        class="min-h-28 bg-background font-reading"
       />
       <div class="mt-4">
         <UiButton size="sm" :disabled="composerLoading" @click="submitComposer">

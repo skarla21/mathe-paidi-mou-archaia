@@ -119,17 +119,11 @@ async function submitContact() {
 </script>
 
 <template>
-  <section id="communication" class="scroll-mt-24 py-16">
+  <section id="communication" class="mx-auto max-w-7xl scroll-mt-40 px-4 py-16 sm:px-6 lg:px-12">
     <div class="grid items-start gap-8 lg:grid-cols-12">
       <div class="space-y-6 lg:col-span-5">
-        <div
-          class="inline-flex items-center gap-2 rounded-full bg-flame-fixed px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-flame-fixed-foreground"
-        >
-          <VIcon name="bi-chat-dots" class="size-4" aria-hidden="true" />
-          Επικοινωνία
-        </div>
         <h2
-          class="font-heading text-3xl font-extrabold text-foreground sm:text-4xl"
+          class="font-heading text-4xl text-foreground sm:text-5xl"
         >
           Έχεις απορίες ή θέλεις ιδιαίτερα;
         </h2>
@@ -142,7 +136,7 @@ async function submitContact() {
             class="flex items-center gap-3.5 rounded-2xl bg-card p-4 shadow-sm"
           >
             <span
-              class="flex size-10 items-center justify-center rounded-full bg-laurel-fixed text-laurel-fixed-foreground"
+              class="flex size-10 items-center justify-center rounded-[10px] bg-secondary text-foreground"
             >
               <VIcon name="bi-envelope" class="size-5" aria-hidden="true" />
             </span>
@@ -158,7 +152,7 @@ async function submitContact() {
             class="flex items-center gap-3.5 rounded-2xl bg-card p-4 shadow-sm"
           >
             <span
-              class="flex size-10 items-center justify-center rounded-full bg-flame-fixed text-flame-fixed-foreground"
+              class="flex size-10 items-center justify-center rounded-[10px] bg-header-bg text-foreground"
             >
               <VIcon
                 name="bi-clock-history"
@@ -178,7 +172,7 @@ async function submitContact() {
             class="flex items-center gap-3.5 rounded-2xl bg-card p-4 shadow-sm"
           >
             <span
-              class="flex size-10 items-center justify-center rounded-full bg-amethyst-fixed text-amethyst-fixed-foreground"
+              class="flex size-10 items-center justify-center rounded-[10px] bg-amethyst-fixed text-foreground"
             >
               <VIcon name="bi-mortarboard" class="size-5" aria-hidden="true" />
             </span>
@@ -194,7 +188,7 @@ async function submitContact() {
       </div>
 
       <div
-        class="rounded-3xl border border-border bg-card p-8 shadow-[0_16px_36px_rgba(0,0,0,0.06)] lg:col-span-7"
+        class="rounded-[10px] border border-border bg-card p-8 lg:col-span-7"
       >
         <h3 class="font-heading text-xl font-bold">Στείλε το μήνυμά σου</h3>
         <p class="mb-6 text-sm text-muted-foreground">
@@ -227,7 +221,7 @@ async function submitContact() {
                 v-model="name"
                 type="text"
                 maxlength="120"
-                class="h-12 w-full rounded-xl border-none bg-secondary px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+                class="h-12 w-full rounded-[10px] border border-border bg-card text-base px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="π.χ. Μαρία Παπαδοπούλου"
               />
             </label>
@@ -241,7 +235,7 @@ async function submitContact() {
                 aria-required="true"
                 :aria-invalid="(showErrors && emailInvalid) || undefined"
                 :aria-describedby="showErrors && emailInvalid ? 'contact-email-error' : undefined"
-                class="h-12 w-full rounded-xl border bg-secondary px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+                class="h-12 w-full rounded-[10px] border bg-card text-base px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
                 :class="
                   showErrors && emailInvalid
                     ? 'border-destructive'
@@ -267,7 +261,7 @@ async function submitContact() {
               Τάξη μαθητή
               <Select v-model="gradeChoice">
                 <SelectTrigger
-                  class="h-12 w-full cursor-pointer rounded-xl border-none bg-secondary px-4 font-normal shadow-none data-[size=default]:h-12 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary"
+                  class="h-12 w-full cursor-pointer rounded-[10px] border border-border bg-card text-base px-4 font-normal shadow-none data-[size=default]:h-12 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <SelectValue placeholder="Προαιρετικά" />
                 </SelectTrigger>
@@ -292,7 +286,7 @@ async function submitContact() {
                 v-model="phone"
                 type="tel"
                 maxlength="40"
-                class="h-12 w-full rounded-xl border-none bg-secondary px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+                class="h-12 w-full rounded-[10px] border border-border bg-card text-base px-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="69XXXXXXXX"
               />
             </label>
@@ -308,7 +302,7 @@ async function submitContact() {
               :aria-describedby="showErrors && messageInvalid ? 'contact-message-error' : undefined"
               maxlength="4000"
               rows="4"
-              class="w-full rounded-xl border bg-secondary p-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+              class="w-full rounded-[10px] border bg-card text-base p-4 font-normal focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary"
               :class="
                 showErrors && messageInvalid
                   ? 'border-destructive'
@@ -338,7 +332,7 @@ async function submitContact() {
           </div>
           <button
             type="submit"
-            class="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-linear-to-r from-orange-600 to-amber-500 py-3.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(234,88,12,0.35)] transition-colors hover:from-orange-700 hover:to-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+            class="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] bg-primary text-[15px] font-semibold text-primary-foreground transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 [@media(hover:hover)]:hover:bg-primary/90"
             :disabled="submitting"
           >
             <VIcon name="bi-send" class="size-4" aria-hidden="true" />

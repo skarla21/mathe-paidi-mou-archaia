@@ -41,7 +41,9 @@ type CommentsPage = {
   hasMore: boolean;
 };
 
+const storedImageSrc = useStoredImageSrc();
 const article = ref<ArticlePayload | null>(null);
+const articleImage = computed(() => storedImageSrc(article.value?.image_url));
 const articlePending = ref(true);
 const comments = ref<ArticleCommentRow[]>([]);
 const commentsPage = ref(1);
@@ -53,37 +55,23 @@ const likeLabel = computed(() =>
 );
 const shareOpen = ref(false);
 
-function greekDate(value: string) {
+function shortCreated(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("el-GR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Europe/Athens",
-  }).format(date);
-}
-
-function athensDay(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Athens",
-    year: "numeric",
-    month: "2-digit",
+  const parts = new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
-  }).format(date);
+    month: "2-digit",
+    year: "2-digit",
+    timeZone: "Europe/Athens",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("day")}/${part("month")}/${part("year")}`;
 }
 
 const publishedLabel = computed(() =>
-  article.value ? greekDate(article.value.created_at) : "",
+  article.value ? shortCreated(article.value.created_at) : "",
 );
-const updatedLabel = computed(() => {
-  const current = article.value;
-  if (!current?.updated_at || !current.created_at) return "";
-  if (athensDay(current.updated_at) === athensDay(current.created_at)) return "";
-  return greekDate(current.updated_at);
-});
 
 const slug = computed(() => route.params.slug as string);
 
@@ -280,8 +268,14 @@ function scrollToComments() {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-3xl px-4 py-12">
-    <CatalogBackLink class="mb-6" to="/articles" name="Όλα τα άρθρα" />
+  <div class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
+    <NuxtLink
+      to="/articles"
+      class="inline-flex max-w-full items-center gap-2 text-[15px] font-semibold text-foreground"
+    >
+      <VIcon name="bi-arrow-left" class="size-4 shrink-0" aria-hidden="true" />
+      <span class="truncate">Όλα τα άρθρα</span>
+    </NuxtLink>
 
     <template v-if="articlePending">
       <UiSkeleton class="mb-3 h-9 w-full rounded-xl" />
@@ -299,47 +293,46 @@ function scrollToComments() {
     </template>
 
     <template v-else>
-      <header class="mb-8 space-y-2">
-        <div class="flex items-start justify-between gap-4">
-          <div class="min-w-0">
-            <h1 class="text-3xl font-heading font-bold">
-              {{ article.title }}
-            </h1>
-            <p v-if="publishedLabel" class="mt-2 text-sm text-muted-foreground">
-              <time :datetime="article.created_at">Δημοσιεύτηκε {{ publishedLabel }}</time>
-              <template v-if="updatedLabel">
-                · <time :datetime="article.updated_at">Ενημερώθηκε {{ updatedLabel }}</time>
-              </template>
-            </p>
-          </div>
+      <header class="mt-5">
+        <h1 class="font-heading text-[clamp(2.75rem,5.6vw,5rem)] leading-[0.96] tracking-tight text-foreground">
+          {{ article.title }}
+        </h1>
+        <div class="mt-4 flex flex-wrap items-baseline justify-between gap-3">
+          <time
+            v-if="publishedLabel"
+            :datetime="article.created_at"
+            class="text-[15px] font-semibold text-muted-foreground"
+          >
+            {{ publishedLabel }}
+          </time>
           <ContentReadingTime
-            class="shrink-0 text-end"
+            class="shrink-0"
             :minutes="article.reading_time_minutes"
           />
         </div>
-        <div v-if="article.tags?.length" class="flex flex-wrap gap-2 mt-4">
+        <div v-if="article.tags?.length" class="mt-4 flex flex-wrap gap-2">
           <a
             v-for="tag in article.tags"
             :key="tag"
             :href="`/articles?q=${encodeURIComponent(tag)}`"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-xs rounded-md bg-muted px-2 py-0.5 text-muted-foreground transition-colors hover:text-primary"
+            class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-primary"
           >
             {{ tag }}
           </a>
         </div>
       </header>
 
-      <CatalogCover
-        class="mb-8"
-        show-full
-        :image-url="article.image_url"
-        :alt="article.title"
+      <img
+        v-if="articleImage"
+        :src="articleImage"
+        alt=""
+        class="mt-8 block max-h-[520px] w-full max-w-4xl rounded-[10px] border border-border bg-secondary object-contain"
       />
 
       <div
-        class="font-reading prose prose-neutral mb-10 max-w-none whitespace-pre-wrap dark:prose-invert"
+        class="mt-8 mb-10 max-w-3xl font-reading text-lg leading-relaxed whitespace-pre-wrap text-foreground"
       >
         {{ article.body }}
       </div>

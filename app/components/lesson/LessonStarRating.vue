@@ -56,6 +56,7 @@ function onClick(star: number) {
         :key="star"
         type="button"
         class="rounded-md p-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        data-icon-still="off"
         :class="disabled ? 'cursor-default opacity-70' : 'cursor-pointer'"
         :disabled="disabled"
         :aria-label="`${star} από 5 αστέρια`"

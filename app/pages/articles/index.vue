@@ -113,7 +113,7 @@ onBeforeUnmount(() => {
 
     <div class="mt-2 mb-6 max-w-md">
       <div
-        class="flex w-full items-center gap-2 rounded-full border border-border bg-secondary px-3.5 shadow-sm transition-all hover:bg-muted focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/30"
+        class="flex w-full items-center gap-2 rounded-[10px] border border-border bg-card px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring"
       >
         <VIcon
           name="bi-search"
@@ -125,7 +125,7 @@ onBeforeUnmount(() => {
           type="search"
           placeholder="Αναζήτηση άρθρων..."
           aria-label="Αναζήτηση άρθρων..."
-          class="h-9 w-full border-none bg-transparent text-[13.5px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+          class="h-11 w-full border-none bg-transparent text-base text-foreground caret-foreground placeholder:text-muted-foreground focus:outline-none"
           @input="onSearchInput"
         />
       </div>

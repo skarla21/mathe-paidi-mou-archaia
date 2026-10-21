@@ -57,29 +57,29 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
-    <div id="grade-title">
-      <LayoutPageIntro
-        eyebrow="Τάξεις"
-        :title="grade?.name ?? 'Τάξη'"
-      />
+    <div class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
+        <div id="grade-title">
+          <p class="text-sm font-semibold text-muted-foreground">Τάξεις</p>
+          <h1 class="mt-2 font-heading text-5xl leading-none text-foreground sm:text-6xl">
+            {{ grade?.name ?? 'Τάξη' }}
+          </h1>
+        </div>
+        <div v-if="subjectsState === 'ready'" id="grade-content" class="mt-8">
+          <h2 class="mb-4 font-heading text-2xl text-foreground">Μαθήματα</h2>
+          <div class="flex flex-col gap-3">
+            <CatalogThumbCard
+              v-for="subject in subjects"
+              :key="subject.id"
+              :to="`/${grade?.slug}/${subject.slug}`"
+              :title="subject.name"
+              :image-url="subject.image_url"
+              :count-label="catalogSubjectCountLabel(subject.chapter_count ?? 0, subject.lesson_count ?? 0)"
+              icon="bi-book"
+            />
+          </div>
+        </div>
+        <p v-else id="grade-content" class="mt-8 text-muted-foreground">
+          {{ subjectsState === 'error' ? 'Τα μαθήματα δεν φορτώθηκαν. Δοκίμασε ξανά σε λίγο.' : 'Δεν υπάρχουν ακόμη μαθήματα για αυτή την τάξη.' }}
+        </p>
     </div>
-    <div v-if="subjectsState === 'ready'" id="grade-content">
-      <CatalogSectionHeading title="Μαθήματα" icon="bi-journal-text" tone="flame" />
-      <div class="flex flex-col gap-4">
-        <CatalogThumbCard
-          v-for="subject in subjects"
-          :key="subject.id"
-          :to="`/${grade?.slug}/${subject.slug}`"
-          :title="subject.name"
-          :image-url="subject.image_url"
-          :count-label="catalogSubjectCountLabel(subject.chapter_count ?? 0, subject.lesson_count ?? 0)"
-          icon="bi-book"
-        />
-      </div>
-    </div>
-    <p v-else id="grade-content" class="text-muted-foreground">
-      {{ subjectsState === 'error' ? 'Τα μαθήματα δεν φορτώθηκαν. Δοκίμασε ξανά σε λίγο.' : 'Δεν υπάρχουν ακόμη μαθήματα για αυτή την τάξη.' }}
-    </p>
-  </div>
 </template>

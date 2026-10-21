@@ -87,30 +87,31 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
-    <div id="dashboard-title" class="max-w-3xl">
-      <LayoutPageIntro title="Πίνακας" lead="Τα αποθηκευμένα μαθήματά σου." />
+  <div class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
+    <div id="dashboard-title">
+      <h1 class="font-heading text-5xl leading-none text-foreground sm:text-6xl">
+        Πίνακας
+      </h1>
+      <p class="mt-4 max-w-xl text-lg text-foreground">
+        Τα αποθηκευμένα μαθήματά σου.
+      </p>
     </div>
 
-    <section>
-      <h2 class="mb-4 font-heading text-xl font-semibold">Το Υλικό Μου</h2>
+    <section class="mt-8">
+      <h2 class="mb-4 font-heading text-2xl text-foreground">Το Υλικό Μου</h2>
 
       <div v-if="pending && !lessons.length" class="space-y-3">
-        <UiSkeleton v-for="i in 3" :key="i" class="h-36 rounded-3xl" />
+        <UiSkeleton v-for="i in 3" :key="i" class="h-28 rounded-[10px]" />
       </div>
 
-      <div
-        v-else-if="total === 0"
-        class="max-w-md rounded-3xl border border-dashed border-border bg-card p-10 text-center shadow-sm"
-      >
-        <VIcon name="bi-bookmark" class="mx-auto size-10 text-muted-foreground/70" aria-hidden="true" />
-        <p class="mt-3 font-heading font-medium">Δεν έχεις αποθηκευμένο υλικό ακόμα.</p>
-        <p class="mt-1 text-sm text-muted-foreground">
+      <div v-else-if="total === 0" class="max-w-xl">
+        <p class="font-heading text-lg text-foreground">Δεν έχεις αποθηκευμένο υλικό ακόμα.</p>
+        <p class="mt-2 text-foreground">
           Αποθήκευσε μαθήματα από τον κατάλογο για να τα βρίσκεις εδώ.
         </p>
         <NuxtLink
           to="/"
-          class="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+          class="mt-5 inline-flex h-10 items-center justify-center rounded-[10px] bg-primary px-4 text-[15px] font-semibold text-primary-foreground active:scale-[0.97]"
         >
           Εξερεύνηση υλικού
         </NuxtLink>
@@ -120,6 +121,7 @@ onMounted(() => {
         <ContentCard
           v-for="lesson in lessons"
           :key="lesson.id"
+          frame="quiet"
           :to="lesson.url!"
           :title="lesson.title"
           :description="lesson.excerpt"

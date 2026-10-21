@@ -8,6 +8,7 @@ const { toggle, colorMode } = useTheme()
     role="switch"
     :aria-checked="colorMode === 'dark'"
     class="rounded-lg px-2 py-1.5 flex items-center transition-colors cursor-pointer"
+    data-icon-still="off"
     aria-label="Εναλλαγή θέματος"
     @click="toggle"
   >

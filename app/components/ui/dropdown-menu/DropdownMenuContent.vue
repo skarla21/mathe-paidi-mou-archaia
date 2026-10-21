@@ -25,7 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
       :align="props.align"
       :class="
         cn(
-          'z-50 min-w-32 overflow-hidden rounded-md border bg-card p-1 text-card-foreground shadow-lg',
+          'z-50 min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-xl border border-border bg-card p-1.5 text-card-foreground shadow-[0_10px_24px_rgba(42,36,32,0.08)]',
           props.class,
         )
       "

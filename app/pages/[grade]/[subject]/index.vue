@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { LessonChip } from '~/lib/lessonContext'
 import type { Chapter, Grade, Subject } from '~/types/database'
 import { catalogChapterCountLabel, subjectCatalogView } from '~/utils/catalogLists'
 
@@ -74,11 +73,6 @@ const catalog = computed(() => subjectCatalogView({
   lessonCount: lessonsTotal.value,
 }))
 const gradeTo = computed(() => `/${grade?.slug ?? ''}`)
-const chips = computed<LessonChip[]>(() => (
-  grade
-    ? [{ name: grade.name, to: gradeTo.value, tone: 'grade' }]
-    : []
-))
 const lessonRows = computed(() => subjectLessons.value.map((lesson) => ({
   id: lesson.id,
   title: lesson.title,
@@ -125,67 +119,53 @@ useHead(() => ({
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-12">
-    <header>
-      <CatalogBackLink :to="gradeTo" :name="grade?.name ?? 'Τάξη'" />
-      <div class="mt-5 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
-        <div class="min-w-0 max-w-3xl flex-1">
-          <h1 class="font-heading text-4xl font-extrabold leading-tight tracking-tight text-balance text-foreground sm:text-5xl">
-            {{ subject?.name ?? 'Μάθημα' }}
-          </h1>
-          <CatalogChips class="mt-4" :chips="chips" />
+  <div class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
+      <NuxtLink :to="gradeTo" class="inline-flex items-center gap-2 text-[15px] font-semibold text-foreground">
+        <VIcon name="bi-arrow-left" class="size-4 shrink-0" aria-hidden="true" />
+        {{ grade?.name ?? 'Τάξη' }}
+      </NuxtLink>
+      <h1 class="mt-5 font-heading text-5xl leading-none text-foreground sm:text-6xl">
+        {{ subject?.name ?? 'Μάθημα' }}
+      </h1>
+
+      <section v-if="catalog.showChapters" class="mt-10">
+        <h2 class="mb-4 font-heading text-2xl text-foreground">Κεφάλαια</h2>
+        <div class="flex flex-col gap-3">
+          <CatalogThumbCard
+            v-for="chapter in chapters"
+            :key="chapter.id"
+            :to="`${gradeTo}/${subject?.slug}/${chapter.slug}`"
+            :title="chapter.title"
+            :text="chapter.description"
+            :image-url="chapter.image_url"
+            :count-label="catalogChapterCountLabel(chapter.lesson_count ?? 0)"
+          />
         </div>
-        <CatalogCover
-          class="w-full max-w-52 shrink-0 sm:max-w-60"
-          :image-url="subject?.image_url"
-          :alt="subject?.name ?? 'Μάθημα'"
-          show-full
+      </section>
+      <p v-else-if="catalog.chaptersMessage" class="mt-10 text-muted-foreground">
+        {{ catalog.chaptersMessage }}
+      </p>
+
+      <section v-if="catalog.showLessons" class="mt-10">
+        <h2 class="mb-4 font-heading text-2xl text-foreground">{{ catalog.lessonHeading }}</h2>
+        <CatalogLessonList :lessons="lessonRows" />
+        <CatalogPager
+          :page="page"
+          :total="lessonsTotal"
+          :page-size="pageSize"
+          :disabled="lessonsStatus === 'pending'"
+          @update:page="onPageChange"
         />
-      </div>
-    </header>
+      </section>
+      <p v-else-if="catalog.lessonsMessage" class="mt-10 text-muted-foreground">
+        {{ catalog.lessonsMessage }}
+      </p>
 
-    <section v-if="catalog.showChapters" class="mt-10">
-      <CatalogSectionHeading title="Κεφάλαια" icon="bi-journal-bookmark" tone="amethyst" />
-      <div class="flex flex-col gap-4">
-        <CatalogThumbCard
-          v-for="chapter in chapters"
-          :key="chapter.id"
-          :to="`${gradeTo}/${subject?.slug}/${chapter.slug}`"
-          :title="chapter.title"
-          :text="chapter.description"
-          :image-url="chapter.image_url"
-          :count-label="catalogChapterCountLabel(chapter.lesson_count ?? 0)"
-        />
-      </div>
-    </section>
-    <p v-else-if="catalog.chaptersMessage" class="mt-10 text-muted-foreground">
-      {{ catalog.chaptersMessage }}
-    </p>
-
-    <section v-if="catalog.showLessons" class="mt-10">
-      <CatalogSectionHeading
-        :title="catalog.lessonHeading"
-        icon="bi-folder"
-        tone="laurel"
-      />
-      <CatalogLessonList :lessons="lessonRows" />
-      <CatalogPager
-        :page="page"
-        :total="lessonsTotal"
-        :page-size="pageSize"
-        :disabled="lessonsStatus === 'pending'"
-        @update:page="onPageChange"
-      />
-    </section>
-    <p v-else-if="catalog.lessonsMessage" class="mt-10 text-muted-foreground">
-      {{ catalog.lessonsMessage }}
-    </p>
-
-    <p v-if="catalog.blockedMessage" class="mt-10 text-muted-foreground">
-      {{ catalog.blockedMessage }}
-    </p>
-    <p v-else-if="catalog.emptyMessage" class="mt-10 text-muted-foreground">
-      {{ catalog.emptyMessage }}
-    </p>
+      <p v-if="catalog.blockedMessage" class="mt-10 text-muted-foreground">
+        {{ catalog.blockedMessage }}
+      </p>
+      <p v-else-if="catalog.emptyMessage" class="mt-10 text-muted-foreground">
+        {{ catalog.emptyMessage }}
+      </p>
   </div>
 </template>
