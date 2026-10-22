@@ -11,12 +11,24 @@ function scrollTo(id: string) {
 </script>
 
 <template>
-  <section id="welcome" class="scroll-mt-40 bg-header-bg">
-    <div class="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:px-12 lg:py-20">
+  <section id="welcome" class="relative isolate scroll-mt-40 overflow-hidden bg-background">
+    <img
+      src="/imgs/animated-class.jpg"
+      alt=""
+      width="832"
+      height="448"
+      class="pointer-events-none absolute inset-0 size-full object-cover object-center brightness-110 saturate-75 dark:brightness-105 dark:saturate-70"
+      aria-hidden="true"
+    />
+    <div
+      class="hero-scrim pointer-events-none absolute inset-0"
+      aria-hidden="true"
+    />
+    <div class="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:px-12 lg:py-20">
       <div>
         <h1
           id="hero-title"
-          class="font-heading text-5xl leading-[0.92] tracking-tight text-foreground sm:text-7xl"
+          class="font-heading text-4xl leading-[0.95] tracking-tight text-foreground sm:text-6xl lg:text-7xl lg:leading-[0.92]"
         >
           Μάθε Παιδί μου<br />
           Αρχαία και σύγχρονα
@@ -29,7 +41,7 @@ function scrollTo(id: string) {
         <div id="hero-cta" class="mt-8">
           <button
             type="button"
-            class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-[10px] bg-primary px-5 text-[15px] font-semibold text-primary-foreground transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] [@media(hover:hover)]:hover:bg-primary/90"
+            class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-[10px] bg-primary px-5 text-[15px] font-semibold text-primary-foreground transition-[transform,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.97] [@media(hover:hover)]:hover:bg-primary/90"
             @click="scrollTo('grades')"
           >
             <VIcon name="bi-book" class="size-4" aria-hidden="true" />
@@ -47,14 +59,14 @@ function scrollTo(id: string) {
             class="size-24 rounded-full object-cover ring-4 ring-card"
           />
         </div>
-        <p class="mb-2 inline-flex items-center gap-1.5 rounded-[10px] bg-amethyst-fixed px-3 py-1 text-sm text-foreground">
-          <VIcon name="bi-mortarboard" class="size-3.5" aria-hidden="true" />
+        <p class="mb-2 inline-flex items-center gap-1.5 rounded-[10px] border border-primary/30 bg-primary/15 px-3 py-1 text-sm text-foreground">
+          <VIcon name="bi-mortarboard" class="size-3.5 text-primary" aria-hidden="true" />
           Η δική σου φιλόλογος
         </p>
         <h2 class="mb-4 font-heading text-xl text-foreground">
           Εύκολη κατάκτηση της ύλης
         </h2>
-        <ul class="mb-3 space-y-2.5 rounded-[10px] bg-secondary p-4 text-left text-sm">
+        <ul class="mb-3 space-y-2.5 rounded-[10px] bg-sky p-4 text-left text-sm">
           <li
             v-for="point in tutorPoints"
             :key="point"
@@ -62,16 +74,16 @@ function scrollTo(id: string) {
           >
             <VIcon
               name="bi-check2-circle"
-              class="mt-0.5 size-4 shrink-0 text-laurel"
+              class="mt-0.5 size-4 shrink-0 text-primary"
               aria-hidden="true"
             />
             <span>{{ point }}</span>
           </li>
         </ul>
-        <div class="flex items-start gap-3 rounded-[10px] bg-accent p-3.5 text-left">
+        <div class="flex items-start gap-3 rounded-[10px] bg-amethyst-fixed p-3.5 text-left">
           <VIcon
             name="bi-lightbulb"
-            class="mt-0.5 size-5 shrink-0 text-amber"
+            class="mt-0.5 size-5 shrink-0 text-amethyst"
             aria-hidden="true"
           />
           <div>
@@ -86,3 +98,13 @@ function scrollTo(id: string) {
     </div>
   </section>
 </template>
+
+<style scoped>
+.hero-scrim {
+  background-color: color-mix(in oklab, var(--background) 78%, transparent);
+}
+
+html.dark .hero-scrim {
+  background-color: color-mix(in oklab, var(--background) 72%, transparent);
+}
+</style>

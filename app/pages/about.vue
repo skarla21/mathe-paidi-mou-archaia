@@ -8,8 +8,6 @@ useHead(() => describedHead(
   '/about',
 ))
 
-const lead = 'Ό,τι χρειάζεσαι για να κατακτήσεις τα Αρχαία Ελληνικά στις εξετάσεις — δομημένες σημειώσεις, μαθήματα βήμα-βήμα και οργανωμένο υλικό εξάσκησης.'
-
 const facts = [
   { label: 'Ποιος γράφει', value: 'Η φιλόλογος της πλατφόρμας' },
   { label: 'Τάξεις', value: 'Δημοτικό, γυμνάσιο, λύκειο' },
@@ -37,7 +35,6 @@ onMounted(() => {
   if (import.meta.client) {
     const { revealSection } = useGsapReveal()
     nextTick(() => {
-      revealSection('#about-title')
       revealSection('#about-mission')
       revealSection('#about-platform')
       revealSection('#about-faq')
@@ -49,20 +46,9 @@ onMounted(() => {
 
 <template>
   <div>
-    <section id="about-title" class="mx-auto grid max-w-7xl items-end gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[42%_1fr] lg:px-12 lg:py-24">
-      <p class="max-w-[32ch] text-lg leading-relaxed text-foreground">{{ lead }}</p>
-      <div>
-        <h1 class="font-heading text-6xl leading-none text-foreground sm:text-7xl lg:text-8xl">Σχετικά</h1>
-        <NuxtLink
-          to="/#communication"
-          class="mt-7 inline-flex h-10 items-center rounded-[10px] bg-primary px-4 text-[15px] font-semibold text-primary-foreground transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97]"
-        >
-          Στείλε μήνυμα
-        </NuxtLink>
-      </div>
-    </section>
+    <h1 class="sr-only">Σχετικά</h1>
 
-    <section id="about-mission" class="mx-auto grid max-w-7xl gap-x-10 gap-y-8 px-4 py-8 sm:px-6 lg:grid-cols-[34%_1fr] lg:px-12 lg:py-16">
+    <section id="about-mission" class="mx-auto grid max-w-7xl gap-x-10 gap-y-8 px-4 pt-16 pb-8 sm:px-6 lg:grid-cols-[34%_1fr] lg:px-12 lg:pt-24 lg:pb-16">
       <div>
         <p v-for="fact in facts" :key="fact.label" class="mb-5">
           <span class="block text-sm text-muted-foreground">{{ fact.label }}</span>

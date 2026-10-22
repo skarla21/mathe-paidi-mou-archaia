@@ -121,9 +121,9 @@ async function confirmLogout() {
         <VIcon name="bi-list" class="size-5" aria-hidden="true" />
       </button>
 
-      <div class="order-4 hidden w-full flex-col gap-3 md:flex">
+      <div class="order-4 hidden w-full items-center gap-x-6 gap-y-3 md:flex">
         <nav
-          class="hidden flex-wrap items-center gap-x-6 gap-y-2 font-ui text-[15px] font-semibold lg:flex"
+          class="hidden min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-2 font-ui text-[15px] font-semibold lg:flex"
         >
           <NuxtLink
             to="/"
@@ -170,7 +170,7 @@ async function confirmLogout() {
             Επικοινωνία
           </a>
         </nav>
-        <SearchGlobalSearch hotkey class="w-full" />
+        <SearchGlobalSearch hotkey class="w-full lg:w-80 lg:shrink-0" />
       </div>
 
       <div class="order-3 ml-auto flex shrink-0 items-center gap-2">
